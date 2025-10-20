@@ -3,10 +3,28 @@ import { SuspensionPanel } from "./SuspensionPanel";
 import { CommunityFeed } from "./CommunityFeed";
 import { AdminPanel } from "./AdminPanel";
 import { AnalyticsPanel } from "./AnalyticsPanel";
+import { LGUReportsPanel } from "./LGUReportsPanel";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Settings, Shield, Users, Database } from "lucide-react";
+import { Button } from "./ui/button";
+import { Settings, Shield, Users, Database, LogOut, User as UserIcon } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { useState } from "react";
 
 function SettingsPanel() {
+  const { user, logout } = useAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="mb-6">
@@ -17,8 +35,34 @@ function SettingsPanel() {
           System configuration and monitoring preferences for Batangas Province
         </p>
       </div>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <UserIcon className="w-5 h-5 text-blue-500" />
+              Account
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div>
+                <p className="font-medium text-gray-900">{user?.displayName || 'User'}</p>
+                <p className="text-sm text-gray-600">{user?.email}</p>
+              </div>
+              <Button
+                variant="destructive"
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                {loggingOut ? 'Logging out...' : 'Logout'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -30,7 +74,7 @@ function SettingsPanel() {
             <p className="text-gray-600">Configure emergency alert thresholds and notification preferences.</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -42,7 +86,7 @@ function SettingsPanel() {
             <p className="text-gray-600">Manage community reporters and admin access levels.</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -54,7 +98,7 @@ function SettingsPanel() {
             <p className="text-gray-600">Configure weather data sources and monitoring stations.</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -79,6 +123,8 @@ function DashboardOverview() {
 export function DashboardContent({ activeSection }) {
   const renderContent = () => {
     switch (activeSection) {
+      case 'lgu-reports':
+        return <LGUReportsPanel />;
       case 'community':
         return <CommunityFeed />;
       case 'suspension':

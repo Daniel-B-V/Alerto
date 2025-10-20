@@ -1,23 +1,25 @@
-import { TrendingUp, Users, MapPin, Calendar, BarChart3, PieChart } from "lucide-react";
+import { useState, useEffect } from "react";
+import { TrendingUp, Users, MapPin, Calendar, BarChart3, PieChart, RefreshCw, Cloud } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
-import { 
-  LineChart, 
-  Line, 
-  BarChart, 
-  Bar, 
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
   PieChart as RechartsPieChart,
-  Pie, 
+  Pie,
   Cell,
   AreaChart,
   Area,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   Legend
 } from "recharts";
+import { getWeatherStatistics, getBatangasWeather } from "../services/weatherService";
 
 const monthlyData = [
   { month: "Jan", suspensions: 12, reports: 145, incidents: 8 },
@@ -60,17 +62,114 @@ const performanceMetrics = [
 ];
 
 export function AnalyticsPanel() {
+  const [weatherStats, setWeatherStats] = useState(null);
+  const [citiesWeather, setCitiesWeather] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(null);
+
+  // Fetch real-time weather statistics
+  const fetchWeatherStats = async () => {
+    setLoading(true);
+    try {
+      const stats = await getWeatherStatistics();
+      setWeatherStats(stats);
+
+      const cities = await getBatangasWeather();
+      setCitiesWeather(cities);
+
+      setLastUpdate(new Date());
+    } catch (error) {
+      console.error('Failed to fetch weather statistics:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchWeatherStats();
+
+    // Auto-refresh every 10 minutes
+    const interval = setInterval(() => {
+      fetchWeatherStats();
+    }, 10 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Analytics & Insights
-        </h1>
-        <p className="text-gray-600">
-          Comprehensive data analysis and performance metrics for Batangas Province monitoring
-        </p>
+      <div className="mb-6 flex justify-between items-start">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Analytics & Insights
+          </h1>
+          <p className="text-gray-600">
+            Comprehensive data analysis and performance metrics for Batangas Province monitoring
+          </p>
+          {lastUpdate && (
+            <p className="text-xs text-gray-500 mt-1">
+              Last updated: {lastUpdate.toLocaleTimeString()}
+            </p>
+          )}
+        </div>
+        <button
+          onClick={fetchWeatherStats}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 transition-colors"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </button>
       </div>
+
+      {/* Real-time Weather Statistics */}
+      {weatherStats && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <Card className="bg-gradient-to-br from-blue-50/80 to-blue-100/80 backdrop-blur-sm border-blue-200/50 shadow-sm hover:shadow-md transition-all duration-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-blue-600 mb-1">Avg Temperature</p>
+                  <p className="text-2xl font-bold text-blue-900">{weatherStats.averageTemperature}°C</p>
+                  <p className="text-xs text-blue-500">Province-wide</p>
+                </div>
+                <Cloud className="w-8 h-8 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-red-50/80 to-red-100/80 backdrop-blur-sm border-red-200/50 shadow-sm hover:shadow-md transition-all duration-200">
+            <CardContent className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-900">{weatherStats.highRiskAreas}</div>
+                <div className="text-sm text-red-600">High Risk Areas</div>
+                <div className="text-xs text-red-500">Severe Weather</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-yellow-50/80 to-yellow-100/80 backdrop-blur-sm border-yellow-200/50 shadow-sm hover:shadow-md transition-all duration-200">
+            <CardContent className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-900">{weatherStats.mediumRiskAreas}</div>
+                <div className="text-sm text-yellow-600">Moderate Risk</div>
+                <div className="text-xs text-yellow-500">Watch Areas</div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-gradient-to-br from-green-50/80 to-green-100/80 backdrop-blur-sm border-green-200/50 shadow-sm hover:shadow-md transition-all duration-200">
+            <CardContent className="p-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-900">{weatherStats.normalAreas}</div>
+                <div className="text-sm text-green-600">Normal Conditions</div>
+                <div className="text-xs text-green-500">Safe Areas</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Performance Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

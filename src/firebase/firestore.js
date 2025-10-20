@@ -257,23 +257,56 @@ export const getUserReports = async (userId) => {
 
 // Listen to reports updates
 export const subscribeToReports = (callback, filters = {}) => {
-  const reportsRef = collection(db, COLLECTIONS.REPORTS);
-  let q = query(reportsRef, orderBy('createdAt', 'desc'));
+  try {
+    const reportsRef = collection(db, COLLECTIONS.REPORTS);
+    let q;
 
-  if (filters.status) {
-    q = query(q, where('status', '==', filters.status));
-  }
-  if (filters.limit) {
-    q = query(q, limit(filters.limit));
-  }
+    // Build query based on filters
+    if (filters.status) {
+      q = query(
+        reportsRef,
+        where('status', '==', filters.status),
+        orderBy('createdAt', 'desc')
+      );
+    } else {
+      q = query(reportsRef, orderBy('createdAt', 'desc'));
+    }
 
-  return onSnapshot(q, (snapshot) => {
-    const reports = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-    callback(reports);
-  });
+    if (filters.limit) {
+      q = query(q, limit(filters.limit));
+    }
+
+    return onSnapshot(
+      q,
+      (snapshot) => {
+        const reports = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        callback(reports);
+      },
+      (error) => {
+        console.error('Error in reports snapshot listener:', error);
+        // If index error, try without orderBy
+        if (error.code === 'failed-precondition' || error.message.includes('index')) {
+          console.log('Firestore index needed, fetching without orderBy...');
+          const simpleQuery = query(reportsRef, limit(filters.limit || 20));
+          return onSnapshot(simpleQuery, (snapshot) => {
+            const reports = snapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            callback(reports);
+          });
+        }
+        callback([]);
+      }
+    );
+  } catch (error) {
+    console.error('Error setting up reports listener:', error);
+    callback([]);
+    return () => {}; // Return empty unsubscribe function
+  }
 };
 
 // Listen to single report updates

@@ -1,12 +1,13 @@
-import { 
-  LayoutDashboard, 
-  Cloud, 
-  GraduationCap, 
-  Users, 
-  FileText, 
+import {
+  LayoutDashboard,
+  Cloud,
+  GraduationCap,
+  Users,
+  FileText,
   Settings,
   ChevronLeft,
-  BarChart3
+  BarChart3,
+  Brain
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
@@ -16,6 +17,7 @@ export function Sidebar({ activeSection, onSectionChange }) {
 
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
+    { id: "lgu-reports", icon: Brain, label: "LGU Reports", badge: "AI" },
     { id: "community", icon: Users, label: "Community" },
     { id: "suspension", icon: GraduationCap, label: "Suspension" },
     { id: "analytics", icon: BarChart3, label: "Analytics" },
@@ -53,15 +55,24 @@ export function Sidebar({ activeSection, onSectionChange }) {
           <Button
             key={item.id}
             variant="ghost"
-            className={`w-full justify-start rounded-xl transition-all duration-200 ${
-              activeSection === item.id 
-                ? 'bg-blue-500 text-white shadow-lg hover:bg-blue-600 hover:shadow-xl' 
+            className={`w-full justify-start rounded-xl transition-all duration-200 relative ${
+              activeSection === item.id
+                ? 'bg-blue-500 text-white shadow-lg hover:bg-blue-600 hover:shadow-xl'
                 : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
             }`}
             onClick={() => onSectionChange(item.id)}
           >
             <item.icon className="w-5 h-5" />
-            {!collapsed && <span className="ml-3">{item.label}</span>}
+            {!collapsed && (
+              <>
+                <span className="ml-3">{item.label}</span>
+                {item.badge && (
+                  <span className="ml-auto text-xs px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold">
+                    {item.badge}
+                  </span>
+                )}
+              </>
+            )}
           </Button>
         ))}
       </nav>

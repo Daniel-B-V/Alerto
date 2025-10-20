@@ -25,6 +25,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Inactivity timeout (30 minutes = 1800000 milliseconds)
+  const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+  const [lastActivityTime, setLastActivityTime] = useState(Date.now());
+
   // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = onAuthChange((firebaseUser) => {
@@ -38,6 +42,7 @@ export const AuthProvider = ({ children }) => {
           emailVerified: firebaseUser.emailVerified
         });
         setIsAuthenticated(true);
+        setLastActivityTime(Date.now());
       } else {
         // User is signed out
         setUser(null);
@@ -49,6 +54,43 @@ export const AuthProvider = ({ children }) => {
     // Cleanup subscription on unmount
     return () => unsubscribe();
   }, []);
+
+  // Track user activity and handle inactivity timeout
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Update last activity time on user interactions
+    const updateActivity = () => {
+      setLastActivityTime(Date.now());
+    };
+
+    // List of events to track user activity
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart', 'click'];
+
+    // Add event listeners
+    events.forEach(event => {
+      window.addEventListener(event, updateActivity);
+    });
+
+    // Check for inactivity every minute
+    const inactivityCheckInterval = setInterval(() => {
+      const now = Date.now();
+      const timeSinceLastActivity = now - lastActivityTime;
+
+      if (timeSinceLastActivity >= INACTIVITY_TIMEOUT) {
+        console.log('User logged out due to inactivity');
+        logOut();
+      }
+    }, 60000); // Check every minute
+
+    // Cleanup
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, updateActivity);
+      });
+      clearInterval(inactivityCheckInterval);
+    };
+  }, [isAuthenticated, lastActivityTime]);
 
   // Login function
   const login = async (credentials) => {
