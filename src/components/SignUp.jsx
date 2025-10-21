@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { Cloud, Bell } from 'lucide-react';
 import { validateSignUpForm, getAuthErrorMessage } from './LoginUtils';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
@@ -93,11 +94,17 @@ const SignUp = () => {
       <div className="w-full max-w-md">
 
         {/* Logo/Brand */}
-        <h1 className="text-5xl font-bold text-gray-900 mb-8 leading-tight">ALERTO</h1>
+        <div className="flex items-center gap-3 mb-8">
+          <div className="relative">
+            <Cloud className="w-10 h-10 text-blue-500" />
+            <Bell className="w-5 h-5 text-yellow-500 absolute -top-1 -right-1" />
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 leading-tight">ALERTO</h1>
+        </div>
 
         {/* Heading */}
-        <h2 className="text-4xl font-bold text-gray-900 mb-3 leading-tight">Create an account</h2>
-        <p className="text-gray-600 mb-10 leading-relaxed">Start monitoring weather alerts in Batangas.</p>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2 leading-tight">Create an account</h2>
+        <p className="text-gray-600 mb-8 leading-relaxed">Start monitoring weather alerts in Batangas.</p>
 
         {/* Alert Messages */}
         {error && (
@@ -127,7 +134,7 @@ const SignUp = () => {
               onChange={handleChange}
               placeholder="Enter your name"
               disabled={loading}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               autoComplete="name"
             />
           </div>
@@ -145,7 +152,7 @@ const SignUp = () => {
               onChange={handleChange}
               placeholder="Enter your email"
               disabled={loading}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               autoComplete="email"
             />
           </div>
@@ -163,7 +170,7 @@ const SignUp = () => {
               onChange={handleChange}
               placeholder="Create a password"
               disabled={loading}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               autoComplete="new-password"
             />
           </div>
@@ -181,7 +188,7 @@ const SignUp = () => {
               onChange={handleChange}
               placeholder="Confirm your password"
               disabled={loading}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               autoComplete="new-password"
             />
           </div>
@@ -190,8 +197,7 @@ const SignUp = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full text-white py-3 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{ backgroundColor: '#111827' }}
+            className="w-full bg-white hover:bg-gray-50 text-black border border-gray-300 py-3 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             {loading ? 'Creating account...' : 'Get started'}
           </button>
@@ -219,7 +225,7 @@ const SignUp = () => {
             Already have an account?{' '}
             <button
               onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { path: '/login' } }))}
-              className="font-semibold text-gray-900 hover:underline bg-transparent border-0 cursor-pointer"
+              className="font-semibold text-blue-600 hover:text-blue-700 hover:underline bg-transparent border-0 cursor-pointer"
             >
               Log in
             </button>
