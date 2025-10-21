@@ -78,7 +78,9 @@ WHAT THE NEW RULES ALLOW:
 
 ✓ Anyone can READ user profiles
 ✓ Authenticated users can READ comments
-✓ Authenticated users can READ weather data
+
+✓ Anyone can READ weather data
+✓ Authenticated users can WRITE weather data (NEW - for test data seeding)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

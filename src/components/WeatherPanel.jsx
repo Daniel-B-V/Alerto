@@ -12,6 +12,8 @@ import {
 } from "../services/weatherService";
 import { getReports } from "../firebase/firestore";
 import { useSocket } from "../contexts/SocketContext";
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 
 export function WeatherPanel() {
   const [currentWeather, setCurrentWeather] = useState(null);
@@ -20,6 +22,7 @@ export function WeatherPanel() {
   const [batangasStats, setBatangasStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [communityReports, setCommunityReports] = useState([]);
+  const [activeSuspensions, setActiveSuspensions] = useState(0);
   const [lastUpdate, setLastUpdate] = useState(null);
   const { addNotification } = useSocket();
   const notifiedConditions = useRef(new Set());
@@ -47,6 +50,14 @@ export function WeatherPanel() {
       // Fetch community reports from Firebase
       const reports = await getReports({ limit: 100 });
       setCommunityReports(reports);
+
+      // Fetch active suspensions from Firestore
+      const suspensionsQuery = query(
+        collection(db, 'suspensions'),
+        where('status', '==', 'active')
+      );
+      const suspensionsSnapshot = await getDocs(suspensionsQuery);
+      setActiveSuspensions(suspensionsSnapshot.size);
 
       // Check weather conditions and add notifications for strong wind or heavy rain
       if (current?.current) {
@@ -112,14 +123,25 @@ export function WeatherPanel() {
       fetchWeatherData();
     }, 5 * 60 * 1000); // 5 minutes
 
-    return () => clearInterval(interval);
+    // Listen for data refresh events
+    const handleDataRefresh = () => {
+      console.log('Data refresh event received, reloading weather data...');
+      fetchWeatherData();
+    };
+
+    window.addEventListener('dataRefresh', handleDataRefresh);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('dataRefresh', handleDataRefresh);
+    };
   }, []);
 
   // Calculate stats from Batangas cities data
   const stats = batangasStats ? {
     totalCities: batangasStats.length,
-    suspensions: alertAreas.filter(a => a.level === 'high').length,
-    ongoingClasses: batangasStats.length - alertAreas.filter(a => a.level === 'high').length,
+    suspensions: activeSuspensions,
+    ongoingClasses: batangasStats.length - activeSuspensions,
     communityReports: communityReports.length,
     criticalAlerts: alertAreas.filter(a => a.level === 'high').length,
     verifiedReports: communityReports.filter(r => r.status === 'verified').length,

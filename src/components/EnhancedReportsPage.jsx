@@ -448,14 +448,14 @@ export function EnhancedReportsPage() {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={() => setShowCompiledModal(false)}
         >
-          <Card className="max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0 p-4">
+          <div className="max-w-2xl w-full max-h-[90vh] bg-white rounded-lg shadow-xl flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-t-lg flex-shrink-0">
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-xl flex items-center gap-2">
+                  <h3 className="text-xl font-semibold flex items-center gap-2">
                     <MapPin className="w-5 h-5 text-blue-500" />
                     {selectedLocation.city} - Compiled Report
-                  </CardTitle>
+                  </h3>
                   <p className="text-xs text-gray-600 mt-1">
                     {selectedLocation.totalReports} reports • AI Confidence: {selectedLocation.aiConfidence}%
                   </p>
@@ -464,9 +464,9 @@ export function EnhancedReportsPage() {
                   <X className="w-4 h-4" />
                 </Button>
               </div>
-            </CardHeader>
+            </div>
 
-            <CardContent className="p-4 space-y-4 overflow-y-auto flex-1">
+            <div className="p-4 space-y-4">
               {/* AI Analysis */}
               <Card className={`${
                 selectedLocation.aiConfidence >= 85 ? 'bg-green-50 border-green-200' :
@@ -520,9 +520,10 @@ export function EnhancedReportsPage() {
                   <Users className="w-4 h-4 text-gray-600" />
                   All Reports ({selectedLocation.reports.length})
                 </h3>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                {/* Scrollable Reports Container */}
+                <div className="max-h-[300px] overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-2">
                   {selectedLocation.reports.map((report, idx) => (
-                    <Card key={idx} className="hover:shadow-md transition-shadow">
+                    <Card key={idx} className="hover:shadow-md transition-shadow bg-white">
                       <CardContent className="p-3">
                         <div className="flex items-start justify-between mb-1.5">
                           <div className="flex items-center gap-2">
@@ -563,10 +564,10 @@ export function EnhancedReportsPage() {
                 </div>
               </div>
 
-            </CardContent>
+            </div>
 
             {/* Modal Footer with Action Buttons */}
-            <div className="border-t p-3 bg-gray-50 flex-shrink-0">
+            <div className="border-t p-3 bg-gray-50 rounded-b-lg flex-shrink-0">
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -588,7 +589,7 @@ export function EnhancedReportsPage() {
                 </Button>
               </div>
             </div>
-          </Card>
+          </div>
         </div>
       )}
 

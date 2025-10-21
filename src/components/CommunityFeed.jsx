@@ -38,6 +38,7 @@ export function CommunityFeed() {
   const [showComments, setShowComments] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
   const [showSubmitModal, setShowSubmitModal] = useState(false);
+  const [displayLimit, setDisplayLimit] = useState(10); // Show 10 reports initially
   const [filters, setFilters] = useState({
     status: 'all',
     severity: 'all',
@@ -89,6 +90,29 @@ export function CommunityFeed() {
     } catch (err) {
       console.error('Error liking report:', err);
     }
+  };
+
+  // Generate color for user avatar based on name
+  const getUserColor = (userName) => {
+    if (!userName) return '#6B7280'; // gray
+
+    const colors = [
+      '#3B82F6', // blue
+      '#8B5CF6', // purple
+      '#EC4899', // pink
+      '#EF4444', // red
+      '#F97316', // orange
+      '#EAB308', // yellow
+      '#10B981', // green
+      '#14B8A6', // teal
+      '#06B6D4', // cyan
+      '#6366F1', // indigo
+    ];
+
+    // Use first character of name to determine color
+    const charCode = userName.charCodeAt(0);
+    const index = charCode % colors.length;
+    return colors[index];
   };
 
   // Format timestamp
@@ -255,7 +279,8 @@ export function CommunityFeed() {
               </CardContent>
             </Card>
           ) : (
-            reports.map((report) => {
+            <>
+            {reports.slice(0, displayLimit).map((report) => {
               const severityBadge = getSeverityBadge(report.severity);
               const isLiked = report.likes?.includes(user?.uid);
               const likesCount = report.likes?.length || 0;
@@ -265,25 +290,32 @@ export function CommunityFeed() {
                   {/* Report Header */}
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
-                      <Avatar className="w-12 h-12 border-2 border-blue-100">
+                      <Avatar className="w-12 h-12 border-2 border-gray-200 shadow-md">
                         <AvatarImage src={report.userPhotoURL} />
-                        <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
-                          {report.userName?.split(' ').map(n => n[0]).join('') || 'U'}
+                        <AvatarFallback
+                          className="text-white font-bold text-lg"
+                          style={{
+                            backgroundColor: getUserColor(report.userName),
+                            backgroundImage: `linear-gradient(to bottom right, ${getUserColor(report.userName)}, ${getUserColor(report.userName)}dd)`
+                          }}
+                        >
+                          {report.userName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
                         </AvatarFallback>
                       </Avatar>
 
-                      <div>
+                      <div className="flex-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900">{report.userName || 'Anonymous User'}</span>
+                          <span className="font-bold text-gray-900">{report.userName || 'Anonymous User'}</span>
                           {report.userVerified && (
                             <CheckCircle className="w-4 h-4 text-blue-500" fill="currentColor" />
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
                           <span>{formatTimestamp(report.createdAt)}</span>
                           <span>•</span>
-                          <span>
-                            {report.location?.barangay || 'Location'}, {report.location?.city || 'Unknown'}
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {report.location?.city || 'Unknown'}
                           </span>
                         </div>
                       </div>
@@ -396,7 +428,27 @@ export function CommunityFeed() {
                   </CardContent>
                 </Card>
               );
-            })
+            })}
+
+            {/* Load More Button */}
+            {reports.length > displayLimit && (
+              <div className="flex justify-center mt-6 mb-4">
+                <Button
+                  onClick={() => setDisplayLimit(prev => prev + 10)}
+                  className="bg-blue-500 hover:bg-blue-600 text-white px-8"
+                >
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  Load More Reports ({reports.length - displayLimit} remaining)
+                </Button>
+              </div>
+            )}
+
+            {reports.length <= displayLimit && reports.length > 0 && (
+              <div className="text-center text-gray-500 py-6">
+                <p className="text-sm">You've reached the end of the reports</p>
+              </div>
+            )}
+            </>
           )}
         </div>
       </div>
