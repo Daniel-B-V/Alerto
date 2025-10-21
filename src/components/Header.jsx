@@ -17,7 +17,7 @@ export function Header() {
             <Cloud className="w-8 h-8 text-blue-500" />
             <Bell className="w-4 h-4 text-yellow-500 absolute -top-1 -right-1" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Alerto</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Sulasok.Tv</h1>
         </div>
 
         {/* Right Side */}
