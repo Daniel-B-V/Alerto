@@ -19,7 +19,7 @@ import {
   YAxis,
   CartesianGrid
 } from "recharts";
-import { getBatangasWeather } from "../services/weatherService";
+import { getBatangasWeather, getDetailedHourlyForecast } from "../services/weatherService";
 import { getReports } from "../firebase/firestore";
 
 export function AnalyticsPanel() {
@@ -31,6 +31,7 @@ export function AnalyticsPanel() {
   const [cityDistribution, setCityDistribution] = useState([]);
   const [weeklyTrends, setWeeklyTrends] = useState([]);
   const [categoryBreakdown, setCategoryBreakdown] = useState([]);
+  const [hourlyForecast, setHourlyForecast] = useState([]);
 
   // Load data
   const loadData = async () => {
@@ -40,6 +41,10 @@ export function AnalyticsPanel() {
       // Fetch weather data
       const weatherData = await getBatangasWeather();
       setCitiesWeather(weatherData);
+
+      // Fetch hourly forecast
+      const forecast = await getDetailedHourlyForecast('Batangas');
+      setHourlyForecast(forecast);
 
       // Fetch community reports
       const reports = await getReports({ limit: 100 });
@@ -405,6 +410,79 @@ export function AnalyticsPanel() {
                     {communityReports.length}
                   </span>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Hourly Weather Forecast */}
+      {!loading && !error && hourlyForecast.length > 0 && (
+        <div className="max-w-7xl mx-auto mt-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">48-Hour Weather Forecast</h2>
+          <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Cloud className="w-5 h-5 text-blue-500" />
+                Detailed Hourly Forecast - Batangas
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Temperature & Rainfall Forecast */}
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold mb-3">Temperature & Rainfall</h3>
+                <ResponsiveContainer width="100%" height={300}>
+                  <AreaChart data={hourlyForecast.slice(0, 24)}>
+                    <defs>
+                      <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
+                      </linearGradient>
+                      <linearGradient id="colorRain" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="time" stroke="#6b7280" fontSize={11} />
+                    <YAxis yAxisId="left" stroke="#6b7280" fontSize={12} />
+                    <YAxis yAxisId="right" orientation="right" stroke="#6b7280" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(229, 231, 235, 0.5)',
+                        borderRadius: '12px'
+                      }}
+                    />
+                    <Legend />
+                    <Area yAxisId="left" type="monotone" dataKey="temperature" stroke="#ef4444" fillOpacity={1} fill="url(#colorTemp)" name="Temperature (°C)" />
+                    <Area yAxisId="right" type="monotone" dataKey="rainfall" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRain)" name="Rainfall (mm)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Wind & Humidity Forecast */}
+              <div>
+                <h3 className="text-lg font-semibold mb-3">Wind Speed & Humidity</h3>
+                <ResponsiveContainer width="100%" height={250}>
+                  <LineChart data={hourlyForecast.slice(0, 24)}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis dataKey="time" stroke="#6b7280" fontSize={11} />
+                    <YAxis stroke="#6b7280" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(10px)',
+                        border: '1px solid rgba(229, 231, 235, 0.5)',
+                        borderRadius: '12px'
+                      }}
+                    />
+                    <Legend />
+                    <Line type="monotone" dataKey="windSpeed" stroke="#8b5cf6" strokeWidth={2} name="Wind Speed (km/h)" />
+                    <Line type="monotone" dataKey="humidity" stroke="#06b6d4" strokeWidth={2} name="Humidity (%)" />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </CardContent>
           </Card>

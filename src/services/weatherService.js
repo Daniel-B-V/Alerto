@@ -294,11 +294,61 @@ export const getWeatherIconName = (weatherMain) => {
   return iconMap[weatherMain] || 'Cloud';
 };
 
+// Get detailed hourly forecast from Pro API (96 hours)
+export const getDetailedHourlyForecast = async (city = DEFAULT_LOCATION.city) => {
+  try {
+    const apiKey = '13616e53cdfb9b00c018abeaa05e9784';
+    const response = await fetch(
+      `https://pro.openweathermap.org/data/2.5/forecast/hourly?q=${encodeURIComponent(city)}&appid=${apiKey}&units=metric`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Process hourly data (next 48 hours)
+    const hourlyData = data.list.slice(0, 48).map(item => {
+      const timestamp = new Date(item.dt * 1000);
+      const hour = timestamp.getHours();
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const displayHour = hour % 12 || 12;
+
+      return {
+        time: `${displayHour}${ampm}`,
+        fullTime: timestamp.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', hour12: true }),
+        timestamp,
+        temperature: Math.round(item.main.temp),
+        feelsLike: Math.round(item.main.feels_like),
+        humidity: item.main.humidity,
+        rainfall: item.rain ? item.rain['1h'] || 0 : 0,
+        windSpeed: Math.round(item.wind.speed * 3.6), // Convert m/s to km/h
+        windDirection: item.wind.deg,
+        pressure: item.main.pressure,
+        clouds: item.clouds.all,
+        weather: {
+          main: item.weather[0].main,
+          description: item.weather[0].description,
+          icon: item.weather[0].icon
+        }
+      };
+    });
+
+    return hourlyData;
+  } catch (error) {
+    console.error('Detailed hourly forecast error:', error);
+    // Fallback to regular hourly forecast if pro API fails
+    return getHourlyForecast(city);
+  }
+};
+
 export default {
   getCurrentWeather,
   getWeatherForecast,
   getBatangasWeather,
   getHourlyForecast,
+  getDetailedHourlyForecast,
   getWeatherAlerts,
   getWeatherStatistics,
   getWeatherIconName,
