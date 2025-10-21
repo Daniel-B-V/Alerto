@@ -8,37 +8,43 @@ import { resetDatabase, clearAllReports, clearAllWeatherData, seedWeatherData, g
 export const DatabaseSeeder = () => {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
+  const [showWeatherModal, setShowWeatherModal] = useState(false);
+  const [showScenarioModal, setShowScenarioModal] = useState(false);
+  const [showClearWeatherModal, setShowClearWeatherModal] = useState(false);
+  const [showClearReportsModal, setShowClearReportsModal] = useState(false);
+  const [selectedScenario, setSelectedScenario] = useState(null);
   const scenarios = getScenarioInfo();
 
-  const handleSeed = async (scenario) => {
-    if (!window.confirm(`This will clear all existing reports and add test data for: ${scenarios[scenario].name}. Continue?`)) {
-      return;
-    }
-
+  const handleSeed = async () => {
+    setShowScenarioModal(false);
     setLoading(true);
     setResult(null);
 
     try {
-      const response = await resetDatabase(scenario);
+      const response = await resetDatabase(selectedScenario);
       setResult(response);
+
+      // Trigger refresh event
+      window.dispatchEvent(new Event('dataRefresh'));
     } catch (error) {
       setResult({ success: false, error: error.message });
     } finally {
       setLoading(false);
+      setSelectedScenario(null);
     }
   };
 
   const handleClear = async () => {
-    if (!window.confirm('This will DELETE ALL REPORTS from the database. This action cannot be undone. Continue?')) {
-      return;
-    }
-
+    setShowClearReportsModal(false);
     setLoading(true);
     setResult(null);
 
     try {
       const response = await clearAllReports();
       setResult(response);
+
+      // Trigger refresh event
+      window.dispatchEvent(new Event('dataRefresh'));
     } catch (error) {
       setResult({ success: false, error: error.message });
     } finally {
@@ -47,16 +53,16 @@ export const DatabaseSeeder = () => {
   };
 
   const handleLoadWeather = async () => {
-    if (!window.confirm('This will load critical weather data for testing the suspension system. Continue?')) {
-      return;
-    }
-
+    setShowWeatherModal(false);
     setLoading(true);
     setResult(null);
 
     try {
       const response = await seedWeatherData();
       setResult(response);
+
+      // Trigger refresh event
+      window.dispatchEvent(new Event('dataRefresh'));
     } catch (error) {
       setResult({ success: false, error: error.message });
     } finally {
@@ -65,16 +71,16 @@ export const DatabaseSeeder = () => {
   };
 
   const handleClearWeather = async () => {
-    if (!window.confirm('This will DELETE ALL WEATHER DATA from the database. Continue?')) {
-      return;
-    }
-
+    setShowClearWeatherModal(false);
     setLoading(true);
     setResult(null);
 
     try {
       const response = await clearAllWeatherData();
       setResult(response);
+
+      // Trigger refresh event
+      window.dispatchEvent(new Event('dataRefresh'));
     } catch (error) {
       setResult({ success: false, error: error.message });
     } finally {
@@ -146,7 +152,10 @@ export const DatabaseSeeder = () => {
                 <span>{scenario.recommended}</span>
               </div>
               <Button
-                onClick={() => handleSeed(key)}
+                onClick={() => {
+                  setSelectedScenario(key);
+                  setShowScenarioModal(true);
+                }}
                 disabled={loading}
                 className="w-full"
                 size="sm"
@@ -174,18 +183,21 @@ export const DatabaseSeeder = () => {
           <div className="bg-white rounded-lg p-4 border border-blue-200">
             <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
               <Info className="w-4 h-4 text-blue-600" />
-              What's Included:
+              What's Included (10 Cities):
             </h4>
             <ul className="space-y-1 text-sm text-gray-700">
-              <li>• <strong>Lipa City:</strong> Typhoon conditions (65 km/h winds, 45mm rainfall)</li>
-              <li>• <strong>Batangas City:</strong> Heavy rain (58 km/h winds, 38mm rainfall)</li>
-              <li>• <strong>Tanauan City:</strong> Severe thunderstorm (52 km/h winds, 32mm rainfall)</li>
-              <li>• <strong>Santo Tomas & Taal:</strong> Moderate rain conditions</li>
+              <li>• <strong>Lipa City:</strong> Typhoon conditions (65 km/h winds, 45mm rainfall) - CRITICAL</li>
+              <li>• <strong>Batangas City:</strong> Heavy rain (58 km/h winds, 38mm rainfall) - HIGH</li>
+              <li>• <strong>Tanauan City:</strong> Severe thunderstorm (52 km/h winds, 32mm rainfall) - HIGH</li>
+              <li>• <strong>Santo Tomas:</strong> Moderate to heavy rain (45 km/h winds, 25mm rainfall)</li>
+              <li>• <strong>Rosario:</strong> Moderate rain (42 km/h winds, 22mm rainfall)</li>
+              <li>• <strong>Taal, Ibaan, Lemery:</strong> Light to moderate rain conditions</li>
+              <li>• <strong>Balayan, Nasugbu:</strong> Cloudy with light showers</li>
             </ul>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Button
-              onClick={handleLoadWeather}
+              onClick={() => setShowWeatherModal(true)}
               disabled={loading}
               style={{ backgroundColor: '#2563eb', color: 'white' }}
               className="hover:bg-blue-700 font-semibold shadow-md"
@@ -195,7 +207,7 @@ export const DatabaseSeeder = () => {
               {loading ? 'Loading...' : 'Load Weather Data'}
             </Button>
             <Button
-              onClick={handleClearWeather}
+              onClick={() => setShowClearWeatherModal(true)}
               disabled={loading}
               variant="outline"
               className="border-red-300 text-red-700 hover:bg-red-100 font-semibold"
@@ -221,7 +233,7 @@ export const DatabaseSeeder = () => {
         </CardHeader>
         <CardContent>
           <Button
-            onClick={handleClear}
+            onClick={() => setShowClearReportsModal(true)}
             disabled={loading}
             variant="destructive"
             size="sm"
@@ -255,6 +267,168 @@ export const DatabaseSeeder = () => {
           </p>
         </CardContent>
       </Card>
+
+      {/* Weather Data Modal */}
+      {showWeatherModal && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowWeatherModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl p-6"
+            style={{ width: '420px', maxWidth: '90vw' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <CloudRain className="w-8 h-8 text-blue-600" />
+              <h3 className="text-xl font-bold text-gray-900">Load Critical Weather Data</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              This will load critical weather data for testing the suspension system. Continue?
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowWeatherModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleLoadWeather}
+                style={{ backgroundColor: '#2563eb', color: 'white' }}
+                className="flex-1 font-semibold hover:opacity-90"
+              >
+                <Cloud className="w-4 h-4 mr-2" />
+                OK
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Scenario Modal */}
+      {showScenarioModal && selectedScenario && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowScenarioModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl p-6"
+            style={{ width: '420px', maxWidth: '90vw' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Upload className="w-8 h-8 text-purple-600" />
+              <h3 className="text-xl font-bold text-gray-900">Load Test Scenario</h3>
+            </div>
+            <p className="text-gray-600 mb-2">
+              This will clear all existing reports and add test data for:
+            </p>
+            <p className="text-lg font-semibold text-gray-900 mb-6">
+              {scenarios[selectedScenario].name}
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => {
+                  setShowScenarioModal(false);
+                  setSelectedScenario(null);
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSeed}
+                style={{ backgroundColor: '#9333ea', color: 'white' }}
+                className="flex-1 font-semibold hover:opacity-90"
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                OK
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Weather Modal */}
+      {showClearWeatherModal && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowClearWeatherModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl p-6"
+            style={{ width: '420px', maxWidth: '90vw' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Trash2 className="w-8 h-8 text-red-600" />
+              <h3 className="text-xl font-bold text-gray-900">Clear Weather Data</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              This will DELETE ALL WEATHER DATA from the database. Continue?
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowClearWeatherModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleClearWeather}
+                style={{ backgroundColor: '#DC2626', color: 'white' }}
+                className="flex-1 font-semibold hover:opacity-90"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                OK
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear Reports Modal */}
+      {showClearReportsModal && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowClearReportsModal(false)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl p-6"
+            style={{ width: '420px', maxWidth: '90vw' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <Trash2 className="w-8 h-8 text-red-600" />
+              <h3 className="text-xl font-bold text-gray-900">Clear All Reports</h3>
+            </div>
+            <p className="text-gray-600 mb-6">
+              This will DELETE ALL REPORTS from the database. This action cannot be undone. Continue?
+            </p>
+            <div className="flex gap-3">
+              <Button
+                onClick={() => setShowClearReportsModal(false)}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleClear}
+                style={{ backgroundColor: '#DC2626', color: 'white' }}
+                className="flex-1 font-semibold hover:opacity-90"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                OK
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

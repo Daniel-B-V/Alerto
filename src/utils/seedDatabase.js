@@ -15,7 +15,10 @@ export const clearAllReports = async () => {
     const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(deletePromises);
 
-    console.log('✅ All reports cleared successfully!');
+    // Also clear suspensions when clearing reports
+    await clearAllSuspensions();
+
+    console.log('✅ All reports and suspensions cleared successfully!');
     return { success: true, deleted: snapshot.size };
   } catch (error) {
     console.error('❌ Error clearing reports:', error);
@@ -34,10 +37,32 @@ export const clearAllWeatherData = async () => {
     const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
     await Promise.all(deletePromises);
 
-    console.log('✅ All weather data cleared successfully!');
+    // Also clear suspensions when clearing weather data
+    await clearAllSuspensions();
+
+    console.log('✅ All weather data and suspensions cleared successfully!');
     return { success: true, deleted: snapshot.size };
   } catch (error) {
     console.error('❌ Error clearing weather data:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+// Clear all existing suspensions from database
+export const clearAllSuspensions = async () => {
+  try {
+    const suspensionsRef = collection(db, 'suspensions');
+    const snapshot = await getDocs(suspensionsRef);
+
+    console.log(`Found ${snapshot.size} suspensions to delete...`);
+
+    const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+    await Promise.all(deletePromises);
+
+    console.log('✅ All suspensions cleared successfully!');
+    return { success: true, deleted: snapshot.size };
+  } catch (error) {
+    console.error('❌ Error clearing suspensions:', error);
     return { success: false, error: error.message };
   }
 };
@@ -230,6 +255,173 @@ const generateCriticalWeatherData = () => {
       forecast: {
         next6Hours: 'Rain showers continuing',
         next12Hours: 'Clearing expected',
+        warnings: []
+      },
+      alerts: [],
+      lastUpdated: now
+    },
+    {
+      location: {
+        city: 'Lemery',
+        country: 'PH',
+        lat: 13.9167,
+        lon: 120.8833
+      },
+      current: {
+        temperature: 26,
+        feelsLike: 28,
+        humidity: 82,
+        pressure: 1011,
+        windSpeed: 35,
+        windDirection: 115,
+        cloudiness: 80,
+        visibility: 5,
+        weather: {
+          main: 'Rain',
+          description: 'light to moderate rain',
+          icon: '10d'
+        },
+        rainfall: 15,
+        timestamp: now
+      },
+      forecast: {
+        next6Hours: 'Rain showers',
+        next12Hours: 'Partly cloudy',
+        warnings: []
+      },
+      alerts: [],
+      lastUpdated: now
+    },
+    {
+      location: {
+        city: 'Balayan',
+        country: 'PH',
+        lat: 13.9333,
+        lon: 120.7333
+      },
+      current: {
+        temperature: 26,
+        feelsLike: 29,
+        humidity: 80,
+        pressure: 1012,
+        windSpeed: 32,
+        windDirection: 110,
+        cloudiness: 75,
+        visibility: 6,
+        weather: {
+          main: 'Clouds',
+          description: 'overcast clouds with light rain',
+          icon: '04d'
+        },
+        rainfall: 12,
+        timestamp: now
+      },
+      forecast: {
+        next6Hours: 'Scattered showers',
+        next12Hours: 'Improving conditions',
+        warnings: []
+      },
+      alerts: [],
+      lastUpdated: now
+    },
+    {
+      location: {
+        city: 'Nasugbu',
+        country: 'PH',
+        lat: 14.0667,
+        lon: 120.6333
+      },
+      current: {
+        temperature: 27,
+        feelsLike: 30,
+        humidity: 78,
+        pressure: 1012,
+        windSpeed: 28,
+        windDirection: 105,
+        cloudiness: 70,
+        visibility: 7,
+        weather: {
+          main: 'Clouds',
+          description: 'partly cloudy',
+          icon: '03d'
+        },
+        rainfall: 8,
+        timestamp: now
+      },
+      forecast: {
+        next6Hours: 'Partly cloudy',
+        next12Hours: 'Mostly clear',
+        warnings: []
+      },
+      alerts: [],
+      lastUpdated: now
+    },
+    {
+      location: {
+        city: 'Rosario',
+        country: 'PH',
+        lat: 13.8500,
+        lon: 121.2000
+      },
+      current: {
+        temperature: 24,
+        feelsLike: 26,
+        humidity: 87,
+        pressure: 1010,
+        windSpeed: 42,
+        windDirection: 128,
+        cloudiness: 88,
+        visibility: 3.5,
+        weather: {
+          main: 'Rain',
+          description: 'moderate rain',
+          icon: '10d'
+        },
+        rainfall: 22,
+        timestamp: now
+      },
+      forecast: {
+        next6Hours: 'Moderate to heavy rain',
+        next12Hours: 'Rain continuing',
+        warnings: ['Rain Advisory']
+      },
+      alerts: [
+        {
+          level: 'medium',
+          type: 'rain',
+          message: 'Moderate rainfall warning',
+          issuedAt: now
+        }
+      ],
+      lastUpdated: now
+    },
+    {
+      location: {
+        city: 'Ibaan',
+        country: 'PH',
+        lat: 13.8167,
+        lon: 121.1333
+      },
+      current: {
+        temperature: 25,
+        feelsLike: 27,
+        humidity: 84,
+        pressure: 1011,
+        windSpeed: 38,
+        windDirection: 122,
+        cloudiness: 82,
+        visibility: 4.5,
+        weather: {
+          main: 'Rain',
+          description: 'light to moderate rain',
+          icon: '10d'
+        },
+        rainfall: 16,
+        timestamp: now
+      },
+      forecast: {
+        next6Hours: 'Scattered showers',
+        next12Hours: 'Clearing',
         warnings: []
       },
       alerts: [],

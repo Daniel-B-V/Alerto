@@ -58,14 +58,32 @@ service cloud.firestore {
       // Anyone can read weather data
       allow read: if true;
 
-      // Only cloud functions and admins can write weather data
-      allow write: if isAdmin();
+      // Authenticated users can write weather data (for testing/seeding)
+      allow write: if isAuthenticated();
     }
 
     // AI Analysis Results (private collection for admin review)
     match /ai_analysis/{analysisId} {
       // Only admins can read AI analysis results
       allow read, write: if isAdmin();
+    }
+
+    // Suspensions collection
+    match /suspensions/{suspensionId} {
+      // Anyone can read suspensions (public announcements)
+      allow read: if true;
+
+      // Authenticated users can create suspensions (for testing)
+      allow create, update, delete: if isAuthenticated();
+    }
+
+    // Notifications collection
+    match /notifications/{notificationId} {
+      // Anyone can read notifications
+      allow read: if true;
+
+      // Authenticated users can create notifications (for testing)
+      allow create, update, delete: if isAuthenticated();
     }
   }
 }

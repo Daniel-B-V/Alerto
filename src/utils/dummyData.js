@@ -135,13 +135,21 @@ export const generateHighDensityReports = (city, count = 45) => {
         category: type,
         severity: severity,
         description: description,
-        city: city,
+        location: {
+          city: city,
+          province: 'Batangas',
+          country: 'Philippines',
+          coordinates: {
+            lat: 13.9411 + (Math.random() - 0.5) * 0.1,
+            lng: 121.1650 + (Math.random() - 0.5) * 0.1
+          }
+        },
         userName: user.name,
         userEmail: user.email,
-        createdAt: createdAt.toISOString(),
-        verified: isVerified,
+        createdAt: { seconds: Math.floor(createdAt.getTime() / 1000), nanoseconds: 0 },
+        status: isVerified ? 'verified' : 'pending',
         verifiedBy: isVerified ? 'Admin' : null,
-        verifiedAt: isVerified ? new Date(createdAt.getTime() + 1800000).toISOString() : null,
+        verifiedAt: isVerified ? { seconds: Math.floor((createdAt.getTime() + 1800000) / 1000), nanoseconds: 0 } : null,
         imageCount: Math.floor(Math.random() * 4),
         aiAnalysis: {
           confidence: severity === 'critical' ? 85 + Math.floor(Math.random() * 15) : 70 + Math.floor(Math.random() * 20),
@@ -192,13 +200,21 @@ export const generateScatteredReports = (cities, totalCount = 30) => {
       category: category.value,
       severity: severity,
       description: description,
-      city: city,
+      location: {
+        city: city,
+        province: 'Batangas',
+        country: 'Philippines',
+        coordinates: {
+          lat: 13.7565 + (Math.random() - 0.5) * 0.5,
+          lng: 121.0583 + (Math.random() - 0.5) * 0.5
+        }
+      },
       userName: user.name,
       userEmail: user.email,
-      createdAt: createdAt.toISOString(),
-      verified: isVerified,
+      createdAt: { seconds: Math.floor(createdAt.getTime() / 1000), nanoseconds: 0 },
+      status: isVerified ? 'verified' : 'pending',
       verifiedBy: isVerified ? 'Admin' : null,
-      verifiedAt: isVerified ? new Date(createdAt.getTime() + 1800000).toISOString() : null,
+      verifiedAt: isVerified ? { seconds: Math.floor((createdAt.getTime() + 1800000) / 1000), nanoseconds: 0 } : null,
       imageCount: Math.floor(Math.random() * 3),
       aiAnalysis: {
         confidence: 40 + Math.floor(Math.random() * 40), // Lower confidence for scattered

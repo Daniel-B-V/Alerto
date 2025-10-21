@@ -1,18 +1,29 @@
 import { useState, useEffect } from "react";
-import { X, Check, Clock, AlertTriangle, RefreshCw, MapPin, Cloud } from "lucide-react";
+import { X, Check, Clock, AlertTriangle, RefreshCw, MapPin, Cloud, List, Ban } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { getReports, getWeatherData } from "../firebase/firestore";
 import { getBatangasWeather } from "../services/weatherService";
 import { analyzeSuspensionAdvisory } from "../services/geminiService";
+import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { useSocket } from '../contexts/SocketContext';
 
 export function SuspensionPanel() {
+  const { addNotification } = useSocket();
   const [loading, setLoading] = useState(true);
   const [reports, setReports] = useState([]);
   const [weatherData, setWeatherData] = useState([]);
   const [suspensionAnalysis, setSuspensionAnalysis] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const [showSuspensionListModal, setShowSuspensionListModal] = useState(false);
+  const [suspendingCity, setSuspendingCity] = useState(null);
+  const [suspendedCities, setSuspendedCities] = useState(new Set());
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState(null);
+  const [suspendedCityName, setSuspendedCityName] = useState('');
 
   // Fetch data
   const fetchData = async () => {
@@ -35,6 +46,15 @@ export function SuspensionPanel() {
 
       setWeatherData(weather || []);
 
+      // Fetch existing active suspensions
+      const suspensionsQuery = query(
+        collection(db, 'suspensions'),
+        where('status', '==', 'active')
+      );
+      const suspensionsSnapshot = await getDocs(suspensionsQuery);
+      const suspendedCityNames = suspensionsSnapshot.docs.map(doc => doc.data().city);
+      setSuspendedCities(new Set(suspendedCityNames));
+
       // Analyze suspension recommendation
       if (reportsData && weather) {
         const analysis = await analyzeSuspensionAdvisory(weather, reportsData);
@@ -54,7 +74,19 @@ export function SuspensionPanel() {
 
     // Auto-refresh every 10 minutes
     const interval = setInterval(fetchData, 10 * 60 * 1000);
-    return () => clearInterval(interval);
+
+    // Listen for data refresh events
+    const handleDataRefresh = () => {
+      console.log('Data refresh event received, reloading suspension data...');
+      fetchData();
+    };
+
+    window.addEventListener('dataRefresh', handleDataRefresh);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('dataRefresh', handleDataRefresh);
+    };
   }, []);
 
   // Calculate statistics from real data
@@ -71,6 +103,198 @@ export function SuspensionPanel() {
     const windSpeed = city.current?.windSpeed || 0;
     return rainfall > 20 || windSpeed > 60;
   });
+
+  // Get suspension candidates (cities that meet criteria for suspension)
+  const getSuspensionCandidates = () => {
+    const candidates = [];
+
+    console.log('=== Getting Suspension Candidates ===');
+    console.log('Weather data cities:', weatherData.map(w => w.location?.city));
+    console.log('Reports count:', reports.length);
+
+    // Group reports by city
+    const reportsByCity = {};
+    reports.forEach(report => {
+      const city = report.location?.city || 'Unknown';
+      if (!reportsByCity[city]) {
+        reportsByCity[city] = [];
+      }
+      reportsByCity[city].push(report);
+    });
+
+    // Check each city with reports
+    console.log('Cities with reports:', Object.keys(reportsByCity));
+    Object.keys(reportsByCity).forEach(cityName => {
+      const cityReports = reportsByCity[cityName];
+      const criticalCount = cityReports.filter(r => r.severity === 'critical').length;
+      const highCount = cityReports.filter(r => r.severity === 'high').length;
+      const totalCount = cityReports.length;
+
+      // Find weather data for this city
+      const cityWeather = weatherData.find(w => w.location?.city === cityName);
+      const rainfall = cityWeather?.current?.rainfall || 0;
+      const windSpeed = cityWeather?.current?.windSpeed || 0;
+
+      // Calculate weather risk score with same logic as weather-only candidates
+      let weatherRisk = 0;
+      if (rainfall > 20 || windSpeed > 60) {
+        weatherRisk = 50; // Base score for high-risk weather
+        if (rainfall >= 35 || windSpeed >= 55) weatherRisk = 70; // Severe/typhoon conditions
+        else if (rainfall >= 30 || windSpeed >= 50) weatherRisk = 60; // Very high risk
+      }
+
+      const reportRisk = (criticalCount * 15) + (highCount * 10);
+      const totalRisk = weatherRisk + reportRisk;
+
+      console.log(`${cityName}: critical=${criticalCount}, high=${highCount}, total=${totalCount}, weatherRisk=${weatherRisk}, reportRisk=${reportRisk}, totalRisk=${totalRisk}`);
+
+      // If risk score >= 50, add to candidates
+      if (totalRisk >= 50 || criticalCount >= 3) {
+        console.log(`${cityName}: Added as candidate (with reports)`);
+        candidates.push({
+          city: cityName,
+          criticalReports: criticalCount,
+          highReports: highCount,
+          totalReports: totalCount,
+          rainfall,
+          windSpeed,
+          riskScore: totalRisk,
+          weather: cityWeather,
+          hasWeatherRisk: rainfall > 20 || windSpeed > 60
+        });
+      } else {
+        console.log(`${cityName}: Does not meet threshold`);
+      }
+    });
+
+    // Also check cities with severe weather but no reports
+    console.log('Checking weather-only candidates...');
+    weatherData.forEach(cityWeather => {
+      const cityName = cityWeather.location?.city;
+      if (!cityName) {
+        console.log('Skipping city with no name');
+        return;
+      }
+
+      if (reportsByCity[cityName]) {
+        console.log(`${cityName}: Already processed with reports, skipping`);
+        return;
+      }
+
+      const rainfall = cityWeather.current?.rainfall || 0;
+      const windSpeed = cityWeather.current?.windSpeed || 0;
+
+      console.log(`${cityName}: rainfall=${rainfall}mm, windSpeed=${windSpeed}km/h`);
+
+      // Check if weather conditions warrant suspension (matches high-risk threshold)
+      const isCriticalWeather = rainfall > 20 || windSpeed > 60;
+
+      if (isCriticalWeather) {
+        // Calculate weather risk score based on severity
+        let weatherRisk = 50; // Base score for high-risk weather (meets threshold)
+        if (rainfall >= 35 || windSpeed >= 55) weatherRisk = 70; // Severe/typhoon conditions
+        else if (rainfall >= 30 || windSpeed >= 50) weatherRisk = 60; // Very high risk
+
+        console.log(`${cityName}: Added as candidate with risk score ${weatherRisk}`);
+
+        candidates.push({
+          city: cityName,
+          criticalReports: 0,
+          highReports: 0,
+          totalReports: 0,
+          rainfall,
+          windSpeed,
+          riskScore: weatherRisk,
+          weather: cityWeather,
+          hasWeatherRisk: true
+        });
+      } else {
+        console.log(`${cityName}: Does not meet critical weather threshold`);
+      }
+    });
+
+    // Sort by risk score (descending)
+    const sorted = candidates.sort((a, b) => b.riskScore - a.riskScore);
+    console.log('Final candidates:', sorted.map(c => `${c.city} (${c.riskScore})`));
+    return sorted;
+  };
+
+  // Issue class suspension
+  const issueSuspension = async (candidate) => {
+    setSuspendingCity(candidate.city);
+    setShowConfirmModal(false);
+
+    try {
+      // Create suspension record in Firestore
+      const suspensionData = {
+        city: candidate.city,
+        province: 'Batangas',
+        issuedAt: serverTimestamp(),
+        issuedBy: 'Admin User',
+        status: 'active',
+        reason: 'Critical weather conditions and/or high number of critical reports',
+        criticalReports: candidate.criticalReports,
+        totalReports: candidate.totalReports,
+        rainfall: candidate.rainfall,
+        windSpeed: candidate.windSpeed,
+        riskScore: candidate.riskScore,
+        expectedDuration: '24 hours',
+        affectedSchools: 'All schools in ' + candidate.city
+      };
+
+      await addDoc(collection(db, 'suspensions'), suspensionData);
+
+      // Create notification
+      const notificationData = {
+        type: 'suspension',
+        title: `Class Suspension - ${candidate.city}`,
+        message: `Classes suspended in ${candidate.city} due to ${candidate.hasWeatherRisk ? 'severe weather conditions' : 'critical reports'}. ${candidate.criticalReports} critical reports confirmed.`,
+        city: candidate.city,
+        severity: 'critical',
+        createdAt: serverTimestamp(),
+        read: false
+      };
+
+      await addDoc(collection(db, 'notifications'), notificationData);
+
+      // Add city to suspended list
+      setSuspendedCities(prev => new Set([...prev, candidate.city]));
+
+      // Add notification to bell
+      addNotification({
+        id: `suspension-${Date.now()}`,
+        title: `🚫 Class Suspension - ${candidate.city}`,
+        message: `Classes suspended in ${candidate.city}. ${candidate.criticalReports} critical reports confirmed.`,
+        severity: 'critical',
+        timestamp: new Date().toISOString()
+      });
+
+      // Show success modal
+      setSuspendedCityName(candidate.city);
+      setShowSuccessModal(true);
+
+      // Refresh data to update stats
+      await fetchData();
+
+      // Auto-close success modal after 3 seconds
+      setTimeout(() => {
+        setShowSuccessModal(false);
+      }, 3000);
+
+    } catch (error) {
+      console.error('Error issuing suspension:', error);
+      alert('Failed to issue suspension. Please try again.');
+    } finally {
+      setSuspendingCity(null);
+    }
+  };
+
+  const suspensionCandidates = getSuspensionCandidates();
+
+  // Debug log
+  console.log('Suspension Candidates:', suspensionCandidates);
+  console.log('Total reports:', reports.length);
+  console.log('Weather data:', weatherData.length);
 
   // Get recent critical reports
   const recentCriticalReports = reports
@@ -124,14 +348,28 @@ export function SuspensionPanel() {
             </p>
           )}
         </div>
-        <Button
-          onClick={fetchData}
-          disabled={loading}
-          className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => setShowSuspensionListModal(true)}
+            disabled={suspensionCandidates.length === 0}
+            style={{
+              backgroundColor: suspensionCandidates.length === 0 ? '#9CA3AF' : '#DC2626',
+              color: 'white'
+            }}
+            className="flex items-center gap-2 hover:opacity-90"
+          >
+            <List className="w-4 h-4" />
+            Suspension Candidates ({suspensionCandidates.length})
+          </Button>
+          <Button
+            onClick={fetchData}
+            disabled={loading}
+            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Main Suspension Recommendation */}
@@ -442,6 +680,238 @@ export function SuspensionPanel() {
             <p className="text-gray-700">{suspensionAnalysis.expectedConditions}</p>
           </CardContent>
         </Card>
+      )}
+
+      {/* Suspension Candidates Modal */}
+      {showSuspensionListModal && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowSuspensionListModal(false)}
+        >
+          <div
+            className="max-w-4xl w-full bg-white rounded-lg shadow-xl flex flex-col"
+            style={{ maxHeight: '90vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b bg-gradient-to-r from-red-50 to-orange-50 flex-shrink-0 px-6 pt-6 pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    <Ban className="w-6 h-6 text-red-600" />
+                    Class Suspension Candidates
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Cities that meet criteria for class suspension based on weather and reports
+                  </p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setShowSuspensionListModal(false)}>
+                  <X className="w-5 h-5" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="overflow-y-auto p-6 flex-1">
+              {suspensionCandidates.length === 0 ? (
+                <div className="text-center py-12">
+                  <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">No Suspension Candidates</h3>
+                  <p className="text-gray-600">All cities are safe. No immediate class suspensions needed.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {suspensionCandidates.map((candidate, idx) => (
+                    <Card key={idx} className={`border-2 ${
+                      candidate.riskScore >= 80 ? 'border-red-400 bg-red-50' :
+                      candidate.riskScore >= 60 ? 'border-orange-400 bg-orange-50' :
+                      'border-yellow-400 bg-yellow-50'
+                    }`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <MapPin className="w-5 h-5 text-red-600" />
+                              <h3 className="text-xl font-bold text-gray-900">{candidate.city}</h3>
+                              <Badge
+                                style={{
+                                  backgroundColor: candidate.riskScore >= 80 ? '#DC2626' : candidate.riskScore >= 60 ? '#EA580C' : '#CA8A04',
+                                  color: 'white'
+                                }}
+                                className="font-semibold"
+                              >
+                                Risk Score: {candidate.riskScore}
+                              </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4 mb-3">
+                              <div>
+                                <p className="text-sm font-semibold text-gray-700 mb-1">Weather Conditions:</p>
+                                <div className="text-sm text-gray-800 space-y-1">
+                                  {candidate.rainfall > 0 && (
+                                    <div className="flex items-center gap-2">
+                                      <Cloud className="w-4 h-4 text-blue-600" />
+                                      <span>Rainfall: <strong>{candidate.rainfall}mm/h</strong>
+                                        {candidate.rainfall > 20 && <span className="text-red-600 ml-2">⚠ HEAVY</span>}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {candidate.windSpeed > 0 && (
+                                    <div className="flex items-center gap-2">
+                                      <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                      <span>Wind: <strong>{candidate.windSpeed} km/h</strong>
+                                        {candidate.windSpeed > 60 && <span className="text-red-600 ml-2">⚠ STRONG</span>}
+                                      </span>
+                                    </div>
+                                  )}
+                                  {candidate.rainfall === 0 && candidate.windSpeed === 0 && (
+                                    <span className="text-gray-500">No critical weather data</span>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="text-sm font-semibold text-gray-700 mb-1">Community Reports:</p>
+                                <div className="text-sm text-gray-800 space-y-1">
+                                  <div>🚨 Critical: <strong className="text-red-700">{candidate.criticalReports}</strong></div>
+                                  <div>⚠️ High: <strong className="text-orange-700">{candidate.highReports}</strong></div>
+                                  <div>📊 Total: <strong>{candidate.totalReports}</strong> reports</div>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="bg-white rounded-lg p-4 border border-gray-200 mt-3">
+                              <p className="text-sm text-gray-700">
+                                <strong>Recommendation:</strong> {
+                                  candidate.riskScore >= 80 ? 'Immediate class suspension strongly recommended' :
+                                  candidate.riskScore >= 60 ? 'Class suspension recommended' :
+                                  'Monitor closely, consider suspension'
+                                }
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end mt-4">
+                          <Button
+                            onClick={() => {
+                              setSelectedCandidate(candidate);
+                              setShowConfirmModal(true);
+                            }}
+                            disabled={suspendingCity === candidate.city || suspendedCities.has(candidate.city)}
+                            style={{
+                              backgroundColor: suspendedCities.has(candidate.city) ? '#9CA3AF' : '#DC2626',
+                              color: '#FFFFFF',
+                              border: 'none'
+                            }}
+                            className="font-semibold hover:opacity-90 transition-opacity px-4 py-2 rounded-md flex items-center gap-2"
+                          >
+                            {suspendedCities.has(candidate.city) ? (
+                              <>
+                                <Check className="w-4 h-4" style={{ color: '#FFFFFF' }} />
+                                <span style={{ color: '#FFFFFF' }}>Already Suspended</span>
+                              </>
+                            ) : suspendingCity === candidate.city ? (
+                              <>
+                                <RefreshCw className="w-4 h-4 animate-spin" style={{ color: '#FFFFFF' }} />
+                                <span style={{ color: '#FFFFFF' }}>Suspending...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Ban className="w-4 h-4" style={{ color: '#FFFFFF' }} />
+                                <span style={{ color: '#FFFFFF' }}>Suspend Classes</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && selectedCandidate && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowConfirmModal(false)}
+        >
+          <Card className="max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+            <CardHeader className="bg-gradient-to-r from-red-50 to-orange-50">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-red-600" />
+                Confirm Class Suspension
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-6">
+              <p className="text-gray-700 mb-4">
+                Are you sure you want to issue a class suspension for <strong>{selectedCandidate.city}</strong>?
+              </p>
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <p className="text-sm text-gray-600 mb-2">This action will:</p>
+                <ul className="text-sm text-gray-700 space-y-1">
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600">•</span>
+                    Create a suspension record in the system
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600">•</span>
+                    Send notifications to all users
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600">•</span>
+                    Update the dashboard statistics
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-blue-600">•</span>
+                    Notify affected schools and communities
+                  </li>
+                </ul>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-800"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => issueSuspension(selectedCandidate)}
+                  style={{ backgroundColor: '#DC2626', color: 'white' }}
+                  className="flex-1 font-semibold hover:opacity-90"
+                >
+                  <Ban className="w-4 h-4 mr-2" />
+                  Confirm Suspension
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl overflow-hidden"
+            style={{ width: '600px', maxWidth: '90vw' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-green-500 py-10 flex items-center justify-center">
+              <Check className="w-20 h-20 text-white stroke-[3]" />
+            </div>
+            <div className="px-12 py-10 text-center">
+              <h3 className="text-4xl font-bold text-gray-900 mb-6">Area Suspended!</h3>
+              <p className="text-xl text-gray-600 leading-relaxed">
+                Class suspension has been issued for <span className="font-bold text-gray-900">{suspendedCityName}</span>. Notifications have been sent to all users.
+              </p>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
