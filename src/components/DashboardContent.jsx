@@ -5,6 +5,7 @@ import { AdminPanel } from "./AdminPanel";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { ReportsPage } from "./ReportsPage";
 import { EnhancedReportsPage } from "./EnhancedReportsPage";
+import { DatabaseSeeder } from "./DatabaseSeeder";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Settings, Shield, Users, Database, LogOut, User as UserIcon } from "lucide-react";
@@ -132,6 +133,8 @@ export function DashboardContent({ activeSection }) {
         return <AnalyticsPanel />;
       case 'admin':
         return <EnhancedReportsPage />;
+      case 'seeder':
+        return <DatabaseSeeder />;
       case 'settings':
         return <SettingsPanel />;
       default:
