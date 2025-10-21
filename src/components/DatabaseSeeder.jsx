@@ -183,24 +183,25 @@ export const DatabaseSeeder = () => {
               <li>• <strong>Santo Tomas & Taal:</strong> Moderate rain conditions</li>
             </ul>
           </div>
-          <div className="flex gap-2">
+          <div className="grid grid-cols-2 gap-3">
             <Button
               onClick={handleLoadWeather}
               disabled={loading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
-              size="sm"
+              style={{ backgroundColor: '#2563eb', color: 'white' }}
+              className="hover:bg-blue-700 font-semibold shadow-md"
+              size="default"
             >
-              <Cloud className="w-4 h-4 mr-2" />
+              <Cloud className="w-5 h-5 mr-2" />
               {loading ? 'Loading...' : 'Load Weather Data'}
             </Button>
             <Button
               onClick={handleClearWeather}
               disabled={loading}
               variant="outline"
-              className="border-blue-300 text-blue-700 hover:bg-blue-100"
-              size="sm"
+              className="border-red-300 text-red-700 hover:bg-red-100 font-semibold"
+              size="default"
             >
-              <Trash2 className="w-4 h-4 mr-2" />
+              <Trash2 className="w-5 h-5 mr-2" />
               {loading ? 'Clearing...' : 'Clear Weather'}
             </Button>
           </div>

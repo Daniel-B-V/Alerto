@@ -264,42 +264,50 @@ export function EnhancedReportsPage() {
       </div>
 
       {/* Statistics Cards - 2x2 Grid */}
-      <div className="grid grid-cols-2 gap-4 max-w-2xl">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-blue-900">{stats.totalReports}</div>
-              <div className="text-sm text-blue-600 mt-2">Total Reports</div>
-            </div>
-          </CardContent>
-        </Card>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', maxWidth: '1200px', margin: '0 auto 2rem auto' }}>
+        <div>
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 h-full">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-blue-900">{stats.totalReports}</div>
+                <div className="text-sm text-blue-600 mt-2">Total Reports</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-purple-900">{stats.totalCities}</div>
-              <div className="text-sm text-purple-600 mt-2">Locations</div>
-            </div>
-          </CardContent>
-        </Card>
+        <div>
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 h-full">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-purple-900">{stats.totalCities}</div>
+                <div className="text-sm text-purple-600 mt-2">Locations</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-red-900">{stats.critical}</div>
-              <div className="text-sm text-red-600 mt-2">Critical</div>
-            </div>
-          </CardContent>
-        </Card>
+        <div>
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 h-full">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-red-900">{stats.critical}</div>
+                <div className="text-sm text-red-600 mt-2">Critical</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <CardContent className="p-6">
-            <div className="text-center">
-              <div className="text-4xl font-bold text-orange-900">{stats.high}</div>
-              <div className="text-sm text-orange-600 mt-2">High Priority</div>
-            </div>
-          </CardContent>
-        </Card>
+        <div>
+          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 h-full">
+            <CardContent className="p-6">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-orange-900">{stats.high}</div>
+                <div className="text-sm text-orange-600 mt-2">High Priority</div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Top 3 Cities */}
