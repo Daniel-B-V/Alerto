@@ -28,6 +28,51 @@ const COLLECTIONS = {
   WEATHER: 'weather'
 };
 
+// ==================== WEATHER ====================
+
+// Get all weather data from Firestore
+export const getWeatherData = async () => {
+  try {
+    const weatherRef = collection(db, COLLECTIONS.WEATHER);
+    const q = query(weatherRef, orderBy('lastUpdated', 'desc'));
+    const snapshot = await getDocs(q);
+
+    const weatherData = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    return weatherData;
+  } catch (error) {
+    console.error('Error fetching weather data from Firestore:', error);
+    return [];
+  }
+};
+
+// Subscribe to real-time weather data updates
+export const subscribeToWeatherData = (callback) => {
+  try {
+    const weatherRef = collection(db, COLLECTIONS.WEATHER);
+    const q = query(weatherRef, orderBy('lastUpdated', 'desc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const weatherData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      callback(weatherData);
+    }, (error) => {
+      console.error('Error in weather subscription:', error);
+      callback([]);
+    });
+
+    return unsubscribe;
+  } catch (error) {
+    console.error('Error subscribing to weather data:', error);
+    return () => {};
+  }
+};
+
 // ==================== REPORTS ====================
 
 // Get all reports with filters

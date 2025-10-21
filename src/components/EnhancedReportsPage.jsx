@@ -263,60 +263,40 @@ export function EnhancedReportsPage() {
         </div>
       </div>
 
-      {/* Statistics Cards - 2 rows x 3 columns */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {/* Row 1 */}
+      {/* Statistics Cards - 2x2 Grid */}
+      <div className="grid grid-cols-2 gap-4 max-w-2xl">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-4">
+          <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-900">{stats.totalReports}</div>
-              <div className="text-xs text-blue-600 mt-1">Total Reports</div>
+              <div className="text-4xl font-bold text-blue-900">{stats.totalReports}</div>
+              <div className="text-sm text-blue-600 mt-2">Total Reports</div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardContent className="p-4">
+          <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-purple-900">{stats.totalCities}</div>
-              <div className="text-xs text-purple-600 mt-1">Locations</div>
+              <div className="text-4xl font-bold text-purple-900">{stats.totalCities}</div>
+              <div className="text-sm text-purple-600 mt-2">Locations</div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <CardContent className="p-4">
+          <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-red-900">{stats.critical}</div>
-              <div className="text-xs text-red-600 mt-1">Critical</div>
+              <div className="text-4xl font-bold text-red-900">{stats.critical}</div>
+              <div className="text-sm text-red-600 mt-2">Critical</div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Row 2 */}
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <CardContent className="p-4">
+          <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-orange-900">{stats.high}</div>
-              <div className="text-xs text-orange-600 mt-1">High Priority</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-900">{stats.verified}</div>
-              <div className="text-xs text-green-600 mt-1">Verified</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-900">{stats.pending}</div>
-              <div className="text-xs text-yellow-600 mt-1">Pending</div>
+              <div className="text-4xl font-bold text-orange-900">{stats.high}</div>
+              <div className="text-sm text-orange-600 mt-2">High Priority</div>
             </div>
           </CardContent>
         </Card>
@@ -460,7 +440,7 @@ export function EnhancedReportsPage() {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={() => setShowCompiledModal(false)}
         >
-          <Card className="max-w-4xl w-full h-[85vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
+          <Card className="max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
             <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0 p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -532,7 +512,7 @@ export function EnhancedReportsPage() {
                   <Users className="w-4 h-4 text-gray-600" />
                   All Reports ({selectedLocation.reports.length})
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-96 overflow-y-auto">
                   {selectedLocation.reports.map((report, idx) => (
                     <Card key={idx} className="hover:shadow-md transition-shadow">
                       <CardContent className="p-3">

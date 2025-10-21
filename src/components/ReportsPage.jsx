@@ -30,6 +30,8 @@ export function ReportsPage() {
     timeRange: '24h'
   });
   const [selectedReport, setSelectedReport] = useState(null);
+  const [showAllReports, setShowAllReports] = useState(false);
+  const INITIAL_REPORT_LIMIT = 5;
 
   // Load reports from Firebase
   useEffect(() => {
@@ -90,6 +92,18 @@ export function ReportsPage() {
 
     setFilteredReports(filtered);
   }, [reports, filters]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (selectedReport) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [selectedReport]);
 
   // Calculate statistics
   const stats = {
@@ -200,75 +214,39 @@ export function ReportsPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+      <div className="grid grid-cols-2 gap-4 max-w-2xl">
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-          <CardContent className="p-4">
+          <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-blue-900">{stats.total}</div>
-              <div className="text-xs text-blue-600 mt-1">Total Reports</div>
+              <div className="text-4xl font-bold text-blue-900">{stats.total}</div>
+              <div className="text-sm text-blue-600 mt-2">Total Reports</div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-          <CardContent className="p-4">
+          <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-red-900">{stats.critical}</div>
-              <div className="text-xs text-red-600 mt-1">Critical</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-900">{stats.high}</div>
-              <div className="text-xs text-orange-600 mt-1">High Priority</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-yellow-900">{stats.medium}</div>
-              <div className="text-xs text-yellow-600 mt-1">Medium</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-900">{stats.verified}</div>
-              <div className="text-xs text-green-600 mt-1">Verified</div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-900">{stats.pending}</div>
-              <div className="text-xs text-purple-600 mt-1">Pending</div>
+              <div className="text-4xl font-bold text-red-900">{stats.critical}</div>
+              <div className="text-sm text-red-600 mt-2">Critical</div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 border-indigo-200">
-          <CardContent className="p-4">
+          <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-indigo-900">{stats.uniqueCities}</div>
-              <div className="text-xs text-indigo-600 mt-1">Cities</div>
+              <div className="text-4xl font-bold text-indigo-900">{stats.uniqueCities}</div>
+              <div className="text-sm text-indigo-600 mt-2">Cities</div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-gradient-to-br from-pink-50 to-pink-100 border-pink-200">
-          <CardContent className="p-4">
+          <CardContent className="p-6">
             <div className="text-center">
-              <div className="text-2xl font-bold text-pink-900">{stats.uniqueReporters}</div>
-              <div className="text-xs text-pink-600 mt-1">Reporters</div>
+              <div className="text-4xl font-bold text-pink-900">{stats.uniqueReporters}</div>
+              <div className="text-sm text-pink-600 mt-2">Reporters</div>
             </div>
           </CardContent>
         </Card>
@@ -349,7 +327,30 @@ export function ReportsPage() {
       {/* Reports Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Reports Data ({filteredReports.length})</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Reports Data ({filteredReports.length})</CardTitle>
+            {!showAllReports && filteredReports.length > INITIAL_REPORT_LIMIT && (
+              <Button
+                onClick={() => setShowAllReports(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <TrendingUp className="w-4 h-4" />
+                View All {filteredReports.length} Reports
+              </Button>
+            )}
+            {showAllReports && (
+              <Button
+                onClick={() => setShowAllReports(false)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                Show Less
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {filteredReports.length === 0 ? (
@@ -358,23 +359,24 @@ export function ReportsPage() {
               <p className="text-gray-500">No reports found matching the filters</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b-2 border-gray-200">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Severity</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Location</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Description</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Reporter</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">AI</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {filteredReports.map((report) => (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b-2 border-gray-200">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Time</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Severity</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Category</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Location</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Description</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Reporter</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">AI</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {(showAllReports ? filteredReports : filteredReports.slice(0, INITIAL_REPORT_LIMIT)).map((report) => (
                     <tr key={report.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                         {formatTimestamp(report.createdAt)}
@@ -431,10 +433,26 @@ export function ReportsPage() {
                         </Button>
                       </td>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              {!showAllReports && filteredReports.length > INITIAL_REPORT_LIMIT && (
+                <div className="mt-4 text-center py-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    Showing {INITIAL_REPORT_LIMIT} of {filteredReports.length} reports
+                  </p>
+                  <Button
+                    onClick={() => setShowAllReports(true)}
+                    className="mt-2 bg-blue-500 hover:bg-blue-600 text-white"
+                    size="sm"
+                  >
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    View All {filteredReports.length} Reports
+                  </Button>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
@@ -445,16 +463,17 @@ export function ReportsPage() {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={() => setSelectedReport(null)}
         >
-          <Card className="max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <CardHeader className="border-b">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xl">Report Details</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setSelectedReport(null)}>
-                  ✕
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
+          <div className="max-w-4xl w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <Card className="w-full">
+              <CardHeader className="border-b bg-white">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl">Report Details</CardTitle>
+                  <Button variant="ghost" size="sm" onClick={() => setSelectedReport(null)}>
+                    ✕
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4 bg-white">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-semibold text-gray-600">Report ID</label>
@@ -536,7 +555,8 @@ export function ReportsPage() {
                 </Button>
               </div>
             </CardContent>
-          </Card>
+            </Card>
+          </div>
         </div>
       )}
     </div>

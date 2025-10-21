@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Database, Trash2, Upload, Info, CheckCircle, AlertCircle } from 'lucide-react';
+import { Database, Trash2, Upload, Info, CheckCircle, AlertCircle, Cloud, CloudRain } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { resetDatabase, clearAllReports, getScenarioInfo } from '../utils/seedDatabase';
+import { resetDatabase, clearAllReports, clearAllWeatherData, seedWeatherData, getScenarioInfo } from '../utils/seedDatabase';
 
 export const DatabaseSeeder = () => {
   const [loading, setLoading] = useState(false);
@@ -46,6 +46,42 @@ export const DatabaseSeeder = () => {
     }
   };
 
+  const handleLoadWeather = async () => {
+    if (!window.confirm('This will load critical weather data for testing the suspension system. Continue?')) {
+      return;
+    }
+
+    setLoading(true);
+    setResult(null);
+
+    try {
+      const response = await seedWeatherData();
+      setResult(response);
+    } catch (error) {
+      setResult({ success: false, error: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClearWeather = async () => {
+    if (!window.confirm('This will DELETE ALL WEATHER DATA from the database. Continue?')) {
+      return;
+    }
+
+    setLoading(true);
+    setResult(null);
+
+    try {
+      const response = await clearAllWeatherData();
+      setResult(response);
+    } catch (error) {
+      setResult({ success: false, error: error.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-3 mb-6">
@@ -72,7 +108,11 @@ export const DatabaseSeeder = () => {
                 </p>
                 <p className={`text-sm ${result.success ? 'text-green-700' : 'text-red-700'}`}>
                   {result.success
-                    ? `${result.count || result.deleted || 0} reports ${result.count ? 'added' : 'deleted'} successfully`
+                    ? result.count !== undefined
+                      ? `${result.count} reports ${result.count ? 'added' : 'deleted'} successfully${result.weatherCount ? ` + ${result.weatherCount} critical weather records` : ''}`
+                      : result.deleted !== undefined
+                      ? `${result.deleted} items deleted successfully`
+                      : 'Operation completed successfully'
                     : result.error}
                 </p>
               </div>
@@ -119,6 +159,54 @@ export const DatabaseSeeder = () => {
         ))}
       </div>
 
+      {/* Weather Data Section */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardHeader>
+          <CardTitle className="text-blue-800 flex items-center gap-2">
+            <CloudRain className="w-5 h-5" />
+            Critical Weather Test Data
+          </CardTitle>
+          <CardDescription className="text-blue-700">
+            Load or clear critical weather conditions for suspension system testing
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="bg-white rounded-lg p-4 border border-blue-200">
+            <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <Info className="w-4 h-4 text-blue-600" />
+              What's Included:
+            </h4>
+            <ul className="space-y-1 text-sm text-gray-700">
+              <li>• <strong>Lipa City:</strong> Typhoon conditions (65 km/h winds, 45mm rainfall)</li>
+              <li>• <strong>Batangas City:</strong> Heavy rain (58 km/h winds, 38mm rainfall)</li>
+              <li>• <strong>Tanauan City:</strong> Severe thunderstorm (52 km/h winds, 32mm rainfall)</li>
+              <li>• <strong>Santo Tomas & Taal:</strong> Moderate rain conditions</li>
+            </ul>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleLoadWeather}
+              disabled={loading}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+              size="sm"
+            >
+              <Cloud className="w-4 h-4 mr-2" />
+              {loading ? 'Loading...' : 'Load Weather Data'}
+            </Button>
+            <Button
+              onClick={handleClearWeather}
+              disabled={loading}
+              variant="outline"
+              className="border-blue-300 text-blue-700 hover:bg-blue-100"
+              size="sm"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              {loading ? 'Clearing...' : 'Clear Weather'}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Danger Zone */}
       <Card className="border-red-200 bg-red-50">
         <CardHeader>
@@ -149,15 +237,19 @@ export const DatabaseSeeder = () => {
           <CardTitle className="text-base">How to Use</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-gray-700">
-          <p><strong>1. Full Dataset:</strong> Best for comprehensive testing. Includes Lipa City with 45 reports (high confidence - should recommend suspension), Batangas City with 18 reports, and scattered reports across other cities.</p>
+          <p><strong>1. Full Dataset:</strong> Best for comprehensive testing. Includes Lipa City with 45 reports (high confidence - should recommend suspension), Batangas City with 18 reports, and scattered reports across other cities. Also seeds critical weather data for suspension testing.</p>
 
-          <p><strong>2. High Confidence Scenario:</strong> Use this to test the suspension feature. Lipa City will have 45 reports with ~89% AI confidence and should show "Issue Class Suspension" button enabled.</p>
+          <p><strong>2. High Confidence Scenario:</strong> Use this to test the suspension feature. Lipa City will have 45 reports with ~89% AI confidence and should show "Issue Class Suspension" button enabled. Includes typhoon-level weather conditions (65 km/h winds, 45mm rainfall).</p>
 
-          <p><strong>3. Medium Confidence Scenario:</strong> Test borderline cases. Tanauan City will have 15 reports with ~65-75% confidence.</p>
+          <p><strong>3. Medium Confidence Scenario:</strong> Test borderline cases. Tanauan City will have 15 reports with ~65-75% confidence. Includes moderate weather alerts.</p>
 
-          <p><strong>4. Low Confidence Scenario:</strong> Test how the system handles few reports. Only 5 scattered reports with low confidence (~40-50%).</p>
+          <p><strong>4. Low Confidence Scenario:</strong> Test how the system handles few reports. Only 5 scattered reports with low confidence (~40-50%). Light weather conditions.</p>
 
           <p className="mt-4 pt-4 border-t text-xs text-gray-600">
+            <strong>Weather Data:</strong> Each scenario automatically seeds critical weather data including typhoon conditions in Lipa City (65 km/h winds, 45mm rainfall), heavy rain in Batangas City (58 km/h winds, 38mm rainfall), and moderate conditions in other cities. This triggers the suspension advisory system.
+          </p>
+
+          <p className="mt-2 text-xs text-gray-600">
             <strong>Note:</strong> Each scenario will clear existing data first. Make sure to backup any important reports before using this tool.
           </p>
         </CardContent>

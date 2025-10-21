@@ -3,7 +3,7 @@ import { X, Check, Clock, AlertTriangle, RefreshCw, MapPin, Cloud } from "lucide
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
-import { getReports } from "../firebase/firestore";
+import { getReports, getWeatherData } from "../firebase/firestore";
 import { getBatangasWeather } from "../services/weatherService";
 import { analyzeSuspensionAdvisory } from "../services/geminiService";
 
@@ -22,8 +22,17 @@ export function SuspensionPanel() {
       const reportsData = await getReports();
       setReports(reportsData || []);
 
-      // Fetch weather data
-      const weather = await getBatangasWeather();
+      // Try to fetch weather data from Firestore first (test data)
+      let weather = await getWeatherData();
+
+      // If no weather data in Firestore, fall back to API
+      if (!weather || weather.length === 0) {
+        console.log('No weather data in Firestore, fetching from API...');
+        weather = await getBatangasWeather();
+      } else {
+        console.log(`Using ${weather.length} weather records from Firestore test data`);
+      }
+
       setWeatherData(weather || []);
 
       // Analyze suspension recommendation
