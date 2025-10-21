@@ -466,7 +466,7 @@ export function EnhancedReportsPage() {
               </div>
             </div>
 
-            <div className="p-4 space-y-4">
+            <div className="overflow-y-auto p-4 space-y-4 flex-1">
               {/* AI Analysis */}
               <Card className={`${
                 selectedLocation.aiConfidence >= 85 ? 'bg-green-50 border-green-200' :
@@ -510,6 +510,108 @@ export function EnhancedReportsPage() {
                         </p>
                       )}
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Reports Summary */}
+              <Card className="bg-blue-50 border-blue-200">
+                <CardHeader className="p-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                    </svg>
+                    Reports Summary
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 pt-0">
+                  <div className="space-y-3">
+                    {/* Incident Types Breakdown */}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 mb-2">Incident Types:</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {(() => {
+                          const categoryCounts = {};
+                          selectedLocation.reports.forEach(report => {
+                            const category = report.category?.replace(/_/g, ' ') || 'General';
+                            categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+                          });
+
+                          // Sort by count descending
+                          const sortedCategories = Object.entries(categoryCounts)
+                            .sort((a, b) => b[1] - a[1]);
+
+                          return sortedCategories.map(([category, count]) => (
+                            <div key={category} className="bg-white rounded-lg p-2 border border-blue-200">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-medium text-gray-700 capitalize">{category}</span>
+                                <Badge className="bg-blue-600 text-white text-xs">{count}</Badge>
+                              </div>
+                              <div className="mt-1 text-xs text-gray-500">
+                                {Math.round((count / selectedLocation.reports.length) * 100)}% of reports
+                              </div>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Severity Breakdown */}
+                    <div>
+                      <p className="text-xs font-semibold text-gray-700 mb-2">Severity Distribution:</p>
+                      <div className="space-y-1.5">
+                        {(() => {
+                          const severityCounts = {
+                            critical: selectedLocation.reports.filter(r => r.severity === 'critical').length,
+                            high: selectedLocation.reports.filter(r => r.severity === 'high').length,
+                            medium: selectedLocation.reports.filter(r => r.severity === 'medium').length,
+                            low: selectedLocation.reports.filter(r => r.severity === 'low').length
+                          };
+
+                          return Object.entries(severityCounts)
+                            .filter(([_, count]) => count > 0)
+                            .map(([severity, count]) => {
+                              const percentage = (count / selectedLocation.reports.length) * 100;
+                              const color =
+                                severity === 'critical' ? 'bg-red-500' :
+                                severity === 'high' ? 'bg-orange-500' :
+                                severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500';
+
+                              return (
+                                <div key={severity} className="bg-white rounded p-2">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <span className="text-xs font-medium capitalize">{severity}</span>
+                                    <span className="text-xs text-gray-600">{count} ({Math.round(percentage)}%)</span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 rounded-full h-2">
+                                    <div className={`${color} h-2 rounded-full`} style={{ width: `${percentage}%` }}></div>
+                                  </div>
+                                </div>
+                              );
+                            });
+                        })()}
+                      </div>
+                    </div>
+
+                    {/* Key Insight */}
+                    {(() => {
+                      const categoryCounts = {};
+                      selectedLocation.reports.forEach(report => {
+                        const category = report.category?.replace(/_/g, ' ') || 'General';
+                        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+                      });
+                      const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0];
+
+                      if (topCategory) {
+                        return (
+                          <div className="bg-blue-100 border border-blue-300 rounded-lg p-2">
+                            <p className="text-xs font-semibold text-blue-900">
+                              💡 Key Insight: <span className="capitalize">{topCategory[0]}</span> is the most reported issue ({topCategory[1]} reports, {Math.round((topCategory[1] / selectedLocation.reports.length) * 100)}%)
+                            </p>
+                          </div>
+                        );
+                      }
+                    })()}
                   </div>
                 </CardContent>
               </Card>
