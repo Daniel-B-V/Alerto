@@ -3,8 +3,8 @@ import { SuspensionPanel } from "./SuspensionPanel";
 import { CommunityFeed } from "./CommunityFeed";
 import { AdminPanel } from "./AdminPanel";
 import { AnalyticsPanel } from "./AnalyticsPanel";
-import { LGUReportsPanel } from "./LGUReportsPanel";
 import { ReportsPage } from "./ReportsPage";
+import { EnhancedReportsPage } from "./EnhancedReportsPage";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Settings, Shield, Users, Database, LogOut, User as UserIcon } from "lucide-react";
@@ -124,8 +124,6 @@ function DashboardOverview() {
 export function DashboardContent({ activeSection }) {
   const renderContent = () => {
     switch (activeSection) {
-      case 'lgu-reports':
-        return <LGUReportsPanel />;
       case 'community':
         return <CommunityFeed />;
       case 'suspension':
@@ -133,7 +131,7 @@ export function DashboardContent({ activeSection }) {
       case 'analytics':
         return <AnalyticsPanel />;
       case 'admin':
-        return <ReportsPage />;
+        return <EnhancedReportsPage />;
       case 'settings':
         return <SettingsPanel />;
       default:

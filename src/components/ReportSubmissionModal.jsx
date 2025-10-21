@@ -274,58 +274,54 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
       {/* Report Submission Modal */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="max-w-2xl w-full my-8">
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+      <div className="max-w-[480px] w-full my-6">
         <Card className="w-full max-h-[85vh] overflow-y-auto">
-          <CardHeader className="border-b sticky top-0 bg-white z-10 shadow-sm">
+          <CardHeader className="border-b sticky top-0 bg-white z-10 shadow-sm p-4">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <CardTitle className="text-xl font-bold flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-blue-500 flex-shrink-0" />
                   <span>Submit Weather Report</span>
                 </CardTitle>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-xs text-gray-600 mt-1">
                   Help your community by reporting real-time weather conditions
                 </p>
               </div>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
           </CardHeader>
 
-          <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <CardContent className="p-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             {/* Category Selection */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Report Type <span className="text-red-500">*</span>
               </label>
-              <div className="grid grid-cols-3 gap-2">
+              <select
+                value={formData.category}
+                onChange={(e) => handleInputChange('category', e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              >
+                <option value="">Select Report Type</option>
                 {REPORT_CATEGORIES.map(cat => (
-                  <button
-                    key={cat.value}
-                    type="button"
-                    onClick={() => handleInputChange('category', cat.value)}
-                    className={`p-3 border-2 rounded-lg text-xs font-medium transition-all min-h-[85px] flex flex-col items-center justify-center ${
-                      formData.category === cat.value
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="text-2xl mb-1">{cat.icon}</div>
-                    <div className="text-center leading-tight text-xs">{cat.label}</div>
-                  </button>
+                  <option key={cat.value} value={cat.value}>
+                    {cat.icon} {cat.label}
+                  </option>
                 ))}
-              </div>
+              </select>
             </div>
 
             {/* Title */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Report Title (Optional)
               </label>
               <input
@@ -333,21 +329,21 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
                 placeholder="e.g., Heavy flooding on Main Street"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Description <span className="text-red-500">*</span>
               </label>
               <textarea
-                placeholder="Describe the situation in detail... (e.g., water level, affected areas, road conditions)"
+                placeholder="Describe the situation in detail..."
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                rows={4}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
@@ -356,15 +352,15 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
             </div>
 
             {/* Location */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                   City/Municipality <span className="text-red-500">*</span>
                 </label>
                 <select
                   value={formData.city}
                   onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
                   <option value="">Select City</option>
@@ -375,41 +371,40 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                   Barangay (Optional)
                 </label>
                 <input
                   type="text"
-                  placeholder="Enter barangay name"
+                  placeholder="Enter barangay"
                   value={formData.barangay}
                   onChange={(e) => handleInputChange('barangay', e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Specific Location/Landmarks (Optional)
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                Specific Location (Optional)
               </label>
               <input
                 type="text"
-                placeholder="e.g., Near City Hall, Main Road corner..."
+                placeholder="e.g., Near City Hall"
                 value={formData.specificLocation}
                 onChange={(e) => handleInputChange('specificLocation', e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* AI Verification Notice */}
-            <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <div className="flex items-start gap-2">
+                <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h4 className="font-semibold text-blue-900 mb-1">AI Credibility Verification</h4>
-                  <p className="text-sm text-blue-700">
-                    Your report will be automatically verified against current weather conditions using AI.
-                    Reports that don't match actual weather data will be rejected to maintain system accuracy.
+                  <h4 className="text-xs font-semibold text-blue-900 mb-0.5">AI Credibility Verification</h4>
+                  <p className="text-xs text-blue-700">
+                    Your report will be automatically verified using AI.
                   </p>
                 </div>
               </div>
@@ -417,10 +412,10 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
             {/* Image Upload */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Upload Images (Optional, Max 5)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 transition-colors">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
                 <input
                   type="file"
                   accept="image/*"
@@ -434,12 +429,12 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
                   htmlFor="image-upload"
                   className="cursor-pointer flex flex-col items-center"
                 >
-                  <Upload className="w-10 h-10 text-gray-400 mb-2" />
-                  <p className="text-sm text-gray-600">
-                    Click to upload or drag and drop
+                  <Upload className="w-8 h-8 text-gray-400 mb-1.5" />
+                  <p className="text-xs text-gray-600">
+                    Click to upload
                   </p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    PNG, JPG up to 10MB ({imagePreview.length}/5)
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    PNG, JPG ({imagePreview.length}/5)
                   </p>
                 </label>
               </div>

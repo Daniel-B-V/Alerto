@@ -6,8 +6,7 @@ import {
   FileText,
   Settings,
   ChevronLeft,
-  BarChart3,
-  Brain
+  BarChart3
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
@@ -17,7 +16,6 @@ export function Sidebar({ activeSection, onSectionChange }) {
 
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { id: "lgu-reports", icon: Brain, label: "LGU Reports", badge: "AI" },
     { id: "community", icon: Users, label: "Community" },
     { id: "suspension", icon: GraduationCap, label: "Suspension" },
     { id: "analytics", icon: BarChart3, label: "Analytics" },

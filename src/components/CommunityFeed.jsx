@@ -17,7 +17,8 @@ import {
   MoreVertical,
   Bookmark,
   TrendingUp,
-  Users
+  Users,
+  Shield
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -263,35 +264,29 @@ export function CommunityFeed() {
                 <Card key={report.id} className="overflow-hidden hover:shadow-lg transition-all duration-200">
                   {/* Report Header */}
                   <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-12 h-12 border-2 border-blue-100">
-                          <AvatarImage src={report.userPhotoURL} />
-                          <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
-                            {report.userName?.split(' ').map(n => n[0]).join('') || 'U'}
-                          </AvatarFallback>
-                        </Avatar>
+                    <div className="flex items-center gap-3">
+                      <Avatar className="w-12 h-12 border-2 border-blue-100">
+                        <AvatarImage src={report.userPhotoURL} />
+                        <AvatarFallback className="bg-gradient-to-br from-blue-400 to-blue-600 text-white font-semibold">
+                          {report.userName?.split(' ').map(n => n[0]).join('') || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
 
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900">{report.userName || 'Anonymous User'}</span>
-                            {report.userVerified && (
-                              <CheckCircle className="w-4 h-4 text-blue-500" fill="currentColor" />
-                            )}
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <span>{formatTimestamp(report.createdAt)}</span>
-                            <span>•</span>
-                            <span>
-                              {report.location?.barangay || 'Location'}, {report.location?.city || 'Unknown'}
-                            </span>
-                          </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900">{report.userName || 'Anonymous User'}</span>
+                          {report.userVerified && (
+                            <CheckCircle className="w-4 h-4 text-blue-500" fill="currentColor" />
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-500">
+                          <span>{formatTimestamp(report.createdAt)}</span>
+                          <span>•</span>
+                          <span>
+                            {report.location?.barangay || 'Location'}, {report.location?.city || 'Unknown'}
+                          </span>
                         </div>
                       </div>
-
-                      <Badge className={`${severityBadge.bg} ${severityBadge.text}`}>
-                        {severityBadge.label}
-                      </Badge>
                     </div>
                   </CardHeader>
 
@@ -306,8 +301,8 @@ export function CommunityFeed() {
                       {report.description}
                     </p>
 
-                    {/* Status Badge */}
-                    <div className="flex items-center gap-2 mb-4">
+                    {/* Status Badge & AI Verification */}
+                    <div className="flex items-center gap-2 mb-4 flex-wrap">
                       <Badge
                         variant={report.status === 'verified' ? 'default' : 'secondary'}
                         className="text-xs"
@@ -315,12 +310,56 @@ export function CommunityFeed() {
                         {report.status === 'verified' && '✓ '}
                         {report.status}
                       </Badge>
+
+                      {/* AI Credibility Badge */}
+                      {report.aiAnalysis && (
+                        <Badge
+                          className={`text-xs ${
+                            report.aiAnalysis.confidence >= 85 ? 'bg-green-600 text-white' :
+                            report.aiAnalysis.confidence >= 60 ? 'bg-yellow-600 text-white' :
+                            'bg-red-600 text-white'
+                          }`}
+                        >
+                          AI: {report.aiAnalysis.confidence}% {
+                            report.aiAnalysis.confidence >= 85 ? 'Authentic' :
+                            report.aiAnalysis.confidence >= 60 ? 'Needs Review' :
+                            'Low Confidence'
+                          }
+                        </Badge>
+                      )}
+
                       {report.tags?.map((tag) => (
                         <Badge key={tag} variant="outline" className="text-xs">
                           #{tag}
                         </Badge>
                       ))}
                     </div>
+
+                    {/* AI Analysis Card (if available) */}
+                    {report.aiAnalysis && report.aiAnalysis.assessment && (
+                      <div className={`mb-4 p-3 rounded-lg border inline-block ${
+                        report.aiAnalysis.confidence >= 85 ? 'bg-green-50 border-green-200' :
+                        report.aiAnalysis.confidence >= 60 ? 'bg-yellow-50 border-yellow-200' :
+                        'bg-red-50 border-red-200'
+                      }`}>
+                        <div className="flex items-start gap-2">
+                          <Shield className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
+                            report.aiAnalysis.confidence >= 85 ? 'text-green-600' :
+                            report.aiAnalysis.confidence >= 60 ? 'text-yellow-600' :
+                            'text-red-600'
+                          }`} />
+                          <div>
+                            <p className="text-xs font-semibold mb-1">AI Credibility Analysis</p>
+                            <p className="text-xs text-gray-700">{report.aiAnalysis.assessment}</p>
+                            {report.aiAnalysis.credibilityReason && (
+                              <p className="text-xs text-gray-600 mt-1 italic">
+                                {report.aiAnalysis.credibilityReason}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Images Gallery */}
                     {report.images && report.images.length > 0 && (
