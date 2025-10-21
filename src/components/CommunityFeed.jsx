@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { getReports, toggleLike, subscribeToReports } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
+import { ReportSubmissionModal } from "./ReportSubmissionModal";
 
 export function CommunityFeed() {
   const [reports, setReports] = useState([]);
@@ -35,6 +36,7 @@ export function CommunityFeed() {
   const [commentText, setCommentText] = useState({});
   const [showComments, setShowComments] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
+  const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [filters, setFilters] = useState({
     status: 'all',
     severity: 'all',
@@ -176,68 +178,14 @@ export function CommunityFeed() {
               <p className="text-gray-600">Real-time weather reports from the community</p>
             </div>
             {isAuthenticated && (
-              <Button className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white">
+              <Button
+                onClick={() => setShowSubmitModal(true)}
+                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white"
+              >
                 <Plus className="w-5 h-5" />
                 Submit Report
               </Button>
             )}
-          </div>
-
-          {/* Stats Bar */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm">Total Reports</p>
-                    <p className="text-2xl font-bold">{reports.length}</p>
-                  </div>
-                  <MessageCircle className="w-8 h-8 opacity-80" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-red-100 text-sm">Critical Alerts</p>
-                    <p className="text-2xl font-bold">
-                      {reports.filter(r => r.severity === 'critical').length}
-                    </p>
-                  </div>
-                  <AlertCircle className="w-8 h-8 opacity-80" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-100 text-sm">Verified</p>
-                    <p className="text-2xl font-bold">
-                      {reports.filter(r => r.status === 'verified').length}
-                    </p>
-                  </div>
-                  <CheckCircle className="w-8 h-8 opacity-80" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100 text-sm">Reporters</p>
-                    <p className="text-2xl font-bold">
-                      {new Set(reports.map(r => r.userId)).size}
-                    </p>
-                  </div>
-                  <Users className="w-8 h-8 opacity-80" />
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Filters */}
@@ -295,7 +243,10 @@ export function CommunityFeed() {
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">No reports yet</h3>
                 <p className="text-gray-500 mb-4">Be the first to submit a weather report!</p>
                 {isAuthenticated && (
-                  <Button className="bg-blue-500 hover:bg-blue-600">
+                  <Button
+                    onClick={() => setShowSubmitModal(true)}
+                    className="bg-blue-500 hover:bg-blue-600"
+                  >
                     <Plus className="w-4 h-4 mr-2" />
                     Submit First Report
                   </Button>
@@ -329,10 +280,8 @@ export function CommunityFeed() {
                             )}
                           </div>
                           <div className="flex items-center gap-2 text-sm text-gray-500">
-                            <Clock className="w-3 h-3" />
                             <span>{formatTimestamp(report.createdAt)}</span>
                             <span>•</span>
-                            <MapPin className="w-3 h-3" />
                             <span>
                               {report.location?.barangay || 'Location'}, {report.location?.city || 'Unknown'}
                             </span>
@@ -340,14 +289,9 @@ export function CommunityFeed() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
-                        <Badge className={`${severityBadge.bg} ${severityBadge.text}`}>
-                          {severityBadge.label}
-                        </Badge>
-                        <Button variant="ghost" size="sm" className="w-8 h-8 p-0">
-                          <MoreVertical className="w-4 h-4" />
-                        </Button>
-                      </div>
+                      <Badge className={`${severityBadge.bg} ${severityBadge.text}`}>
+                        {severityBadge.label}
+                      </Badge>
                     </div>
                   </CardHeader>
 
@@ -410,94 +354,6 @@ export function CommunityFeed() {
                         ))}
                       </div>
                     )}
-
-                    {/* Report Actions */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className={`flex items-center gap-2 ${isLiked ? 'text-red-500' : 'text-gray-600'}`}
-                          onClick={() => handleLike(report.id)}
-                        >
-                          <Heart className={`w-5 h-5 ${isLiked ? 'fill-current' : ''}`} />
-                          <span className="font-medium">{likesCount}</span>
-                        </Button>
-
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="flex items-center gap-2 text-gray-600"
-                          onClick={() => toggleComments(report.id)}
-                        >
-                          <MessageCircle className="w-5 h-5" />
-                          <span className="font-medium">{report.commentsCount || 0}</span>
-                        </Button>
-
-                        <Button variant="ghost" size="sm" className="flex items-center gap-2 text-gray-600">
-                          <Share2 className="w-5 h-5" />
-                          <span className="font-medium">Share</span>
-                        </Button>
-                      </div>
-
-                      <Button variant="ghost" size="sm" className="text-gray-600">
-                        <Bookmark className="w-5 h-5" />
-                      </Button>
-                    </div>
-
-                    {/* Comments Section */}
-                    {showComments[report.id] && (
-                      <div className="mt-4 pt-4 border-t border-gray-100">
-                        <div className="space-y-3 mb-3 max-h-60 overflow-y-auto">
-                          {/* Sample comments - Replace with real data */}
-                          <div className="flex gap-2">
-                            <Avatar className="w-8 h-8">
-                              <AvatarFallback className="bg-gray-200 text-xs">JD</AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1">
-                              <div className="bg-gray-100 rounded-lg px-3 py-2">
-                                <p className="font-medium text-sm text-gray-900">Juan Dela Cruz</p>
-                                <p className="text-sm text-gray-700">Stay safe everyone! 🙏</p>
-                              </div>
-                              <div className="flex items-center gap-3 mt-1 px-3">
-                                <button className="text-xs text-gray-500 hover:text-blue-500">Like</button>
-                                <button className="text-xs text-gray-500 hover:text-blue-500">Reply</button>
-                                <span className="text-xs text-gray-400">5m ago</span>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Comment Input */}
-                        {isAuthenticated && (
-                          <div className="flex gap-2">
-                            <Avatar className="w-8 h-8">
-                              <AvatarImage src={user?.photoURL} />
-                              <AvatarFallback className="bg-blue-100 text-xs">
-                                {user?.displayName?.split(' ').map(n => n[0]).join('') || 'U'}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 flex gap-2">
-                              <input
-                                type="text"
-                                placeholder="Write a comment..."
-                                className="flex-1 px-4 py-2 rounded-full bg-gray-100 border-0 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                value={commentText[report.id] || ''}
-                                onChange={(e) => setCommentText(prev => ({ ...prev, [report.id]: e.target.value }))}
-                                onKeyPress={(e) => e.key === 'Enter' && handleCommentSubmit(report.id)}
-                              />
-                              <Button
-                                size="sm"
-                                className="rounded-full bg-blue-500 hover:bg-blue-600"
-                                onClick={() => handleCommentSubmit(report.id)}
-                              >
-                                <Send className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               );
@@ -557,6 +413,16 @@ export function CommunityFeed() {
           </div>
         </div>
       )}
+
+      {/* Report Submission Modal */}
+      <ReportSubmissionModal
+        isOpen={showSubmitModal}
+        onClose={() => setShowSubmitModal(false)}
+        onSubmitSuccess={() => {
+          // Reports will auto-update via real-time listener
+          console.log('Report submitted successfully');
+        }}
+      />
     </div>
   );
 }

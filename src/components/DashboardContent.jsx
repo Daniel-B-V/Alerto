@@ -4,6 +4,7 @@ import { CommunityFeed } from "./CommunityFeed";
 import { AdminPanel } from "./AdminPanel";
 import { AnalyticsPanel } from "./AnalyticsPanel";
 import { LGUReportsPanel } from "./LGUReportsPanel";
+import { ReportsPage } from "./ReportsPage";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Settings, Shield, Users, Database, LogOut, User as UserIcon } from "lucide-react";
@@ -132,7 +133,7 @@ export function DashboardContent({ activeSection }) {
       case 'analytics':
         return <AnalyticsPanel />;
       case 'admin':
-        return <AdminPanel />;
+        return <ReportsPage />;
       case 'settings':
         return <SettingsPanel />;
       default:

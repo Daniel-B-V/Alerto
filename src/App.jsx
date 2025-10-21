@@ -4,7 +4,20 @@ import { DashboardContent } from "./components/DashboardContent";
 import { Login } from "./components/Login";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+// Import weather API test utility (for development testing)
+if (import.meta.env.DEV) {
+  import('./utils/testWeatherAPI').then(module => {
+    window.testWeatherAPI = {
+      testCurrentWeather: module.testCurrentWeather,
+      testWeatherForecast: module.testWeatherForecast,
+      runAllTests: module.runAllTests
+    };
+    console.log('🌤️ Weather API test functions loaded! Try:');
+    console.log('   window.testWeatherAPI.runAllTests()');
+  });
+}
 
 function AppContent() {
   const [activeSection, setActiveSection] = useState("dashboard");

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Cloud, Droplets, Wind, Gauge, MapPin, RefreshCw } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -10,6 +10,8 @@ import {
   getWeatherAlerts,
   getBatangasWeather
 } from "../services/weatherService";
+import { getReports } from "../firebase/firestore";
+import { useSocket } from "../contexts/SocketContext";
 
 export function WeatherPanel() {
   const [currentWeather, setCurrentWeather] = useState(null);
@@ -17,7 +19,10 @@ export function WeatherPanel() {
   const [alertAreas, setAlertAreas] = useState([]);
   const [batangasStats, setBatangasStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [communityReports, setCommunityReports] = useState([]);
   const [lastUpdate, setLastUpdate] = useState(null);
+  const { addNotification } = useSocket();
+  const notifiedConditions = useRef(new Set());
 
   // Fetch all weather data
   const fetchWeatherData = async () => {
@@ -38,6 +43,58 @@ export function WeatherPanel() {
       // Fetch weather for all Batangas cities
       const allCities = await getBatangasWeather();
       setBatangasStats(allCities);
+
+      // Fetch community reports from Firebase
+      const reports = await getReports({ limit: 100 });
+      setCommunityReports(reports);
+
+      // Check weather conditions and add notifications for strong wind or heavy rain
+      if (current?.current) {
+        const { windSpeed, rainfall } = current.current;
+        const conditions = [];
+
+        // Strong wind: > 40 km/h
+        if (windSpeed > 40) {
+          const windKey = `wind-${Math.floor(windSpeed / 10)}`;
+          if (!notifiedConditions.current.has(windKey)) {
+            notifiedConditions.current.add(windKey);
+            conditions.push({
+              type: 'strong_wind',
+              message: `Strong Wind Alert: ${windSpeed} km/h detected in Batangas`,
+              severity: windSpeed > 60 ? 'critical' : 'high'
+            });
+          }
+        }
+
+        // Heavy rain: > 10 mm/h
+        if (rainfall > 10) {
+          const rainKey = `rain-${Math.floor(rainfall / 5)}`;
+          if (!notifiedConditions.current.has(rainKey)) {
+            notifiedConditions.current.add(rainKey);
+            conditions.push({
+              type: 'heavy_rain',
+              message: `Heavy Rain Alert: ${rainfall.toFixed(1)} mm/h detected in Batangas`,
+              severity: rainfall > 20 ? 'critical' : 'high'
+            });
+          }
+        }
+
+        // Add notifications
+        conditions.forEach(condition => {
+          addNotification({
+            id: `weather-${Date.now()}-${Math.random()}`,
+            title: condition.type === 'strong_wind' ? '💨 Strong Wind Alert' : '🌧️ Heavy Rain Alert',
+            message: condition.message,
+            severity: condition.severity,
+            timestamp: new Date().toISOString()
+          });
+        });
+
+        // Clear old notifications after 1 hour
+        setTimeout(() => {
+          notifiedConditions.current.clear();
+        }, 60 * 60 * 1000);
+      }
 
       setLastUpdate(new Date());
     } catch (error) {
@@ -63,7 +120,10 @@ export function WeatherPanel() {
     totalCities: batangasStats.length,
     suspensions: alertAreas.filter(a => a.level === 'high').length,
     ongoingClasses: batangasStats.length - alertAreas.filter(a => a.level === 'high').length,
-    communityReports: 156, // This would come from your Firebase data
+    communityReports: communityReports.length,
+    criticalAlerts: alertAreas.filter(a => a.level === 'high').length,
+    verifiedReports: communityReports.filter(r => r.status === 'verified').length,
+    activeReporters: [...new Set(communityReports.map(r => r.userEmail).filter(Boolean))].length,
   } : null;
   if (loading && !currentWeather) {
     return (
