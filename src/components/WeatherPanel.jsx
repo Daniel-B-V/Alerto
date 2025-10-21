@@ -323,10 +323,17 @@ export function WeatherPanel() {
                 alertAreas.slice(0, 4).map((area, index) => (
                   <div key={`${area.location}-${index}`} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                     <div className="flex items-center gap-2">
-                      <Badge variant={
-                        area.level === 'high' ? 'destructive' :
-                        area.level === 'medium' ? 'default' : 'secondary'
-                      }>
+                      <Badge
+                        className="text-white font-semibold"
+                        style={{
+                          backgroundColor:
+                            area.level === 'critical' ? '#7c3aed' :
+                            area.level === 'high' ? '#dc2626' :
+                            area.level === 'medium' ? '#ea580c' :
+                            '#9ca3af',
+                          color: 'white'
+                        }}
+                      >
                         {area.level}
                       </Badge>
                       <span className="font-medium">{area.location}</span>

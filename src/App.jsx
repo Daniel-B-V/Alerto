@@ -2,6 +2,7 @@ import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { DashboardContent } from "./components/DashboardContent";
 import { Login } from "./components/Login";
+import { SignUp } from "./components/SignUp";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { useState, useEffect } from "react";
@@ -21,7 +22,29 @@ if (import.meta.env.DEV) {
 
 function AppContent() {
   const [activeSection, setActiveSection] = useState("dashboard");
+  const [authPage, setAuthPage] = useState("login"); // "login" or "signup"
   const { isAuthenticated, loading } = useAuth();
+
+  // Listen for navigation events from Login/SignUp pages
+  useEffect(() => {
+    const handleNavigation = (e) => {
+      const path = e.detail?.path || window.location.pathname;
+      if (path === '/signup') {
+        setAuthPage('signup');
+      } else if (path === '/login' || path === '/') {
+        setAuthPage('login');
+      }
+    };
+
+    window.addEventListener('navigate', handleNavigation);
+
+    // Check initial URL
+    if (window.location.pathname === '/signup') {
+      setAuthPage('signup');
+    }
+
+    return () => window.removeEventListener('navigate', handleNavigation);
+  }, []);
 
   if (loading) {
     return (
@@ -35,7 +58,7 @@ function AppContent() {
   }
 
   if (!isAuthenticated) {
-    return <Login />;
+    return authPage === 'signup' ? <SignUp /> : <Login />;
   }
 
   return (

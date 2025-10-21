@@ -266,13 +266,19 @@ export const generateAllDummyData = () => {
 export const getTestScenarios = () => {
   return {
     // Scenario 1: High confidence, should recommend suspension
-    highConfidence: generateHighDensityReports('Lipa City', 45),
+    // Multiple cities with high report density
+    highConfidence: [
+      ...generateHighDensityReports('Lipa City', 45),
+      ...generateHighDensityReports('Batangas City', 28),
+      ...generateHighDensityReports('Tanauan City', 22),
+      ...generateScatteredReports(['Santo Tomas', 'Rosario', 'Ibaan', 'Taal'], 15)
+    ],
 
     // Scenario 2: Medium confidence, borderline case
     mediumConfidence: generateHighDensityReports('Tanauan City', 15),
 
-    // Scenario 3: Low confidence, scattered reports
-    lowConfidence: generateScatteredReports(['Mabini', 'San Juan'], 5),
+    // Scenario 3: Low confidence, scattered reports across more cities
+    lowConfidence: generateScatteredReports(['Mabini', 'San Juan', 'Balayan', 'Lemery', 'Nasugbu', 'Bauan', 'San Pascual', 'Calaca'], 12),
 
     // Scenario 4: All test data combined
     fullDataset: generateAllDummyData()

@@ -28,6 +28,7 @@ export function AnalyticsPanel() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [citiesWeather, setCitiesWeather] = useState([]);
   const [communityReports, setCommunityReports] = useState([]);
+  const [showAllCities, setShowAllCities] = useState(false);
   const [cityDistribution, setCityDistribution] = useState([]);
   const [weeklyTrends, setWeeklyTrends] = useState([]);
   const [categoryBreakdown, setCategoryBreakdown] = useState([]);
@@ -127,6 +128,17 @@ export function AnalyticsPanel() {
 
   useEffect(() => {
     loadData();
+
+    // Listen for data refresh events from seeder
+    const handleDataRefresh = () => {
+      loadData();
+    };
+
+    window.addEventListener('dataRefresh', handleDataRefresh);
+
+    return () => {
+      window.removeEventListener('dataRefresh', handleDataRefresh);
+    };
   }, []);
 
   const refreshData = async () => {
@@ -183,25 +195,29 @@ export function AnalyticsPanel() {
       {/* City-by-City Weather Details */}
       {!loading && !error && citiesWeather && citiesWeather.length > 0 && (
         <div className="max-w-7xl mx-auto mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">City-by-City Weather Conditions</h2>
+          <div className="mb-4">
+            <h2 className="text-2xl font-bold text-gray-900">City-by-City Weather Conditions</h2>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {citiesWeather.map((city, index) => {
-              const riskLevel =
-                city.current.rainfall > 20 || city.current.windSpeed > 60 ? 'high' :
-                city.current.rainfall > 10 || city.current.windSpeed > 40 ? 'medium' :
-                city.current.rainfall > 5 || city.current.windSpeed > 30 ? 'low' : 'normal';
+            {(showAllCities ? citiesWeather : citiesWeather.slice(0, 8)).map((city, index) => {
+              // Check if weather data has alerts array with risk level
+              const alertLevel = city.alerts && city.alerts.length > 0 ? city.alerts[0].level : null;
+
+              // Calculate risk level based on alerts or weather conditions
+              const riskLevel = alertLevel || (
+                city.current.rainfall >= 30 || city.current.windSpeed >= 55 ? 'critical' :
+                city.current.rainfall >= 20 || city.current.windSpeed >= 40 ? 'high' :
+                city.current.rainfall >= 10 || city.current.windSpeed >= 30 ? 'medium' :
+                city.current.rainfall >= 5 || city.current.windSpeed >= 20 ? 'low' : 'safe'
+              );
 
               return (
-                <Card key={index} className={`${
-                  riskLevel === 'high' ? 'border-red-400 bg-red-50/50' :
-                  riskLevel === 'medium' ? 'border-orange-400 bg-orange-50/50' :
-                  riskLevel === 'low' ? 'border-yellow-400 bg-yellow-50/50' :
-                  'border-green-400 bg-green-50/50'
-                } border-2`}>
+                <Card key={index} className="bg-white border border-gray-200 shadow-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{city.location.city}</CardTitle>
                       <Badge className={`${
+                        riskLevel === 'critical' ? 'bg-purple-700' :
                         riskLevel === 'high' ? 'bg-red-600' :
                         riskLevel === 'medium' ? 'bg-orange-600' :
                         riskLevel === 'low' ? 'bg-yellow-600' :
@@ -212,14 +228,14 @@ export function AnalyticsPanel() {
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
                       <Cloud className="w-4 h-4 text-gray-600" />
                       <span className="text-2xl font-bold">{city.current.temperature}°C</span>
                       <span className="text-sm text-gray-600">{city.current.weather.description}</span>
                     </div>
 
-                    <div className="space-y-2 text-sm">
-                      <div className="flex items-center justify-between">
+                    <div className="space-y-3 text-sm">
+                      <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                         <span className="flex items-center gap-2">
                           <CloudRain className="w-4 h-4 text-blue-600" />
                           <span>Rainfall</span>
@@ -233,7 +249,7 @@ export function AnalyticsPanel() {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                         <span className="flex items-center gap-2">
                           <Wind className="w-4 h-4 text-gray-600" />
                           <span>Wind Speed</span>
@@ -247,18 +263,205 @@ export function AnalyticsPanel() {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between pb-2 border-b border-gray-100">
                         <span className="flex items-center gap-2">
                           <Droplets className="w-4 h-4 text-blue-600" />
                           <span>Humidity</span>
                         </span>
                         <span className="font-semibold text-gray-700">{city.current.humidity}%</span>
                       </div>
+
+                      <div className="flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                          <AlertTriangle className={`w-4 h-4 ${
+                            riskLevel === 'critical' ? 'text-purple-700' :
+                            riskLevel === 'high' ? 'text-red-600' :
+                            riskLevel === 'medium' ? 'text-orange-600' :
+                            riskLevel === 'low' ? 'text-yellow-600' :
+                            'text-green-600'
+                          }`} />
+                          <span>Condition</span>
+                        </span>
+                        <span className={`font-semibold ${
+                          riskLevel === 'critical' ? 'text-purple-700' :
+                          riskLevel === 'high' ? 'text-red-600' :
+                          riskLevel === 'medium' ? 'text-orange-600' :
+                          riskLevel === 'low' ? 'text-yellow-600' :
+                          'text-green-600'
+                        }`}>
+                          {riskLevel === 'critical' ? 'CRITICAL' :
+                           riskLevel === 'high' ? 'High Risk' :
+                           riskLevel === 'medium' ? 'Moderate' :
+                           riskLevel === 'low' ? 'Low Risk' :
+                           'Safe'}
+                        </span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
               );
             })}
+          </div>
+
+          {/* Show All Button */}
+          {citiesWeather.length > 8 && (
+            <div className="flex justify-center mt-8">
+              <button
+                onClick={() => setShowAllCities(!showAllCities)}
+                className="text-black font-medium hover:underline"
+              >
+                {showAllCities ? 'Hide all' : 'Show all'}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Additional Statistics Cards */}
+      {!loading && !error && communityReports.length > 0 && (
+        <div className="max-w-7xl mx-auto mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Report Analytics</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Severity Distribution Pie Chart */}
+            <Card className="bg-white border border-gray-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <PieChartIcon className="w-5 h-5 text-red-500" />
+                  Severity Distribution
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={250}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Critical', value: communityReports.filter(r => r.severity === 'critical').length, color: '#dc2626' },
+                        { name: 'High', value: communityReports.filter(r => r.severity === 'high').length, color: '#f97316' },
+                        { name: 'Medium', value: communityReports.filter(r => r.severity === 'medium').length, color: '#eab308' },
+                        { name: 'Low', value: communityReports.filter(r => r.severity === 'low').length, color: '#22c55e' }
+                      ].filter(d => d.value > 0)}
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      dataKey="value"
+                      label={({ name, value }) => `${name}: ${value}`}
+                    >
+                      {[
+                        { name: 'Critical', value: communityReports.filter(r => r.severity === 'critical').length, color: '#dc2626' },
+                        { name: 'High', value: communityReports.filter(r => r.severity === 'high').length, color: '#f97316' },
+                        { name: 'Medium', value: communityReports.filter(r => r.severity === 'medium').length, color: '#eab308' },
+                        { name: 'Low', value: communityReports.filter(r => r.severity === 'low').length, color: '#22c55e' }
+                      ].filter(d => d.value > 0).map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Affected Cities Count */}
+            <Card className="bg-white border border-gray-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <AlertTriangle className="w-5 h-5 text-orange-500" />
+                  Top Affected Cities
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {Object.entries(
+                    communityReports.reduce((acc, report) => {
+                      const city = report.location?.city || 'Unknown';
+                      acc[city] = (acc[city] || 0) + 1;
+                      return acc;
+                    }, {})
+                  )
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 6)
+                    .map(([city, count], idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2 h-2 rounded-full ${
+                            idx === 0 ? 'bg-red-500' :
+                            idx === 1 ? 'bg-orange-500' :
+                            idx === 2 ? 'bg-yellow-500' :
+                            'bg-gray-400'
+                          }`} />
+                          <span className="font-medium text-sm">{city}</span>
+                        </div>
+                        <Badge variant="outline" className="text-xs">{count} reports</Badge>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Report Status Overview */}
+            <Card className="bg-white border border-gray-200 shadow-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                  Report Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Verified</span>
+                      <span className="font-semibold text-green-600">
+                        {communityReports.filter(r => r.status === 'verified').length}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-green-500 h-2 rounded-full"
+                        style={{ width: `${(communityReports.filter(r => r.status === 'verified').length / communityReports.length) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Pending</span>
+                      <span className="font-semibold text-orange-600">
+                        {communityReports.filter(r => r.status === 'pending').length}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-orange-500 h-2 rounded-full"
+                        style={{ width: `${(communityReports.filter(r => r.status === 'pending').length / communityReports.length) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">Investigating</span>
+                      <span className="font-semibold text-blue-600">
+                        {communityReports.filter(r => r.status === 'investigating').length}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-blue-500 h-2 rounded-full"
+                        style={{ width: `${(communityReports.filter(r => r.status === 'investigating').length / communityReports.length) * 100}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-semibold text-gray-700">Total Reports</span>
+                      <span className="text-lg font-bold text-gray-900">{communityReports.length}</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
       )}
@@ -339,7 +542,7 @@ export function AnalyticsPanel() {
 
       {/* Reports by City */}
       {!loading && !error && cityDistribution && cityDistribution.length > 0 && (
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Reports by Location</h2>
           <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
             <CardHeader>
@@ -418,7 +621,7 @@ export function AnalyticsPanel() {
 
       {/* Hourly Weather Forecast */}
       {!loading && !error && hourlyForecast.length > 0 && (
-        <div className="max-w-7xl mx-auto mt-6">
+        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-gray-200">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">48-Hour Weather Forecast</h2>
           <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
             <CardHeader>

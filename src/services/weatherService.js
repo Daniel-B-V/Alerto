@@ -1,4 +1,7 @@
 // OpenWeather API Service for Real-time Weather Data
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../firebase/config';
+
 const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 const WEATHER_API_URL = import.meta.env.VITE_WEATHER_API_URL || 'https://api.openweathermap.org/data/2.5';
 
@@ -113,18 +116,41 @@ export const getWeatherForecast = async (city = DEFAULT_LOCATION.city) => {
 
 // Get weather for multiple cities in Batangas Province
 export const getBatangasWeather = async () => {
-  const batangasCities = [
-    'Batangas City',
-    'Lipa City',
-    'Tanauan City',
-    'Santo Tomas',
-    'Taal',
-    'Balayan',
-    'Nasugbu',
-    'Lemery',
-  ];
-
   try {
+    // First, try to fetch from Firestore (seeded data)
+    const weatherRef = collection(db, 'weather');
+    const snapshot = await getDocs(weatherRef);
+
+    if (!snapshot.empty) {
+      // We have seeded data in Firestore, use it
+      console.log('📊 Using seeded weather data from Firestore');
+      const weatherData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        // Convert Firestore Timestamps to JS Dates
+        current: {
+          ...doc.data().current,
+          timestamp: doc.data().current.timestamp?.toDate ? doc.data().current.timestamp.toDate() : new Date()
+        },
+        lastUpdated: doc.data().lastUpdated?.toDate ? doc.data().lastUpdated.toDate() : new Date()
+      }));
+
+      return weatherData;
+    }
+
+    // If no Firestore data, fall back to OpenWeather API
+    console.log('🌐 Fetching weather data from OpenWeather API');
+    const batangasCities = [
+      'Batangas City',
+      'Lipa City',
+      'Tanauan City',
+      'Santo Tomas',
+      'Taal',
+      'Balayan',
+      'Nasugbu',
+      'Lemery',
+    ];
+
     const weatherPromises = batangasCities.map(city =>
       getCurrentWeather(city).catch(err => {
         console.error(`Failed to fetch weather for ${city}:`, err);
@@ -137,7 +163,32 @@ export const getBatangasWeather = async () => {
     // Filter out any failed requests
     return results.filter(result => result !== null);
   } catch (error) {
-    handleApiError(error, 'Batangas weather data');
+    console.error('Error fetching Batangas weather:', error);
+    // If Firestore fails, try API as fallback
+    try {
+      const batangasCities = [
+        'Batangas City',
+        'Lipa City',
+        'Tanauan City',
+        'Santo Tomas',
+        'Taal',
+        'Balayan',
+        'Nasugbu',
+        'Lemery',
+      ];
+
+      const weatherPromises = batangasCities.map(city =>
+        getCurrentWeather(city).catch(err => {
+          console.error(`Failed to fetch weather for ${city}:`, err);
+          return null;
+        })
+      );
+
+      const results = await Promise.all(weatherPromises);
+      return results.filter(result => result !== null);
+    } catch (apiError) {
+      handleApiError(apiError, 'Batangas weather data');
+    }
   }
 };
 
@@ -176,19 +227,29 @@ export const getWeatherAlerts = async () => {
 
     // Analyze weather data and create alerts
     const alerts = batangasWeather.map(data => {
+      // First check if the weather data has alerts array from seeded data
       let level = 'low';
       let status = 'Normal';
 
-      // Determine alert level based on conditions
-      if (data.current.rainfall > 10 || data.current.windSpeed > 40) {
-        level = 'high';
-        status = data.current.rainfall > 10 ? 'Heavy Rain Warning' : 'Strong Wind Warning';
-      } else if (data.current.rainfall > 5 || data.current.windSpeed > 25) {
-        level = 'medium';
-        status = data.current.rainfall > 5 ? 'Moderate Rain' : 'Gusty Winds';
-      } else if (data.current.weather.main === 'Rain') {
-        level = 'low';
-        status = 'Light Rain';
+      if (data.alerts && data.alerts.length > 0) {
+        // Use the alert level from seeded data
+        level = data.alerts[0].level;
+        status = data.alerts[0].message || 'Weather Alert';
+      } else {
+        // Determine alert level based on conditions (fallback for non-seeded data)
+        if (data.current.rainfall >= 30 || data.current.windSpeed >= 55) {
+          level = 'critical';
+          status = data.current.rainfall >= 30 ? 'Critical - Typhoon Level Rainfall' : 'Critical - Typhoon Force Winds';
+        } else if (data.current.rainfall >= 20 || data.current.windSpeed >= 40) {
+          level = 'high';
+          status = data.current.rainfall >= 20 ? 'Heavy Rain Warning' : 'Strong Wind Warning';
+        } else if (data.current.rainfall >= 10 || data.current.windSpeed >= 30) {
+          level = 'medium';
+          status = data.current.rainfall >= 10 ? 'Moderate Rain' : 'Gusty Winds';
+        } else if (data.current.rainfall >= 5 || data.current.windSpeed >= 20 || data.current.weather.main === 'Rain') {
+          level = 'low';
+          status = 'Light Rain';
+        }
       }
 
       return {
@@ -205,8 +266,8 @@ export const getWeatherAlerts = async () => {
       };
     });
 
-    // Sort by alert level (high > medium > low)
-    const levelPriority = { high: 3, medium: 2, low: 1 };
+    // Sort by alert level (critical > high > medium > low)
+    const levelPriority = { critical: 4, high: 3, medium: 2, low: 1 };
     alerts.sort((a, b) => levelPriority[b.level] - levelPriority[a.level]);
 
     return alerts;

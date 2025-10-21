@@ -141,8 +141,8 @@ export const DatabaseSeeder = () => {
                 </div>
                 <Badge variant="outline" className="text-xs">
                   {key === 'fullDataset' ? '~98 reports' :
-                   key === 'highConfidence' ? '45 reports' :
-                   key === 'mediumConfidence' ? '15 reports' : '5 reports'}
+                   key === 'highConfidence' ? '~110 reports' :
+                   key === 'mediumConfidence' ? '15 reports' : '12 reports'}
                 </Badge>
               </div>
             </CardHeader>
@@ -183,7 +183,7 @@ export const DatabaseSeeder = () => {
           <div className="bg-white rounded-lg p-4 border border-blue-200">
             <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
               <Info className="w-4 h-4 text-blue-600" />
-              What's Included (10 Cities):
+              What's Included (15 Cities):
             </h4>
             <ul className="space-y-1 text-sm text-gray-700">
               <li>• <strong>Lipa City:</strong> Typhoon conditions (65 km/h winds, 45mm rainfall) - CRITICAL</li>
@@ -193,6 +193,8 @@ export const DatabaseSeeder = () => {
               <li>• <strong>Rosario:</strong> Moderate rain (42 km/h winds, 22mm rainfall)</li>
               <li>• <strong>Taal, Ibaan, Lemery:</strong> Light to moderate rain conditions</li>
               <li>• <strong>Balayan, Nasugbu:</strong> Cloudy with light showers</li>
+              <li>• <strong>Mabini, Bauan, Calaca:</strong> Partly cloudy to fair weather</li>
+              <li>• <strong>San Juan, San Pascual:</strong> Light rain showers</li>
             </ul>
           </div>
           <div className="grid grid-cols-2 gap-3">
@@ -250,20 +252,20 @@ export const DatabaseSeeder = () => {
           <CardTitle className="text-base">How to Use</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-gray-700">
-          <p><strong>1. Full Dataset:</strong> Best for comprehensive testing. Includes Lipa City with 45 reports (high confidence - should recommend suspension), Batangas City with 18 reports, and scattered reports across other cities. Also seeds critical weather data for suspension testing.</p>
+          <p><strong>1. Full Dataset:</strong> Best for comprehensive testing. Includes Lipa City with 45 reports (high confidence - should recommend suspension), Batangas City with 18 reports, and scattered reports across other cities. Also seeds critical weather data for 15 cities.</p>
 
-          <p><strong>2. High Confidence Scenario:</strong> Use this to test the suspension feature. Lipa City will have 45 reports with ~89% AI confidence and should show "Issue Class Suspension" button enabled. Includes typhoon-level weather conditions (65 km/h winds, 45mm rainfall).</p>
+          <p><strong>2. High Confidence Scenario:</strong> Multi-city crisis simulation with ~110 reports across 7+ cities. Lipa City (45), Batangas City (28), Tanauan City (22), plus Santo Tomas, Rosario, Ibaan, and Taal. Includes typhoon-level weather conditions for realistic suspension testing.</p>
 
           <p><strong>3. Medium Confidence Scenario:</strong> Test borderline cases. Tanauan City will have 15 reports with ~65-75% confidence. Includes moderate weather alerts.</p>
 
-          <p><strong>4. Low Confidence Scenario:</strong> Test how the system handles few reports. Only 5 scattered reports with low confidence (~40-50%). Light weather conditions.</p>
+          <p><strong>4. Low Confidence Scenario:</strong> Test how the system handles scattered reports. 12 reports spread across 8 different cities (Mabini, San Juan, Balayan, Lemery, Nasugbu, Bauan, San Pascual, Calaca) with varying weather conditions from fair to light rain.</p>
 
           <p className="mt-4 pt-4 border-t text-xs text-gray-600">
-            <strong>Weather Data:</strong> Each scenario automatically seeds critical weather data including typhoon conditions in Lipa City (65 km/h winds, 45mm rainfall), heavy rain in Batangas City (58 km/h winds, 38mm rainfall), and moderate conditions in other cities. This triggers the suspension advisory system.
+            <strong>Weather Data:</strong> Each scenario automatically seeds critical weather data for 15 cities including typhoon conditions in Lipa City (65 km/h winds, 45mm rainfall), heavy rain in Batangas City (58 km/h winds, 38mm rainfall), and various conditions in other cities. This ensures the City-by-City Weather Conditions panel and suspension advisory system work correctly.
           </p>
 
           <p className="mt-2 text-xs text-gray-600">
-            <strong>Note:</strong> Each scenario will clear existing data first. Make sure to backup any important reports before using this tool.
+            <strong>Note:</strong> Each scenario will clear existing data first. Make sure to backup any important reports before using this tool. Weather data and reports will automatically appear in the dashboard and all panels.
           </p>
         </CardContent>
       </Card>

@@ -263,10 +263,10 @@ export function EnhancedReportsPage() {
         </div>
       </div>
 
-      {/* Statistics Cards - 2x2 Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', width: '100%', maxWidth: '1200px', margin: '0 auto 2rem auto' }}>
+      {/* Statistics Cards - 4 Columns */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', width: '100%', margin: '0 0 2rem 0' }}>
         <div>
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 h-full">
+          <Card className="h-full" style={{ background: 'linear-gradient(to bottom right, #eff6ff, #dbeafe)', border: '1px solid #bfdbfe' }}>
             <CardContent className="p-6">
               <div className="text-center">
                 <div className="text-4xl font-bold text-blue-900">{stats.totalReports}</div>
@@ -277,7 +277,7 @@ export function EnhancedReportsPage() {
         </div>
 
         <div>
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 h-full">
+          <Card className="h-full" style={{ background: 'linear-gradient(to bottom right, #faf5ff, #f3e8ff)', border: '1px solid #e9d5ff' }}>
             <CardContent className="p-6">
               <div className="text-center">
                 <div className="text-4xl font-bold text-purple-900">{stats.totalCities}</div>
@@ -288,7 +288,7 @@ export function EnhancedReportsPage() {
         </div>
 
         <div>
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 h-full">
+          <Card className="h-full" style={{ background: 'linear-gradient(to bottom right, #fef2f2, #fee2e2)', border: '1px solid #fecaca' }}>
             <CardContent className="p-6">
               <div className="text-center">
                 <div className="text-4xl font-bold text-red-900">{stats.critical}</div>
@@ -299,7 +299,7 @@ export function EnhancedReportsPage() {
         </div>
 
         <div>
-          <Card className="bg-gradient-to-br from-orange-50 to-orange-100 border-orange-200 h-full">
+          <Card className="h-full" style={{ background: 'linear-gradient(to bottom right, #fff7ed, #ffedd5)', border: '1px solid #fed7aa' }}>
             <CardContent className="p-6">
               <div className="text-center">
                 <div className="text-4xl font-bold text-orange-900">{stats.high}</div>

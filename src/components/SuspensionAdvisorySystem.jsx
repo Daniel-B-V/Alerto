@@ -225,7 +225,7 @@ const SuspensionAdvisorySystem = ({ weatherData = [], reports = [] }) => {
             </div>
 
             {/* Score Breakdown */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="grid grid-cols-3 gap-4 mb-6">
               <div className="bg-white rounded-xl p-5 shadow-sm border-2 border-blue-200">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">

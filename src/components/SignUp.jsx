@@ -1,24 +1,23 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { CloudRain, Mail } from 'lucide-react';
-import { validateLoginForm, getAuthErrorMessage } from './LoginUtils';
+import { validateSignUpForm, getAuthErrorMessage } from './LoginUtils';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
-import { PasswordInput } from './PasswordInput';
-import { SocialLoginButton } from './SocialLoginButton';
 import { LoginAlert } from './LoginAlert';
 
-const Login = () => {
+const SignUp = () => {
   const [formData, setFormData] = useState({
+    name: '',
     email: '',
-    password: ''
+    password: '',
+    confirmPassword: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const { login, loginWithGoogle } = useAuth();
+  const { register, loginWithGoogle } = useAuth();
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -32,8 +31,14 @@ const Login = () => {
     setError('');
     setSuccess('');
 
+    // Validate passwords match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+
     // Validate form
-    const validationError = validateLoginForm(formData);
+    const validationError = validateSignUpForm(formData);
     if (validationError) {
       setError(validationError);
       return;
@@ -42,25 +47,26 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const result = await login({
+      const result = await register({
+        name: formData.name,
         email: formData.email,
         password: formData.password
       });
 
       if (result.success) {
-        setSuccess('Login successful! Redirecting...');
+        setSuccess('Account created successfully! Redirecting...');
       } else {
-        setError(result.error || 'Login failed. Please try again');
+        setError(result.error || 'Sign up failed. Please try again');
       }
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('Sign up error:', err);
       setError(getAuthErrorMessage(err.code) || err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignUp = async () => {
     setError('');
     setSuccess('');
     setLoading(true);
@@ -68,13 +74,13 @@ const Login = () => {
     try {
       const result = await loginWithGoogle();
       if (result.success) {
-        setSuccess('Login successful! Redirecting...');
+        setSuccess('Sign up successful! Redirecting...');
       } else {
-        setError(result.error || 'Google sign-in failed');
+        setError(result.error || 'Google sign-up failed');
       }
     } catch (err) {
-      console.error('Google sign-in error:', err);
-      setError(getAuthErrorMessage(err.code) || 'Google sign-in failed. Please try again');
+      console.error('Google sign-up error:', err);
+      setError(getAuthErrorMessage(err.code) || 'Google sign-up failed. Please try again');
     } finally {
       setLoading(false);
     }
@@ -83,15 +89,15 @@ const Login = () => {
   return (
     <div className="h-screen flex items-center justify-center bg-white p-6">
 
-      {/* Login Card */}
+      {/* SignUp Card */}
       <div className="w-full max-w-md">
 
         {/* Logo/Brand */}
         <h1 className="text-5xl font-bold text-gray-900 mb-8 leading-tight">ALERTO</h1>
 
         {/* Heading */}
-        <h2 className="text-4xl font-bold text-gray-900 mb-3 leading-tight">Welcome back</h2>
-        <p className="text-gray-600 mb-10 leading-relaxed">Welcome back! Please enter your details.</p>
+        <h2 className="text-4xl font-bold text-gray-900 mb-3 leading-tight">Create an account</h2>
+        <p className="text-gray-600 mb-10 leading-relaxed">Start monitoring weather alerts in Batangas.</p>
 
         {/* Alert Messages */}
         {error && (
@@ -105,8 +111,26 @@ const Login = () => {
           </div>
         )}
 
-        {/* Login Form */}
+        {/* SignUp Form */}
         <form onSubmit={handleSubmit} className="space-y-6">
+
+          {/* Name Input */}
+          <div className="space-y-2">
+            <Label htmlFor="name" className="text-sm font-semibold text-gray-900 leading-normal">
+              Name
+            </Label>
+            <Input
+              id="name"
+              type="text"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              placeholder="Enter your name"
+              disabled={loading}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              autoComplete="name"
+            />
+          </div>
 
           {/* Email Input */}
           <div className="space-y-2">
@@ -137,35 +161,46 @@ const Login = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
-              placeholder="Password"
+              placeholder="Create a password"
               disabled={loading}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
-              autoComplete="current-password"
+              autoComplete="new-password"
             />
           </div>
 
-          {/* Forgot Password Link */}
-          <div className="text-right">
-            <a href="/forgot-password" className="text-sm font-semibold text-gray-900 hover:underline">
-              Forgot password
-            </a>
+          {/* Confirm Password Input */}
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-900 leading-normal">
+              Confirm Password
+            </Label>
+            <Input
+              id="confirmPassword"
+              type={showPassword ? "text" : "password"}
+              name="confirmPassword"
+              value={formData.confirmPassword}
+              onChange={handleChange}
+              placeholder="Confirm your password"
+              disabled={loading}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:border-transparent"
+              autoComplete="new-password"
+            />
           </div>
 
-          {/* Login Button */}
+          {/* Sign Up Button */}
           <button
             type="submit"
             disabled={loading}
             className="w-full text-white py-3 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             style={{ backgroundColor: '#111827' }}
           >
-            {loading ? 'Signing in...' : 'Login'}
+            {loading ? 'Creating account...' : 'Get started'}
           </button>
         </form>
 
-        {/* Google Sign-in */}
+        {/* Google Sign-up */}
         <button
           type="button"
-          onClick={handleGoogleSignIn}
+          onClick={handleGoogleSignUp}
           disabled={loading}
           className="w-full mt-4 flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
         >
@@ -175,18 +210,18 @@ const Login = () => {
             <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          Sign in with Google
+          Sign up with Google
         </button>
 
-        {/* Sign Up Link */}
+        {/* Login Link */}
         <div className="mt-8 text-center">
           <p className="text-gray-600 leading-relaxed">
-            Don't have an account?{' '}
+            Already have an account?{' '}
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { path: '/signup' } }))}
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { path: '/login' } }))}
               className="font-semibold text-gray-900 hover:underline bg-transparent border-0 cursor-pointer"
             >
-              Sign up
+              Log in
             </button>
           </p>
         </div>
@@ -195,5 +230,5 @@ const Login = () => {
   );
 };
 
-export { Login };
-export default Login;
+export { SignUp };
+export default SignUp;

@@ -481,7 +481,7 @@ export function SuspensionPanel() {
               )}
 
               {/* Scores */}
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t">
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">{suspensionAnalysis.weatherScore}</div>
                   <div className="text-xs text-gray-600">Weather Score</div>

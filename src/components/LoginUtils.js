@@ -29,21 +29,15 @@ export const validateLoginForm = (formData) => {
 
 /**
  * Validates sign-up form data
- * @param {Object} formData - Form data containing firstName, lastName, email, password
- * @param {boolean} agreeToTerms - Whether user agreed to terms
+ * @param {Object} formData - Form data containing name, email, password
  * @returns {string|null} Error message or null if valid
  */
-export const validateSignUpForm = (formData, agreeToTerms) => {
-  const { firstName, lastName, email, password } = formData;
+export const validateSignUpForm = (formData) => {
+  const { name, email, password } = formData;
 
-  // Check if name fields are empty
-  if (!firstName?.trim() || !lastName?.trim()) {
-    return 'Please enter your full name';
-  }
-
-  // Check terms agreement
-  if (!agreeToTerms) {
-    return 'Please accept the Terms and Conditions';
+  // Check if name field is empty
+  if (!name?.trim()) {
+    return 'Please enter your name';
   }
 
   // Use login validation for email and password
