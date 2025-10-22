@@ -9,6 +9,7 @@ import {
   signInWithGoogle,
   getCurrentUser
 } from '../firebase';
+import { getUserData } from '../firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -24,6 +25,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userRole, setUserRole] = useState('user'); // 'admin' or 'user'
 
   // Inactivity timeout (30 minutes = 1800000 milliseconds)
   const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
@@ -31,9 +33,11 @@ export const AuthProvider = ({ children }) => {
 
   // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthChange((firebaseUser) => {
+    const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
-        // User is signed in
+        // User is signed in - fetch user data including role
+        const userData = await getUserData(firebaseUser.uid);
+
         setUser({
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -41,11 +45,13 @@ export const AuthProvider = ({ children }) => {
           photoURL: firebaseUser.photoURL,
           emailVerified: firebaseUser.emailVerified
         });
+        setUserRole(userData.role || 'user'); // Set user role from Firestore
         setIsAuthenticated(true);
         setLastActivityTime(Date.now());
       } else {
         // User is signed out
         setUser(null);
+        setUserRole('user');
         setIsAuthenticated(false);
       }
       setLoading(false);
@@ -98,6 +104,9 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const firebaseUser = await signIn(credentials.email, credentials.password);
 
+      // Fetch user data including role
+      const userDataFromFirestore = await getUserData(firebaseUser.uid);
+
       const userData = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -107,6 +116,7 @@ export const AuthProvider = ({ children }) => {
       };
 
       setUser(userData);
+      setUserRole(userDataFromFirestore.role || 'user');
       setIsAuthenticated(true);
       return { success: true, user: userData };
     } catch (error) {
@@ -126,6 +136,9 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const firebaseUser = await signInWithGoogle();
 
+      // Fetch user data including role
+      const userDataFromFirestore = await getUserData(firebaseUser.uid);
+
       const userData = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
@@ -135,6 +148,7 @@ export const AuthProvider = ({ children }) => {
       };
 
       setUser(userData);
+      setUserRole(userDataFromFirestore.role || 'user');
       setIsAuthenticated(true);
       return { success: true, user: userData };
     } catch (error) {
@@ -233,6 +247,7 @@ export const AuthProvider = ({ children }) => {
     user,
     loading,
     isAuthenticated,
+    userRole, // Expose user role to components
     login,
     loginWithGoogle,
     register,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Check, Clock, AlertTriangle, RefreshCw, MapPin, Cloud, List, Ban } from "lucide-react";
+import { X, Check, Clock, AlertTriangle, RefreshCw, MapPin, Cloud, List, Ban, GraduationCap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -895,20 +895,54 @@ export function SuspensionPanel() {
       {showSuccessModal && (
         <div
           className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowSuccessModal(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-xl overflow-hidden"
+            className="bg-white rounded-2xl shadow-2xl overflow-hidden"
             style={{ width: '600px', maxWidth: '90vw' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-green-500 py-10 flex items-center justify-center">
-              <Check className="w-20 h-20 text-white stroke-[3]" />
+            {/* Success Header */}
+            <div className="bg-gradient-to-r from-green-500 to-emerald-500 py-8 flex items-center justify-center relative">
+              <div className="text-center">
+                <div className="bg-white/20 rounded-full p-4 inline-block mb-3">
+                  <Check className="w-16 h-16 text-white stroke-[3]" />
+                </div>
+                <h3 className="text-3xl font-bold text-white">Class Suspension Issued</h3>
+              </div>
             </div>
-            <div className="px-12 py-10 text-center">
-              <h3 className="text-4xl font-bold text-gray-900 mb-6">Area Suspended!</h3>
-              <p className="text-xl text-gray-600 leading-relaxed">
-                Class suspension has been issued for <span className="font-bold text-gray-900">{suspendedCityName}</span>. Notifications have been sent to all users.
-              </p>
+
+            {/* Content */}
+            <div className="px-8 py-8">
+              <div className="bg-green-50 border-l-4 border-green-500 rounded-lg p-6 mb-6">
+                <div className="flex items-start gap-3">
+                  <GraduationCap className="w-6 h-6 text-green-600 mt-1 flex-shrink-0" />
+                  <div>
+                    <h4 className="text-lg font-semibold text-green-900 mb-2">
+                      {suspendedCityName}
+                    </h4>
+                    <p className="text-green-800 leading-relaxed">
+                      Classes have been officially suspended. All registered users and community members have been notified via real-time alerts.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Info Box */}
+              <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                <div className="flex items-center gap-2 text-sm text-blue-900">
+                  <AlertTriangle className="w-4 h-4 text-blue-600" />
+                  <p>This suspension is now active and visible to all users on the platform.</p>
+                </div>
+              </div>
+
+              {/* Close Button */}
+              <Button
+                onClick={() => setShowSuccessModal(false)}
+                className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-3 text-lg font-semibold shadow-lg"
+              >
+                Done
+              </Button>
             </div>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { Header } from "./components/Header";
 import { Sidebar } from "./components/Sidebar";
 import { DashboardContent } from "./components/DashboardContent";
+import { UserLayout } from "./components/UserLayout";
 import { Login } from "./components/Login";
 import { SignUp } from "./components/SignUp";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -18,12 +19,23 @@ if (import.meta.env.DEV) {
     console.log('🌤️ Weather API test functions loaded! Try:');
     console.log('   window.testWeatherAPI.runAllTests()');
   });
+
+  // Import admin utilities (for development testing)
+  import('./utils/adminUtils').then(module => {
+    window.makeCurrentUserAdmin = module.makeCurrentUserAdmin;
+    window.makeUserAdmin = module.makeUserAdmin;
+    window.checkMyRole = module.checkCurrentUserRole;
+    console.log('\n👑 Admin utilities loaded! Available commands:');
+    console.log('   window.checkMyRole() - Check your current user info');
+    console.log('   window.makeCurrentUserAdmin() - Make yourself admin');
+    console.log('   window.makeUserAdmin("uid") - Make any user admin\n');
+  });
 }
 
 function AppContent() {
   const [activeSection, setActiveSection] = useState("dashboard");
   const [authPage, setAuthPage] = useState("login"); // "login" or "signup"
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, userRole } = useAuth();
 
   // Listen for navigation events from Login/SignUp pages
   useEffect(() => {
@@ -61,22 +73,29 @@ function AppContent() {
     return authPage === 'signup' ? <SignUp /> : <Login />;
   }
 
-  return (
-    <SocketProvider>
-      <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30">
-        <Header />
-        <div className="flex-1 flex overflow-hidden">
-          <Sidebar
-            activeSection={activeSection}
-            onSectionChange={setActiveSection}
-          />
-          <main className="flex-1 overflow-auto">
-            <DashboardContent activeSection={activeSection} />
-          </main>
+  // Route based on user role
+  if (userRole === 'admin') {
+    // Admin Interface (existing)
+    return (
+      <SocketProvider>
+        <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30">
+          <Header />
+          <div className="flex-1 flex overflow-hidden">
+            <Sidebar
+              activeSection={activeSection}
+              onSectionChange={setActiveSection}
+            />
+            <main className="flex-1 overflow-auto">
+              <DashboardContent activeSection={activeSection} />
+            </main>
+          </div>
         </div>
-      </div>
-    </SocketProvider>
-  );
+      </SocketProvider>
+    );
+  } else {
+    // User Interface (new)
+    return <UserLayout />;
+  }
 }
 
 export default function App() {
