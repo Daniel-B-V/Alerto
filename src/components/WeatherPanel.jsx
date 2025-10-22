@@ -14,6 +14,8 @@ import { getReports } from "../firebase/firestore";
 import { useSocket } from "../contexts/SocketContext";
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import { HeatIndexCard, HeatIndexAlert } from "./HeatIndexCard";
+import { calculateHeatIndex, getHeatIndexCategory } from "../utils/heatIndexUtils";
 
 export function WeatherPanel() {
   const [currentWeather, setCurrentWeather] = useState(null);
@@ -59,9 +61,9 @@ export function WeatherPanel() {
       const suspensionsSnapshot = await getDocs(suspensionsQuery);
       setActiveSuspensions(suspensionsSnapshot.size);
 
-      // Check weather conditions and add notifications for strong wind or heavy rain
+      // Check weather conditions and add notifications for strong wind, heavy rain, and high heat index
       if (current?.current) {
-        const { windSpeed, rainfall } = current.current;
+        const { windSpeed, rainfall, temperature, humidity } = current.current;
         const conditions = [];
 
         // Strong wind: > 40 km/h
@@ -90,11 +92,34 @@ export function WeatherPanel() {
           }
         }
 
+        // High heat index: Check if suspension is recommended
+        if (temperature && humidity) {
+          const heatIndex = calculateHeatIndex(temperature, humidity);
+          const heatCategory = getHeatIndexCategory(heatIndex);
+
+          if (heatCategory.suspensionRecommended) {
+            const heatKey = `heat-${Math.floor(heatIndex / 5)}`;
+            if (!notifiedConditions.current.has(heatKey)) {
+              notifiedConditions.current.add(heatKey);
+              conditions.push({
+                type: 'high_heat',
+                message: `${heatCategory.icon} High Heat Index: ${heatIndex}°C - ${heatCategory.label}. ${heatCategory.description}`,
+                severity: heatIndex >= 52 ? 'critical' : 'high'
+              });
+            }
+          }
+        }
+
         // Add notifications
         conditions.forEach(condition => {
+          let title = '🌤️ Weather Alert';
+          if (condition.type === 'strong_wind') title = '💨 Strong Wind Alert';
+          if (condition.type === 'heavy_rain') title = '🌧️ Heavy Rain Alert';
+          if (condition.type === 'high_heat') title = '🔥 High Heat Index Alert';
+
           addNotification({
             id: `weather-${Date.now()}-${Math.random()}`,
-            title: condition.type === 'strong_wind' ? '💨 Strong Wind Alert' : '🌧️ Heavy Rain Alert',
+            title,
             message: condition.message,
             severity: condition.severity,
             timestamp: new Date().toISOString()
@@ -184,6 +209,14 @@ export function WeatherPanel() {
           Refresh
         </button>
       </div>
+
+      {/* Heat Index Alert Banner */}
+      {currentWeather?.current && (
+        <HeatIndexAlert
+          temperature={currentWeather.current.temperature}
+          humidity={currentWeather.current.humidity}
+        />
+      )}
 
       {/* Quick Stats - moved from dashboard */}
       {stats && (
@@ -290,6 +323,18 @@ export function WeatherPanel() {
               </div>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Heat Index Card - Full Details */}
+      {currentWeather?.current && (
+        <div className="mb-6">
+          <HeatIndexCard
+            temperature={currentWeather.current.temperature}
+            humidity={currentWeather.current.humidity}
+            showDetails={true}
+            className="max-w-2xl mx-auto"
+          />
         </div>
       )}
 

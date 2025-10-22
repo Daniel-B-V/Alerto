@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { X, Check, Clock, AlertTriangle, RefreshCw, MapPin, Cloud, List, Ban, GraduationCap } from "lucide-react";
+import { X, Check, Clock, AlertTriangle, RefreshCw, MapPin, Cloud, List, Ban, GraduationCap, Thermometer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
@@ -9,6 +9,7 @@ import { analyzeSuspensionAdvisory } from "../services/geminiService";
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { useSocket } from '../contexts/SocketContext';
+import { calculateHeatIndex, getHeatIndexCategory } from "../utils/heatIndexUtils";
 
 export function SuspensionPanel() {
   const { addNotification } = useSocket();
@@ -92,7 +93,22 @@ export function SuspensionPanel() {
   // Calculate statistics from real data
   const stats = {
     criticalReports: reports.filter(r => r.severity === 'critical').length,
-    highRiskAreas: weatherData.filter(c => c.current?.rainfall > 20 || c.current?.windSpeed > 60).length,
+    highRiskAreas: weatherData.filter(c => {
+      const rainfall = c.current?.rainfall || 0;
+      const windSpeed = c.current?.windSpeed || 0;
+      const temperature = c.current?.temperature;
+      const humidity = c.current?.humidity;
+
+      // Check heat index if temperature and humidity are available
+      let dangerousHeat = false;
+      if (temperature && humidity) {
+        const heatIndex = calculateHeatIndex(temperature, humidity);
+        const heatCategory = getHeatIndexCategory(heatIndex);
+        dangerousHeat = heatCategory.suspensionRecommended;
+      }
+
+      return rainfall > 20 || windSpeed > 60 || dangerousHeat;
+    }).length,
     affectedCities: suspensionAnalysis?.affectedCities?.length || 0,
     totalReports: reports.length
   };
@@ -101,7 +117,19 @@ export function SuspensionPanel() {
   const criticalCities = weatherData.filter(city => {
     const rainfall = city.current?.rainfall || 0;
     const windSpeed = city.current?.windSpeed || 0;
-    return rainfall > 20 || windSpeed > 60;
+    const temperature = city.current?.temperature;
+    const humidity = city.current?.humidity;
+
+    // Check heat index
+    let dangerousHeat = false;
+    let heatIndex = 0;
+    if (temperature && humidity) {
+      heatIndex = calculateHeatIndex(temperature, humidity);
+      const heatCategory = getHeatIndexCategory(heatIndex);
+      dangerousHeat = heatCategory.suspensionRecommended;
+    }
+
+    return rainfall > 20 || windSpeed > 60 || dangerousHeat;
   });
 
   // Get suspension candidates (cities that meet criteria for suspension)
@@ -134,6 +162,21 @@ export function SuspensionPanel() {
       const cityWeather = weatherData.find(w => w.location?.city === cityName);
       const rainfall = cityWeather?.current?.rainfall || 0;
       const windSpeed = cityWeather?.current?.windSpeed || 0;
+      const temperature = cityWeather?.current?.temperature;
+      const humidity = cityWeather?.current?.humidity;
+
+      // Calculate heat index and check if dangerous
+      let heatIndex = 0;
+      let heatRisk = 0;
+      if (temperature && humidity) {
+        heatIndex = calculateHeatIndex(temperature, humidity);
+        const heatCategory = getHeatIndexCategory(heatIndex);
+
+        if (heatCategory.suspensionRecommended) {
+          if (heatIndex >= 52) heatRisk = 70; // Extreme danger
+          else if (heatIndex >= 42) heatRisk = 50; // Danger
+        }
+      }
 
       // Calculate weather risk score with same logic as weather-only candidates
       let weatherRisk = 0;
@@ -142,6 +185,9 @@ export function SuspensionPanel() {
         if (rainfall >= 35 || windSpeed >= 55) weatherRisk = 70; // Severe/typhoon conditions
         else if (rainfall >= 30 || windSpeed >= 50) weatherRisk = 60; // Very high risk
       }
+
+      // Combine weather risks (use highest risk)
+      weatherRisk = Math.max(weatherRisk, heatRisk);
 
       const reportRisk = (criticalCount * 15) + (highCount * 10);
       const totalRisk = weatherRisk + reportRisk;
