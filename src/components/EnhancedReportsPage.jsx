@@ -13,12 +13,18 @@ import {
   Clock,
   Shield,
   X,
-  ChevronLeft
+  ChevronLeft,
+  Sparkles,
+  Loader2,
+  AlertOctagon,
+  Target,
+  TrendingDown
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { subscribeToReports } from "../firebase/firestore";
+import { analyzeCompiledLocationReports, analyzeIndividualReportCredibility } from "../services/geminiService";
 
 export function EnhancedReportsPage() {
   const [reports, setReports] = useState([]);
@@ -28,6 +34,10 @@ export function EnhancedReportsPage() {
   const [showCompiledModal, setShowCompiledModal] = useState(false);
   const [weatherData, setWeatherData] = useState({});
   const [showSuspensionModal, setShowSuspensionModal] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [reportCredibility, setReportCredibility] = useState({});  // Store credibility for each report
+  const [credibilityLoading, setCredibilityLoading] = useState(false);
 
   // Load reports from Firebase
   useEffect(() => {
@@ -207,9 +217,56 @@ export function EnhancedReportsPage() {
   };
 
   // Handle view compiled reports
-  const handleViewCompiled = (locationGroup) => {
+  const handleViewCompiled = async (locationGroup) => {
     setSelectedLocation(locationGroup);
     setShowCompiledModal(true);
+    setAiAnalysis(null);
+    setAiLoading(true);
+    setReportCredibility({});
+    setCredibilityLoading(true);
+
+    // Trigger AI analysis automatically
+    try {
+      const result = await analyzeCompiledLocationReports(locationGroup);
+      if (result.success) {
+        setAiAnalysis(result.analysis);
+      } else {
+        console.error('AI analysis failed:', result.error);
+      }
+    } catch (error) {
+      console.error('Error during AI analysis:', error);
+    } finally {
+      setAiLoading(false);
+    }
+
+    // Analyze each individual report for credibility
+    try {
+      const credibilityResults = {};
+      const allReports = locationGroup.reports;
+
+      // Analyze reports in batches to avoid overwhelming the API
+      for (const report of allReports) {
+        try {
+          const credibility = await analyzeIndividualReportCredibility(report, allReports);
+          credibilityResults[report.id] = credibility;
+        } catch (error) {
+          console.error(`Error analyzing report ${report.id}:`, error);
+          // Use fallback for failed analyses
+          credibilityResults[report.id] = {
+            success: false,
+            credibilityScore: 50,
+            category: 'REVIEW_MANUALLY',
+            spamReason: 'Analysis unavailable'
+          };
+        }
+      }
+
+      setReportCredibility(credibilityResults);
+    } catch (error) {
+      console.error('Error during individual credibility analysis:', error);
+    } finally {
+      setCredibilityLoading(false);
+    }
   };
 
   // Handle issue suspension
@@ -355,9 +412,35 @@ export function EnhancedReportsPage() {
               <p className="text-gray-500">No reports found</p>
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <div
+              className="overflow-auto scrollbar-thin"
+              style={{
+                maxHeight: '600px',
+                scrollbarWidth: 'thin',
+                scrollbarColor: '#CBD5E1 #F1F5F9'
+              }}
+            >
+              <style jsx>{`
+                div::-webkit-scrollbar {
+                  width: 6px;
+                }
+                div::-webkit-scrollbar-track {
+                  background: #F1F5F9;
+                  border-radius: 10px;
+                }
+                div::-webkit-scrollbar-thumb {
+                  background: #CBD5E1;
+                  border-radius: 10px;
+                }
+                div::-webkit-scrollbar-thumb:hover {
+                  background: #94A3B8;
+                }
+                div::-webkit-scrollbar-button {
+                  display: none;
+                }
+              `}</style>
               <table className="w-full">
-                <thead className="bg-gray-50 border-b-2 border-gray-200">
+                <thead className="bg-gray-50 border-b-2 border-gray-200" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Location</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Number of Reports</th>
@@ -368,11 +451,11 @@ export function EnhancedReportsPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-gray-200">
+                <tbody className="divide-y-2 divide-gray-300">
                   {compiledReports.map((location, index) => {
                     const StatusIcon = location.credibilityStatus.icon;
                     return (
-                      <tr key={index} className="hover:bg-gray-50 transition-colors">
+                      <tr key={index} className="hover:bg-gray-50 transition-colors border-b border-gray-200">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2">
                             <MapPin className="w-4 h-4 text-gray-400" />
@@ -448,8 +531,12 @@ export function EnhancedReportsPage() {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={() => setShowCompiledModal(false)}
         >
-          <div className="max-w-2xl w-full max-h-[90vh] bg-white rounded-lg shadow-xl flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-t-lg flex-shrink-0">
+          <div
+            className="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            style={{ width: '1000px', height: '85vh', maxWidth: '95vw', maxHeight: '90vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-4 flex-shrink-0 rounded-t-2xl">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-semibold flex items-center gap-2">
@@ -467,209 +554,186 @@ export function EnhancedReportsPage() {
             </div>
 
             <div className="overflow-y-auto p-4 space-y-4 flex-1">
-              {/* AI Analysis */}
-              <Card className={`${
-                selectedLocation.aiConfidence >= 85 ? 'bg-green-50 border-green-200' :
-                selectedLocation.aiConfidence >= 60 ? 'bg-yellow-50 border-yellow-200' :
-                'bg-red-50 border-red-200'
-              }`}>
-                <CardHeader className="p-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Shield className="w-4 h-4" />
-                    AI Credibility Analysis
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-semibold">Confidence Score:</span>
-                      <Badge className={selectedLocation.credibilityStatus.color + ' text-white text-sm px-3 py-1'}>
-                        {selectedLocation.aiConfidence}% - {selectedLocation.credibilityStatus.label}
+              {/* Gemini AI Compiled Summary */}
+              {aiLoading && (
+                <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-center gap-3">
+                      <Loader2 className="w-5 h-5 text-purple-600 animate-spin" />
+                      <p className="text-sm font-medium text-purple-900">
+                        Gemini AI is analyzing {selectedLocation.totalReports} reports for credibility and patterns...
+                      </p>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {!aiLoading && aiAnalysis && (
+                <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-300 shadow-lg">
+                  <CardHeader className="p-4 pb-3 bg-gradient-to-r from-purple-100 to-blue-100 border-b border-purple-200">
+                    <CardTitle className="text-lg flex items-center gap-2 text-purple-900">
+                      <Sparkles className="w-5 h-5 text-purple-600" />
+                      Gemini AI Compiled Analysis
+                      <Badge className="ml-auto bg-purple-600 text-white text-xs">
+                        Credibility: {aiAnalysis.credibilityScore}%
                       </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-4">
+                    {/* Executive Summary */}
+                    <div className="bg-white rounded-lg p-4 border border-purple-200">
+                      <h4 className="font-semibold text-base text-purple-900 mb-3 flex items-center gap-2">
+                        <FileText className="w-5 h-5" />
+                        Executive Summary
+                      </h4>
+                      <p className="text-sm text-gray-800 leading-relaxed">
+                        {aiAnalysis.compiledSummary}
+                      </p>
                     </div>
-                    <div className="text-xs text-gray-700 space-y-1">
-                      <p><strong>Analysis:</strong></p>
-                      <ul className="list-disc list-inside space-y-0.5 text-xs">
-                        <li>{selectedLocation.reports.length} reports from the same area (
-                          {selectedLocation.reports.length >= 5 ? 'High correlation ✓' :
-                           selectedLocation.reports.length >= 3 ? 'Moderate correlation' :
-                           'Low correlation ⚠️'}
-                        )</li>
-                        <li>
-                          {selectedLocation.verifiedReports > 0
-                            ? `${selectedLocation.verifiedReports} reports already verified by admins ✓`
-                            : 'No verified reports yet'
-                          }
-                        </li>
-                        <li>Verified rate: {Math.round((selectedLocation.verifiedReports / selectedLocation.reports.length) * 100)}%</li>
-                      </ul>
-                      {selectedLocation.aiConfidence >= 85 && selectedLocation.criticalReports >= 3 && (
-                        <p className="mt-2 p-2 bg-red-100 border border-red-300 rounded-lg font-semibold text-red-900 text-xs">
-                          ⚠️ Recommendation: {selectedLocation.criticalReports} critical reports detected.
-                          Class suspension strongly recommended for {selectedLocation.city}.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
 
-              {/* Reports Summary */}
-              <Card className="bg-blue-50 border-blue-200">
-                <CardHeader className="p-3">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                    </svg>
-                    Reports Summary
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 pt-0">
-                  <div className="space-y-3">
-                    {/* Incident Types Breakdown */}
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2">Incident Types:</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {(() => {
-                          const categoryCounts = {};
-                          selectedLocation.reports.forEach(report => {
-                            const category = report.category?.replace(/_/g, ' ') || 'General';
-                            categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-                          });
+              {/* Summary Cards - Report Categories */}
+              <div>
+                <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                  <Target className="w-4 h-4 text-gray-600" />
+                  Report Summary by Category
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                  {(() => {
+                    const categoryCounts = {};
+                    selectedLocation.reports.forEach(report => {
+                      const category = report.category || 'general';
+                      categoryCounts[category] = (categoryCounts[category] || 0) + 1;
+                    });
 
-                          // Sort by count descending
-                          const sortedCategories = Object.entries(categoryCounts)
-                            .sort((a, b) => b[1] - a[1]);
+                    const categoryIcons = {
+                      flood: '🌊',
+                      power_outage: '⚡',
+                      landslide: '🏔️',
+                      road_closure: '🚧',
+                      heavy_rain: '🌧️',
+                      strong_wind: '💨',
+                      general: '📋',
+                      storm: '⛈️',
+                      typhoon: '🌀'
+                    };
 
-                          return sortedCategories.map(([category, count]) => (
-                            <div key={category} className="bg-white rounded-lg p-2 border border-blue-200">
-                              <div className="flex items-center justify-between">
-                                <span className="text-xs font-medium text-gray-700 capitalize">{category}</span>
-                                <Badge className="bg-blue-600 text-white text-xs">{count}</Badge>
-                              </div>
-                              <div className="mt-1 text-xs text-gray-500">
-                                {Math.round((count / selectedLocation.reports.length) * 100)}% of reports
-                              </div>
+                    return Object.entries(categoryCounts).map(([category, count]) => (
+                      <Card key={category} className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                        <CardContent className="p-3">
+                          <div className="text-center">
+                            <div className="text-2xl mb-1">{categoryIcons[category] || '📊'}</div>
+                            <div className="text-xl font-bold text-gray-900">{count}</div>
+                            <div className="text-xs text-gray-600 capitalize">
+                              {category.replace(/_/g, ' ')}
                             </div>
-                          ));
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* Severity Breakdown */}
-                    <div>
-                      <p className="text-xs font-semibold text-gray-700 mb-2">Severity Distribution:</p>
-                      <div className="space-y-1.5">
-                        {(() => {
-                          const severityCounts = {
-                            critical: selectedLocation.reports.filter(r => r.severity === 'critical').length,
-                            high: selectedLocation.reports.filter(r => r.severity === 'high').length,
-                            medium: selectedLocation.reports.filter(r => r.severity === 'medium').length,
-                            low: selectedLocation.reports.filter(r => r.severity === 'low').length
-                          };
-
-                          return Object.entries(severityCounts)
-                            .filter(([_, count]) => count > 0)
-                            .map(([severity, count]) => {
-                              const percentage = (count / selectedLocation.reports.length) * 100;
-                              const color =
-                                severity === 'critical' ? 'bg-red-500' :
-                                severity === 'high' ? 'bg-orange-500' :
-                                severity === 'medium' ? 'bg-yellow-500' : 'bg-blue-500';
-
-                              return (
-                                <div key={severity} className="bg-white rounded p-2">
-                                  <div className="flex items-center justify-between mb-1">
-                                    <span className="text-xs font-medium capitalize">{severity}</span>
-                                    <span className="text-xs text-gray-600">{count} ({Math.round(percentage)}%)</span>
-                                  </div>
-                                  <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div className={`${color} h-2 rounded-full`} style={{ width: `${percentage}%` }}></div>
-                                  </div>
-                                </div>
-                              );
-                            });
-                        })()}
-                      </div>
-                    </div>
-
-                    {/* Key Insight */}
-                    {(() => {
-                      const categoryCounts = {};
-                      selectedLocation.reports.forEach(report => {
-                        const category = report.category?.replace(/_/g, ' ') || 'General';
-                        categoryCounts[category] = (categoryCounts[category] || 0) + 1;
-                      });
-                      const topCategory = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1])[0];
-
-                      if (topCategory) {
-                        return (
-                          <div className="bg-blue-100 border border-blue-300 rounded-lg p-2">
-                            <p className="text-xs font-semibold text-blue-900">
-                              💡 Key Insight: <span className="capitalize">{topCategory[0]}</span> is the most reported issue ({topCategory[1]} reports, {Math.round((topCategory[1] / selectedLocation.reports.length) * 100)}%)
-                            </p>
                           </div>
-                        );
-                      }
-                    })()}
-                  </div>
-                </CardContent>
-              </Card>
+                        </CardContent>
+                      </Card>
+                    ));
+                  })()}
+                </div>
+              </div>
 
               {/* All Reports List */}
               <div>
                 <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
                   <Users className="w-4 h-4 text-gray-600" />
                   All Reports ({selectedLocation.reports.length})
+                  {credibilityLoading && (
+                    <span className="text-xs text-purple-600 flex items-center gap-1">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      Analyzing credibility...
+                    </span>
+                  )}
                 </h3>
                 {/* Scrollable Reports Container */}
                 <div className="max-h-[300px] overflow-y-auto border border-gray-200 rounded-lg p-3 bg-gray-50 space-y-2">
-                  {selectedLocation.reports.map((report, idx) => (
-                    <Card key={idx} className="hover:shadow-md transition-shadow bg-white">
-                      <CardContent className="p-3">
-                        <div className="flex items-start justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
-                            <Badge
-                              className="text-xs"
-                              style={{
-                                backgroundColor:
-                                  report.severity === 'critical' ? '#dc2626' :
-                                  report.severity === 'high' ? '#f97316' :
-                                  report.severity === 'medium' ? '#ca8a04' :
-                                  '#3b82f6',
-                                color: 'white'
-                              }}
-                            >
-                              {report.severity?.toUpperCase() || 'N/A'}
+                  {selectedLocation.reports.map((report, idx) => {
+                    const credibility = reportCredibility[report.id];
+
+                    return (
+                      <Card key={idx} className="hover:shadow-md transition-shadow bg-white">
+                        <CardContent className="p-3">
+                          <div className="flex items-start justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <Badge
+                                className="text-xs"
+                                style={{
+                                  backgroundColor:
+                                    report.severity === 'critical' ? '#dc2626' :
+                                    report.severity === 'high' ? '#f97316' :
+                                    report.severity === 'medium' ? '#ca8a04' :
+                                    '#3b82f6',
+                                  color: 'white'
+                                }}
+                              >
+                                {report.severity?.toUpperCase() || 'N/A'}
+                              </Badge>
+                              <span className="text-xs text-gray-600">
+                                {report.category?.replace(/_/g, ' ') || 'General'}
+                              </span>
+                            </div>
+                            <Badge variant={report.status === 'verified' ? 'default' : 'secondary'} className="text-xs">
+                              {report.status}
                             </Badge>
-                            <span className="text-xs text-gray-600">
-                              {report.category?.replace(/_/g, ' ') || 'General'}
-                            </span>
                           </div>
-                          <Badge variant={report.status === 'verified' ? 'default' : 'secondary'} className="text-xs">
-                            {report.status}
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-gray-700 mb-1.5 line-clamp-2">{report.description}</p>
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span>{report.userName || 'Anonymous'}</span>
-                          <span>{formatTimestamp(report.createdAt?.seconds ? report.createdAt.seconds * 1000 : null)}</span>
-                        </div>
-                        {report.images && report.images.length > 0 && (
-                          <div className="mt-1 text-xs text-gray-500">
-                            📷 {report.images.length} image(s) attached
+                          <p className="text-xs text-gray-700 mb-1.5 line-clamp-2">{report.description}</p>
+
+                          {/* AI Credibility Badge */}
+                          {credibility && (
+                            <div className="mt-2 mb-2">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <Badge
+                                  className="text-xs flex items-center gap-1"
+                                  style={{
+                                    backgroundColor:
+                                      credibility.category === 'SPAM' || credibility.category === 'LIKELY_SPAM' ? '#dc2626' :
+                                      credibility.category === 'SUSPICIOUS' ? '#f97316' :
+                                      credibility.category === 'LIKELY_CREDIBLE' ? '#ca8a04' :
+                                      '#16a34a',
+                                    color: 'white'
+                                  }}
+                                >
+                                  <Shield className="w-3 h-3" />
+                                  {credibility.category === 'SPAM' && '🚫 SPAM'}
+                                  {credibility.category === 'LIKELY_SPAM' && '⚠️ Likely Spam'}
+                                  {credibility.category === 'SUSPICIOUS' && '❓ Suspicious'}
+                                  {credibility.category === 'LIKELY_CREDIBLE' && '✓ Likely Credible'}
+                                  {credibility.category === 'CREDIBLE' && '✓ Credible'}
+                                </Badge>
+                                <span className="text-xs text-gray-600">
+                                  {credibility.credibilityScore}% credible
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-600 mt-1 italic">
+                                {credibility.spamReason}
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span>{report.userName || 'Anonymous'}</span>
+                            <span>{formatTimestamp(report.createdAt?.seconds ? report.createdAt.seconds * 1000 : null)}</span>
                           </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+                          {report.images && report.images.length > 0 && (
+                            <div className="mt-1 text-xs text-gray-500">
+                              📷 {report.images.length} image(s) attached
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
 
             </div>
 
             {/* Modal Footer with Action Buttons */}
-            <div className="border-t p-3 bg-gray-50 rounded-b-lg flex-shrink-0">
+            <div className="border-t p-3 bg-gray-50 flex-shrink-0">
               <div className="flex gap-2">
                 <Button
                   variant="outline"

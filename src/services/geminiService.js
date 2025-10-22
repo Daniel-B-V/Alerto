@@ -1,5 +1,5 @@
 // Gemini AI Service for Report Compilation and Analysis
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyDDL3nl6cR3xsIQ8Ilv046_7xjIa-iIo0E';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
 /**
@@ -767,11 +767,457 @@ const fallbackSuspensionAdvisory = (weatherData, reports) => {
   };
 };
 
+/**
+ * Analyze compiled reports by location for credibility and provide actionable summary
+ * This function is specifically for the "Compiled Reports by Location" feature
+ * @param {Object} locationData - Location group data with all reports
+ * @returns {Promise<Object>} Comprehensive AI analysis with credibility, severity, patterns, and recommendations
+ */
+export const analyzeCompiledLocationReports = async (locationData) => {
+  if (!GEMINI_API_KEY) {
+    console.warn('Gemini API key not configured. Using fallback analysis.');
+    return fallbackLocationAnalysis(locationData);
+  }
+
+  try {
+    // Prepare reports data for AI analysis
+    const reportsData = locationData.reports.map((report, index) => {
+      const timestamp = report.createdAt?.seconds
+        ? new Date(report.createdAt.seconds * 1000).toLocaleString()
+        : report.createdAt?.toDate?.()?.toLocaleString() || 'Unknown';
+
+      return `Report ${index + 1}:
+  Severity: ${report.severity || 'unknown'}
+  Category: ${report.category || 'general'}
+  Status: ${report.status || 'pending'}
+  Description: ${report.description || 'No description'}
+  Reporter: ${report.userName || 'Anonymous'}
+  Time: ${timestamp}
+  Location: ${report.location?.barangay || ''}, ${report.location?.city || locationData.city}
+  Has Images: ${report.images && report.images.length > 0 ? 'Yes (' + report.images.length + ')' : 'No'}`;
+    }).join('\n\n');
+
+    const prompt = `You are an AI assistant helping emergency management officials in Batangas Province, Philippines analyze compiled weather-related incident reports for a specific location.
+
+LOCATION: ${locationData.city}
+TOTAL REPORTS: ${locationData.totalReports}
+CRITICAL REPORTS: ${locationData.criticalReports}
+HIGH PRIORITY REPORTS: ${locationData.highReports}
+MEDIUM PRIORITY REPORTS: ${locationData.mediumReports}
+VERIFIED REPORTS: ${locationData.verifiedReports}
+PENDING REPORTS: ${locationData.pendingReports}
+
+ALL INDIVIDUAL REPORTS:
+${reportsData}
+
+Your task is to analyze ALL these reports comprehensively and provide:
+
+1. **COMPILED SUMMARY**: A concise 3-4 sentence executive summary that compiles all reports into ONE coherent description of what's actually happening in ${locationData.city}. Don't just list reports - synthesize them into a single narrative.
+
+2. **CREDIBILITY SCORE (0-100)**: Assess how credible these reports are based on:
+   - Consistency between reports (do they corroborate each other?)
+   - Quality of descriptions (specific details vs vague claims)
+   - Verification status
+   - Presence of evidence (images)
+   - Potential duplicates or fake reports
+   - Contradictory information
+
+3. **ACTUAL SEVERITY**: Based on ALL reports combined, determine the real threat level (CRITICAL, HIGH, MEDIUM, or LOW)
+
+4. **PATTERN DETECTION**: Identify:
+   - Timeline of events (when did incidents start/peak?)
+   - Common themes across reports
+   - Geographic patterns within the location
+   - Correlations between different report types
+
+5. **INCONSISTENCIES**: Flag any suspicious, contradictory, or potentially fake reports
+
+6. **ACTIONABLE RECOMMENDATIONS**: What should the admin DO with this information?
+
+Respond in JSON format ONLY (no markdown, no extra text):
+{
+  "compiledSummary": "Your 3-4 sentence compiled narrative of the situation",
+  "credibilityScore": 75,
+  "credibilityAssessment": "Detailed explanation of the credibility score with specific evidence",
+  "actualSeverity": "CRITICAL|HIGH|MEDIUM|LOW",
+  "severityReasoning": "Why you assigned this severity level based on all reports",
+  "patterns": [
+    "Specific pattern 1 with details",
+    "Specific pattern 2 with details",
+    "Timeline or geographic pattern"
+  ],
+  "inconsistencies": [
+    "Specific inconsistency or red flag",
+    "Potential duplicate or fake report"
+  ],
+  "keyFindings": [
+    "Most important finding 1",
+    "Most important finding 2",
+    "Critical insight 3"
+  ],
+  "recommendations": [
+    "Immediate action 1",
+    "Investigation step 2",
+    "Communication recommendation 3"
+  ],
+  "affectedAreas": ["Specific barangay 1", "Specific barangay 2"],
+  "estimatedImpact": "Brief description of estimated impact on residents and infrastructure",
+  "urgencyLevel": "IMMEDIATE|HIGH|MODERATE|LOW"
+}`;
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        },
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Gemini API error response:', errorText);
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!aiResponse) {
+      throw new Error('No response from Gemini AI');
+    }
+
+    // Extract JSON from response (handle markdown code blocks)
+    let jsonText = aiResponse;
+    const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) ||
+                      aiResponse.match(/```\s*([\s\S]*?)\s*```/) ||
+                      aiResponse.match(/\{[\s\S]*\}/);
+
+    if (jsonMatch) {
+      jsonText = jsonMatch[1] || jsonMatch[0];
+    }
+
+    const analysis = JSON.parse(jsonText.trim());
+
+    // Validate and normalize the response
+    return {
+      success: true,
+      analysis: {
+        compiledSummary: analysis.compiledSummary || "Unable to generate summary",
+        credibilityScore: Math.min(100, Math.max(0, analysis.credibilityScore || 50)),
+        credibilityAssessment: analysis.credibilityAssessment || "No assessment available",
+        actualSeverity: analysis.actualSeverity || "MEDIUM",
+        severityReasoning: analysis.severityReasoning || "No reasoning available",
+        patterns: Array.isArray(analysis.patterns) ? analysis.patterns : [],
+        inconsistencies: Array.isArray(analysis.inconsistencies) ? analysis.inconsistencies : [],
+        keyFindings: Array.isArray(analysis.keyFindings) ? analysis.keyFindings : [],
+        recommendations: Array.isArray(analysis.recommendations) ? analysis.recommendations : [],
+        affectedAreas: Array.isArray(analysis.affectedAreas) ? analysis.affectedAreas : [],
+        estimatedImpact: analysis.estimatedImpact || "Impact assessment unavailable",
+        urgencyLevel: analysis.urgencyLevel || "MODERATE"
+      },
+      timestamp: new Date().toISOString(),
+      source: 'gemini'
+    };
+
+  } catch (error) {
+    console.error('Gemini AI location analysis error:', error);
+    return fallbackLocationAnalysis(locationData);
+  }
+};
+
+/**
+ * Fallback analysis when Gemini API is unavailable
+ */
+const fallbackLocationAnalysis = (locationData) => {
+  const reports = locationData.reports || [];
+
+  // Calculate basic credibility score
+  let credibilityScore = 50;
+  if (locationData.verifiedReports > locationData.totalReports * 0.5) credibilityScore += 20;
+  if (locationData.totalReports >= 5) credibilityScore += 15;
+  if (reports.some(r => r.images?.length > 0)) credibilityScore += 10;
+
+  // Determine severity
+  let actualSeverity = 'LOW';
+  if (locationData.criticalReports >= 3) actualSeverity = 'CRITICAL';
+  else if (locationData.criticalReports >= 1 || locationData.highReports >= 3) actualSeverity = 'HIGH';
+  else if (locationData.highReports >= 1 || locationData.mediumReports >= 2) actualSeverity = 'MEDIUM';
+
+  // Extract patterns
+  const categories = {};
+  reports.forEach(r => {
+    const cat = r.category || 'general';
+    categories[cat] = (categories[cat] || 0) + 1;
+  });
+
+  const topCategories = Object.entries(categories)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([cat, count]) => `${cat} (${count} reports)`);
+
+  return {
+    success: true,
+    analysis: {
+      compiledSummary: `${locationData.city} has received ${locationData.totalReports} incident reports, with ${locationData.criticalReports} marked as critical. The situation requires ${actualSeverity.toLowerCase()} priority attention based on the volume and severity of reported incidents.`,
+      credibilityScore: Math.min(100, credibilityScore),
+      credibilityAssessment: `Based on ${locationData.verifiedReports} verified reports out of ${locationData.totalReports} total reports. Credibility assessment uses basic heuristics.`,
+      actualSeverity,
+      severityReasoning: `Severity determined by ${locationData.criticalReports} critical and ${locationData.highReports} high-priority reports.`,
+      patterns: topCategories.length > 0 ? [`Primary incident types: ${topCategories.join(', ')}`] : ['Insufficient data for pattern detection'],
+      inconsistencies: locationData.pendingReports > locationData.verifiedReports * 2 ? ['High number of unverified reports - manual review recommended'] : [],
+      keyFindings: [
+        `${locationData.totalReports} total reports received`,
+        `${locationData.criticalReports} critical severity incidents`,
+        `${Math.round((locationData.verifiedReports / locationData.totalReports) * 100)}% verification rate`
+      ],
+      recommendations: [
+        actualSeverity === 'CRITICAL' ? 'Immediate response required - dispatch emergency teams' : 'Monitor situation closely',
+        locationData.pendingReports > 0 ? `Verify ${locationData.pendingReports} pending reports` : 'Continue standard verification procedures',
+        'Use AI-powered analysis for more detailed insights'
+      ],
+      affectedAreas: [locationData.city],
+      estimatedImpact: `Potentially affecting multiple areas within ${locationData.city}`,
+      urgencyLevel: actualSeverity === 'CRITICAL' ? 'IMMEDIATE' : actualSeverity === 'HIGH' ? 'HIGH' : 'MODERATE'
+    },
+    timestamp: new Date().toISOString(),
+    source: 'fallback'
+  };
+};
+
+/**
+ * Analyze individual report credibility by comparing with other reports from the same city
+ * Detects spam, fake reports, duplicates
+ * @param {Object} report - Single report to analyze
+ * @param {Array} otherReportsFromCity - All other reports from the same city
+ * @returns {Promise<Object>} Credibility analysis with spam detection
+ */
+export const analyzeIndividualReportCredibility = async (report, otherReportsFromCity) => {
+  if (!GEMINI_API_KEY) {
+    return fallbackIndividualCredibility(report, otherReportsFromCity);
+  }
+
+  try {
+    // Prepare other reports for comparison
+    const otherReportsText = otherReportsFromCity
+      .filter(r => r.id !== report.id) // Exclude the report being analyzed
+      .slice(0, 10) // Limit to 10 reports for context
+      .map((r, idx) => {
+        const timestamp = r.createdAt?.seconds
+          ? new Date(r.createdAt.seconds * 1000).toLocaleString()
+          : r.createdAt?.toDate?.()?.toLocaleString() || 'Unknown';
+
+        return `Report ${idx + 1}:
+  Category: ${r.category || 'general'}
+  Severity: ${r.severity || 'unknown'}
+  Description: ${r.description || 'No description'}
+  Time: ${timestamp}
+  Has Images: ${r.images?.length > 0 ? 'Yes' : 'No'}`;
+      }).join('\n\n');
+
+    const reportTimestamp = report.createdAt?.seconds
+      ? new Date(report.createdAt.seconds * 1000).toLocaleString()
+      : report.createdAt?.toDate?.()?.toLocaleString() || 'Unknown';
+
+    const prompt = `You are an AI assistant helping detect spam and fake weather incident reports for ${report.location?.city || 'a city'} in Batangas Province, Philippines.
+
+REPORT TO ANALYZE:
+Category: ${report.category || 'general'}
+Severity: ${report.severity || 'unknown'}
+Description: ${report.description || 'No description'}
+Reporter: ${report.userName || 'Anonymous'}
+Time: ${reportTimestamp}
+Location: ${report.location?.barangay || ''}, ${report.location?.city || 'Unknown'}
+Has Images: ${report.images?.length > 0 ? 'Yes (' + report.images.length + ')' : 'No'}
+Status: ${report.status || 'pending'}
+
+OTHER REPORTS FROM THE SAME CITY (for comparison):
+${otherReportsText || 'No other reports to compare'}
+
+Your task is to determine if this report is CREDIBLE or SPAM by analyzing:
+
+1. **CONSISTENCY**: Does it align with other reports from the same location/time?
+2. **SPECIFICITY**: Does it have specific details or just vague claims?
+3. **PLAUSIBILITY**: Does the description make sense for the stated severity?
+4. **EVIDENCE**: Does it have images to support the claim?
+5. **DUPLICATES**: Is this a duplicate or copy of another report?
+6. **RED FLAGS**: Generic descriptions, impossible claims, contradictions with other reports
+
+SPAM INDICATORS:
+- Vague, generic descriptions like "bad weather" without specifics
+- Severity doesn't match description (e.g., "critical" but only mentions light rain)
+- Contradicts all other reports (everyone says sunny, this says flooding)
+- Duplicate text from another report
+- Impossible or exaggerated claims
+- No evidence (images) for severe claims
+
+CREDIBLE INDICATORS:
+- Specific details (street names, measurements, time of events)
+- Consistent with other reports from same area/time
+- Has supporting images
+- Severity matches description
+- Reasonable and plausible claims
+
+Respond in JSON format ONLY:
+{
+  "isSpam": true|false,
+  "credibilityScore": 0-100,
+  "spamReason": "Specific explanation of why this is spam or credible",
+  "category": "CREDIBLE|LIKELY_CREDIBLE|SUSPICIOUS|LIKELY_SPAM|SPAM",
+  "redFlags": ["specific red flag 1", "specific red flag 2"],
+  "supportingFactors": ["factor that supports credibility"],
+  "recommendation": "APPROVE|REVIEW_MANUALLY|REJECT"
+}`;
+
+    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.2,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 512,
+        },
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Gemini API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!aiResponse) {
+      throw new Error('No response from Gemini AI');
+    }
+
+    // Extract JSON
+    let jsonText = aiResponse;
+    const jsonMatch = aiResponse.match(/```json\s*([\s\S]*?)\s*```/) ||
+                      aiResponse.match(/```\s*([\s\S]*?)\s*```/) ||
+                      aiResponse.match(/\{[\s\S]*\}/);
+
+    if (jsonMatch) {
+      jsonText = jsonMatch[1] || jsonMatch[0];
+    }
+
+    const analysis = JSON.parse(jsonText.trim());
+
+    return {
+      success: true,
+      isSpam: analysis.isSpam || false,
+      credibilityScore: Math.min(100, Math.max(0, analysis.credibilityScore || 50)),
+      spamReason: analysis.spamReason || "Analysis unavailable",
+      category: analysis.category || "SUSPICIOUS",
+      redFlags: Array.isArray(analysis.redFlags) ? analysis.redFlags : [],
+      supportingFactors: Array.isArray(analysis.supportingFactors) ? analysis.supportingFactors : [],
+      recommendation: analysis.recommendation || "REVIEW_MANUALLY",
+      source: 'gemini'
+    };
+
+  } catch (error) {
+    console.error('Individual report credibility analysis error:', error);
+    return fallbackIndividualCredibility(report, otherReportsFromCity);
+  }
+};
+
+/**
+ * Fallback credibility check for individual reports
+ */
+const fallbackIndividualCredibility = (report, otherReportsFromCity) => {
+  let credibilityScore = 50;
+  const redFlags = [];
+  const supportingFactors = [];
+
+  // Check for evidence
+  if (report.images && report.images.length > 0) {
+    credibilityScore += 25;
+    supportingFactors.push('Has supporting images');
+  } else if (report.severity === 'critical' || report.severity === 'high') {
+    redFlags.push('High severity claim without images');
+    credibilityScore -= 15;
+  }
+
+  // Check description length and specificity
+  const descLength = (report.description || '').length;
+  if (descLength < 20) {
+    redFlags.push('Very short description');
+    credibilityScore -= 20;
+  } else if (descLength > 50) {
+    supportingFactors.push('Detailed description');
+    credibilityScore += 10;
+  }
+
+  // Check if verified
+  if (report.status === 'verified') {
+    credibilityScore += 20;
+    supportingFactors.push('Verified by admin');
+  }
+
+  // Check consistency with other reports
+  const similarReports = otherReportsFromCity.filter(r =>
+    r.category === report.category &&
+    Math.abs((r.createdAt?.seconds || 0) - (report.createdAt?.seconds || 0)) < 3600
+  );
+
+  if (similarReports.length >= 2) {
+    supportingFactors.push(`${similarReports.length} similar reports nearby`);
+    credibilityScore += 15;
+  } else if (otherReportsFromCity.length > 5 && similarReports.length === 0) {
+    redFlags.push('No corroborating reports');
+    credibilityScore -= 10;
+  }
+
+  credibilityScore = Math.min(100, Math.max(0, credibilityScore));
+
+  let category = 'SUSPICIOUS';
+  if (credibilityScore >= 80) category = 'CREDIBLE';
+  else if (credibilityScore >= 60) category = 'LIKELY_CREDIBLE';
+  else if (credibilityScore <= 30) category = 'SPAM';
+  else if (credibilityScore <= 50) category = 'LIKELY_SPAM';
+
+  return {
+    success: true,
+    isSpam: credibilityScore < 40,
+    credibilityScore,
+    spamReason: credibilityScore >= 60
+      ? 'Report appears credible based on available evidence'
+      : 'Report has multiple red flags suggesting low credibility',
+    category,
+    redFlags,
+    supportingFactors,
+    recommendation: credibilityScore >= 70 ? 'APPROVE' : credibilityScore >= 40 ? 'REVIEW_MANUALLY' : 'REJECT',
+    source: 'fallback'
+  };
+};
+
 export default {
   compileReports,
   analyzeReportWithImages,
   groupReportsByLocationAndTime,
   getSeverityColor,
   analyzeClassSuspensionReports,
-  analyzeSuspensionAdvisory
+  analyzeSuspensionAdvisory,
+  analyzeCompiledLocationReports,
+  analyzeIndividualReportCredibility
 };
