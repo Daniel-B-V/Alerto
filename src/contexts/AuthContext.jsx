@@ -9,6 +9,7 @@ import {
   signInWithGoogle,
   getCurrentUser
 } from '../firebase';
+import { setUserProfile, getUserProfile } from '../firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -31,18 +32,37 @@ export const AuthProvider = ({ children }) => {
 
   // Listen to auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthChange((firebaseUser) => {
+    const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
-        // User is signed in
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          emailVerified: firebaseUser.emailVerified
-        });
-        setIsAuthenticated(true);
-        setLastActivityTime(Date.now());
+        // User is signed in - fetch role from Firestore
+        try {
+          const userProfile = await getUserProfile(firebaseUser.uid);
+
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            emailVerified: firebaseUser.emailVerified,
+            role: userProfile?.role || 'user', // Get role from Firestore, default to 'user'
+            province: userProfile?.province || 'Batangas'
+          });
+          setIsAuthenticated(true);
+          setLastActivityTime(Date.now());
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          // Still set user even if profile fetch fails
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            emailVerified: firebaseUser.emailVerified,
+            role: 'user' // Default to user if fetch fails
+          });
+          setIsAuthenticated(true);
+          setLastActivityTime(Date.now());
+        }
       } else {
         // User is signed out
         setUser(null);
@@ -98,13 +118,27 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const firebaseUser = await signIn(credentials.email, credentials.password);
 
+      // Fetch user profile from Firestore to get role
+      const userProfile = await getUserProfile(firebaseUser.uid);
+
       const userData = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL,
-        emailVerified: firebaseUser.emailVerified
+        emailVerified: firebaseUser.emailVerified,
+        role: userProfile?.role || 'user',
+        province: userProfile?.province || 'Batangas'
       };
+
+      // Update user profile in Firestore on login
+      await setUserProfile(firebaseUser.uid, {
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL || null,
+        emailVerified: firebaseUser.emailVerified,
+        lastLogin: new Date().toISOString()
+      });
 
       setUser(userData);
       setIsAuthenticated(true);
@@ -126,13 +160,29 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const firebaseUser = await signInWithGoogle();
 
+      // Fetch existing user profile or use defaults
+      const existingProfile = await getUserProfile(firebaseUser.uid);
+
       const userData = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL,
-        emailVerified: firebaseUser.emailVerified
+        emailVerified: firebaseUser.emailVerified,
+        role: existingProfile?.role || 'user',
+        province: existingProfile?.province || 'Batangas'
       };
+
+      // Save/Update user profile in Firestore for Google login
+      await setUserProfile(firebaseUser.uid, {
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL || null,
+        emailVerified: firebaseUser.emailVerified,
+        role: existingProfile?.role || 'user', // Preserve existing role or default to 'user'
+        provider: 'google',
+        lastLogin: new Date().toISOString()
+      });
 
       setUser(userData);
       setIsAuthenticated(true);
@@ -163,8 +213,20 @@ export const AuthProvider = ({ children }) => {
         email: firebaseUser.email,
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL,
-        emailVerified: firebaseUser.emailVerified
+        emailVerified: firebaseUser.emailVerified,
+        role: 'user', // Default role for new users
+        province: userData.province || 'Batangas'
       };
+
+      // Save user profile to Firestore
+      await setUserProfile(firebaseUser.uid, {
+        email: firebaseUser.email,
+        displayName: firebaseUser.displayName,
+        photoURL: firebaseUser.photoURL || null,
+        emailVerified: firebaseUser.emailVerified,
+        role: 'user', // Default role
+        province: userData.province || 'Batangas'
+      });
 
       setUser(newUserData);
       setIsAuthenticated(true);

@@ -4,6 +4,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  setDoc,
   addDoc,
   updateDoc,
   deleteDoc,
@@ -257,23 +258,28 @@ export const getUserProfile = async (userId) => {
 export const setUserProfile = async (userId, profileData) => {
   try {
     const userRef = doc(db, COLLECTIONS.USERS, userId);
-    await updateDoc(userRef, {
-      ...profileData,
-      updatedAt: serverTimestamp()
-    });
-  } catch (error) {
-    // If document doesn't exist, create it
-    try {
-      await addDoc(collection(db, COLLECTIONS.USERS), {
+
+    // Try to get the document first to check if it exists
+    const docSnap = await getDoc(userRef);
+
+    if (docSnap.exists()) {
+      // Document exists, update it
+      await updateDoc(userRef, {
+        ...profileData,
+        updatedAt: serverTimestamp()
+      });
+    } else {
+      // Document doesn't exist, create it with setDoc
+      await setDoc(userRef, {
         ...profileData,
         userId,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       });
-    } catch (createError) {
-      console.error('Error creating user profile:', createError);
-      throw createError;
     }
+  } catch (error) {
+    console.error('Error setting user profile:', error);
+    throw error;
   }
 };
 

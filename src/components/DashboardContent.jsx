@@ -1,5 +1,6 @@
 import { WeatherPanel } from "./WeatherPanel";
 import { SuspensionPanel } from "./SuspensionPanel";
+import { UserSuspensionPage } from "./UserSuspensionPage";
 import { CommunityFeed } from "./CommunityFeed";
 import { AdminPanel } from "./AdminPanel";
 import { AnalyticsPanel } from "./AnalyticsPanel";
@@ -129,6 +130,8 @@ export function DashboardContent({ activeSection }) {
         return <CommunityFeed />;
       case 'suspension':
         return <SuspensionPanel />;
+      case 'user-suspension':
+        return <UserSuspensionPage />;
       case 'analytics':
         return <AnalyticsPanel />;
       case 'admin':

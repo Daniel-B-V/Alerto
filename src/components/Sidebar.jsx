@@ -11,19 +11,28 @@ import {
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 export function Sidebar({ activeSection, onSectionChange }) {
   const [collapsed, setCollapsed] = useState(false);
+  const { user } = useAuth();
 
-  const navItems = [
-    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
-    { id: "community", icon: Users, label: "Community" },
-    { id: "suspension", icon: GraduationCap, label: "Suspension" },
-    { id: "analytics", icon: BarChart3, label: "Analytics" },
-    { id: "admin", icon: FileText, label: "Reports" },
-    { id: "seeder", icon: Database, label: "Test Data" },
-    { id: "settings", icon: Settings, label: "Settings" },
+  // Define all navigation items with role requirements
+  const allNavItems = [
+    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ["user", "admin", "super_admin"] },
+    { id: "community", icon: Users, label: "Community", roles: ["user", "admin", "super_admin"] },
+    { id: "user-suspension", icon: GraduationCap, label: "Suspensions", roles: ["user"] },
+    { id: "suspension", icon: GraduationCap, label: "Suspension", roles: ["admin", "super_admin"] },
+    { id: "analytics", icon: BarChart3, label: "Analytics", roles: ["admin", "super_admin"] },
+    { id: "admin", icon: FileText, label: "Reports", roles: ["admin", "super_admin"] },
+    { id: "seeder", icon: Database, label: "Test Data", roles: ["admin", "super_admin"] },
+    { id: "settings", icon: Settings, label: "Settings", roles: ["user", "admin", "super_admin"] },
   ];
+
+  // Filter nav items based on user role
+  const navItems = allNavItems.filter(item =>
+    item.roles.includes(user?.role || 'user')
+  );
 
   return (
     <div className={`bg-white/80 backdrop-blur-xl border-r border-gray-100/50 h-full transition-all duration-300 shadow-sm ${

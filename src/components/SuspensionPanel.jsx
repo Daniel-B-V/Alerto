@@ -689,28 +689,28 @@ export function SuspensionPanel() {
           onClick={() => setShowSuspensionListModal(false)}
         >
           <div
-            className="max-w-4xl w-full bg-white rounded-lg shadow-xl flex flex-col"
-            style={{ maxHeight: '90vh' }}
+            className="bg-white rounded-lg shadow-xl flex flex-col"
+            style={{ maxHeight: '85vh', width: '850px', maxWidth: '90vw' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-b bg-gradient-to-r from-red-50 to-orange-50 flex-shrink-0 px-6 pt-6 pb-4">
+            <div className="border-b bg-gradient-to-r from-red-50 to-orange-50 flex-shrink-0 px-4 pt-4 pb-3">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                    <Ban className="w-6 h-6 text-red-600" />
+                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                    <Ban className="w-5 h-5 text-red-600" />
                     Class Suspension Candidates
                   </h2>
-                  <p className="text-sm text-gray-600 mt-2">
+                  <p className="text-xs text-gray-600 mt-1">
                     Cities that meet criteria for class suspension based on weather and reports
                   </p>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => setShowSuspensionListModal(false)}>
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
             </div>
 
-            <div className="overflow-y-auto p-6 flex-1">
+            <div className="overflow-y-auto p-4 flex-1">
               {suspensionCandidates.length === 0 ? (
                 <div className="text-center py-12">
                   <Check className="w-16 h-16 text-green-500 mx-auto mb-4" />
@@ -718,47 +718,47 @@ export function SuspensionPanel() {
                   <p className="text-gray-600">All cities are safe. No immediate class suspensions needed.</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {suspensionCandidates.map((candidate, idx) => (
                     <Card key={idx} className={`border-2 ${
                       candidate.riskScore >= 80 ? 'border-red-400 bg-red-50' :
                       candidate.riskScore >= 60 ? 'border-orange-400 bg-orange-50' :
                       'border-yellow-400 bg-yellow-50'
                     }`}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-3">
+                      <CardContent className="p-3">
+                        <div className="flex items-start justify-between mb-2">
                           <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <MapPin className="w-5 h-5 text-red-600" />
-                              <h3 className="text-xl font-bold text-gray-900">{candidate.city}</h3>
+                            <div className="flex items-center gap-2 mb-2">
+                              <MapPin className="w-4 h-4 text-red-600" />
+                              <h3 className="text-lg font-bold text-gray-900">{candidate.city}</h3>
                               <Badge
                                 style={{
                                   backgroundColor: candidate.riskScore >= 80 ? '#DC2626' : candidate.riskScore >= 60 ? '#EA580C' : '#CA8A04',
                                   color: 'white'
                                 }}
-                                className="font-semibold"
+                                className="text-xs font-semibold"
                               >
                                 Risk Score: {candidate.riskScore}
                               </Badge>
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 mb-3">
+                            <div className="grid grid-cols-2 gap-3 mb-2">
                               <div>
-                                <p className="text-sm font-semibold text-gray-700 mb-1">Weather Conditions:</p>
-                                <div className="text-sm text-gray-800 space-y-1">
+                                <p className="text-xs font-semibold text-gray-700 mb-1">Weather Conditions:</p>
+                                <div className="text-xs text-gray-800 space-y-0.5">
                                   {candidate.rainfall > 0 && (
-                                    <div className="flex items-center gap-2">
-                                      <Cloud className="w-4 h-4 text-blue-600" />
+                                    <div className="flex items-center gap-1.5">
+                                      <Cloud className="w-3 h-3 text-blue-600" />
                                       <span>Rainfall: <strong>{candidate.rainfall}mm/h</strong>
-                                        {candidate.rainfall > 20 && <span className="text-red-600 ml-2">⚠ HEAVY</span>}
+                                        {candidate.rainfall > 20 && <span className="text-red-600 ml-1">⚠ HEAVY</span>}
                                       </span>
                                     </div>
                                   )}
                                   {candidate.windSpeed > 0 && (
-                                    <div className="flex items-center gap-2">
-                                      <AlertTriangle className="w-4 h-4 text-orange-600" />
+                                    <div className="flex items-center gap-1.5">
+                                      <AlertTriangle className="w-3 h-3 text-orange-600" />
                                       <span>Wind: <strong>{candidate.windSpeed} km/h</strong>
-                                        {candidate.windSpeed > 60 && <span className="text-red-600 ml-2">⚠ STRONG</span>}
+                                        {candidate.windSpeed > 60 && <span className="text-red-600 ml-1">⚠ STRONG</span>}
                                       </span>
                                     </div>
                                   )}
@@ -769,8 +769,8 @@ export function SuspensionPanel() {
                               </div>
 
                               <div>
-                                <p className="text-sm font-semibold text-gray-700 mb-1">Community Reports:</p>
-                                <div className="text-sm text-gray-800 space-y-1">
+                                <p className="text-xs font-semibold text-gray-700 mb-1">Community Reports:</p>
+                                <div className="text-xs text-gray-800 space-y-0.5">
                                   <div>🚨 Critical: <strong className="text-red-700">{candidate.criticalReports}</strong></div>
                                   <div>⚠️ High: <strong className="text-orange-700">{candidate.highReports}</strong></div>
                                   <div>📊 Total: <strong>{candidate.totalReports}</strong> reports</div>
@@ -778,8 +778,8 @@ export function SuspensionPanel() {
                               </div>
                             </div>
 
-                            <div className="bg-white rounded-lg p-4 border border-gray-200 mt-3">
-                              <p className="text-sm text-gray-700">
+                            <div className="bg-white rounded-lg p-2 border border-gray-200 mt-2">
+                              <p className="text-xs text-gray-700">
                                 <strong>Recommendation:</strong> {
                                   candidate.riskScore >= 80 ? 'Immediate class suspension strongly recommended' :
                                   candidate.riskScore >= 60 ? 'Class suspension recommended' :
@@ -790,7 +790,7 @@ export function SuspensionPanel() {
                           </div>
                         </div>
 
-                        <div className="flex justify-end mt-4">
+                        <div className="flex justify-end mt-2">
                           <Button
                             onClick={() => {
                               setSelectedCandidate(candidate);
@@ -897,16 +897,16 @@ export function SuspensionPanel() {
           className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
         >
           <div
-            className="bg-white rounded-2xl shadow-xl overflow-hidden"
-            style={{ width: '600px', maxWidth: '90vw' }}
+            className="bg-white rounded-xl shadow-xl overflow-hidden"
+            style={{ width: '420px', maxWidth: '90vw' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="bg-green-500 py-10 flex items-center justify-center">
-              <Check className="w-20 h-20 text-white stroke-[3]" />
+            <div className="bg-green-500 py-6 flex items-center justify-center">
+              <Check className="w-12 h-12 text-white stroke-[3]" />
             </div>
-            <div className="px-12 py-10 text-center">
-              <h3 className="text-4xl font-bold text-gray-900 mb-6">Area Suspended!</h3>
-              <p className="text-xl text-gray-600 leading-relaxed">
+            <div className="px-6 py-6 text-center">
+              <h3 className="text-2xl font-bold text-gray-900 mb-3">Area Suspended!</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">
                 Class suspension has been issued for <span className="font-bold text-gray-900">{suspendedCityName}</span>. Notifications have been sent to all users.
               </p>
             </div>

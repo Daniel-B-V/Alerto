@@ -202,7 +202,7 @@ export function CommunityFeed() {
               </h1>
               <p className="text-gray-600">Real-time weather reports from the community</p>
             </div>
-            {isAuthenticated && (
+            {isAuthenticated && user?.role !== 'admin' && user?.role !== 'super_admin' && (
               <Button
                 onClick={() => setShowSubmitModal(true)}
                 className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white"
@@ -266,8 +266,12 @@ export function CommunityFeed() {
               <CardContent className="p-12 text-center">
                 <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">No reports yet</h3>
-                <p className="text-gray-500 mb-4">Be the first to submit a weather report!</p>
-                {isAuthenticated && (
+                <p className="text-gray-500 mb-4">
+                  {user?.role === 'admin' || user?.role === 'super_admin'
+                    ? 'No reports submitted by the community yet.'
+                    : 'Be the first to submit a weather report!'}
+                </p>
+                {isAuthenticated && user?.role !== 'admin' && user?.role !== 'super_admin' && (
                   <Button
                     onClick={() => setShowSubmitModal(true)}
                     className="bg-blue-500 hover:bg-blue-600"

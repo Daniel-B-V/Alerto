@@ -18,17 +18,20 @@ import {
   Loader2,
   AlertOctagon,
   Target,
-  TrendingDown
+  TrendingDown,
+  Filter
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { subscribeToReports } from "../firebase/firestore";
 import { analyzeCompiledLocationReports, analyzeIndividualReportCredibility } from "../services/geminiService";
 
 export function EnhancedReportsPage() {
   const [reports, setReports] = useState([]);
   const [compiledReports, setCompiledReports] = useState([]);
+  const [filteredCompiledReports, setFilteredCompiledReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [showCompiledModal, setShowCompiledModal] = useState(false);
@@ -38,6 +41,12 @@ export function EnhancedReportsPage() {
   const [aiLoading, setAiLoading] = useState(false);
   const [reportCredibility, setReportCredibility] = useState({});  // Store credibility for each report
   const [credibilityLoading, setCredibilityLoading] = useState(false);
+  const [locationFilters, setLocationFilters] = useState({
+    minReports: 'all',
+    credibilityStatus: 'all',
+    minConfidence: 'all',
+    sortBy: 'reports-desc'
+  });
 
   // Load reports from Firebase
   useEffect(() => {
@@ -104,7 +113,56 @@ export function EnhancedReportsPage() {
     // Sort by total reports (descending)
     compiled.sort((a, b) => b.totalReports - a.totalReports);
     setCompiledReports(compiled);
+    setFilteredCompiledReports(compiled);
   };
+
+  // Apply filters to compiled reports
+  useEffect(() => {
+    let filtered = [...compiledReports];
+
+    // Filter by minimum reports
+    if (locationFilters.minReports !== 'all') {
+      const minCount = parseInt(locationFilters.minReports);
+      filtered = filtered.filter(loc => loc.totalReports >= minCount);
+    }
+
+    // Filter by credibility status
+    if (locationFilters.credibilityStatus !== 'all') {
+      filtered = filtered.filter(loc => loc.credibilityStatus.label === locationFilters.credibilityStatus);
+    }
+
+    // Filter by minimum AI confidence
+    if (locationFilters.minConfidence !== 'all') {
+      const minConf = parseInt(locationFilters.minConfidence);
+      filtered = filtered.filter(loc => loc.aiConfidence >= minConf);
+    }
+
+    // Sort
+    switch (locationFilters.sortBy) {
+      case 'reports-desc':
+        filtered.sort((a, b) => b.totalReports - a.totalReports);
+        break;
+      case 'reports-asc':
+        filtered.sort((a, b) => a.totalReports - b.totalReports);
+        break;
+      case 'confidence-desc':
+        filtered.sort((a, b) => b.aiConfidence - a.aiConfidence);
+        break;
+      case 'confidence-asc':
+        filtered.sort((a, b) => a.aiConfidence - b.aiConfidence);
+        break;
+      case 'critical-desc':
+        filtered.sort((a, b) => b.criticalReports - a.criticalReports);
+        break;
+      case 'city-asc':
+        filtered.sort((a, b) => a.city.localeCompare(b.city));
+        break;
+      default:
+        break;
+    }
+
+    setFilteredCompiledReports(filtered);
+  }, [compiledReports, locationFilters]);
 
   // AI Credibility Logic
   const calculateAIConfidence = (locationGroup) => {
@@ -400,13 +458,106 @@ export function EnhancedReportsPage() {
         </Card>
       )}
 
+      {/* Filters for Compiled Reports */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Filter className="w-5 h-5 text-gray-500" />
+            <span className="text-sm font-semibold text-gray-700">Filters:</span>
+
+            <Select
+              value={locationFilters.minReports}
+              onValueChange={(value) => setLocationFilters(prev => ({ ...prev, minReports: value }))}
+            >
+              <SelectTrigger className="w-44">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Report Counts</SelectItem>
+                <SelectItem value="3">3+ Reports</SelectItem>
+                <SelectItem value="5">5+ Reports</SelectItem>
+                <SelectItem value="10">10+ Reports</SelectItem>
+                <SelectItem value="20">20+ Reports</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={locationFilters.credibilityStatus}
+              onValueChange={(value) => setLocationFilters(prev => ({ ...prev, credibilityStatus: value }))}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="Authentic">✓ Authentic</SelectItem>
+                <SelectItem value="Needs Review">⚠ Needs Review</SelectItem>
+                <SelectItem value="Low Confidence">✗ Low Confidence</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={locationFilters.minConfidence}
+              onValueChange={(value) => setLocationFilters(prev => ({ ...prev, minConfidence: value }))}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Confidence</SelectItem>
+                <SelectItem value="85">85%+ Confidence</SelectItem>
+                <SelectItem value="70">70%+ Confidence</SelectItem>
+                <SelectItem value="60">60%+ Confidence</SelectItem>
+                <SelectItem value="50">50%+ Confidence</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={locationFilters.sortBy}
+              onValueChange={(value) => setLocationFilters(prev => ({ ...prev, sortBy: value }))}
+            >
+              <SelectTrigger className="w-52">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="reports-desc">Most Reports First</SelectItem>
+                <SelectItem value="reports-asc">Least Reports First</SelectItem>
+                <SelectItem value="confidence-desc">Highest Confidence</SelectItem>
+                <SelectItem value="confidence-asc">Lowest Confidence</SelectItem>
+                <SelectItem value="critical-desc">Most Critical</SelectItem>
+                <SelectItem value="city-asc">City (A-Z)</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {(locationFilters.minReports !== 'all' ||
+              locationFilters.credibilityStatus !== 'all' ||
+              locationFilters.minConfidence !== 'all' ||
+              locationFilters.sortBy !== 'reports-desc') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocationFilters({
+                  minReports: 'all',
+                  credibilityStatus: 'all',
+                  minConfidence: 'all',
+                  sortBy: 'reports-desc'
+                })}
+                className="text-blue-600"
+              >
+                Clear Filters
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Compiled Reports Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Compiled Reports by Location ({compiledReports.length})</CardTitle>
+          <CardTitle>Compiled Reports by Location ({filteredCompiledReports.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          {compiledReports.length === 0 ? (
+          {filteredCompiledReports.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">No reports found</p>
@@ -452,7 +603,7 @@ export function EnhancedReportsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y-2 divide-gray-300">
-                  {compiledReports.map((location, index) => {
+                  {filteredCompiledReports.map((location, index) => {
                     const StatusIcon = location.credibilityStatus.icon;
                     return (
                       <tr key={index} className="hover:bg-gray-50 transition-colors border-b border-gray-200">
