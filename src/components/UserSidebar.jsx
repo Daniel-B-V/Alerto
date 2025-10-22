@@ -15,8 +15,7 @@ export function UserSidebar({ activeSection, onSectionChange }) {
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { id: "suspensions", icon: GraduationCap, label: "Class Suspensions" },
-    { id: "report", icon: FileText, label: "Submit Report" },
-    { id: "my-reports", icon: List, label: "My Reports" },
+    { id: "community", icon: FileText, label: "My Reports" },
     { id: "settings", icon: Settings, label: "Settings" },
   ];
 

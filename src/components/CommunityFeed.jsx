@@ -56,6 +56,7 @@ export function CommunityFeed() {
 
     try {
       const unsubscribe = subscribeToReports((reportsData) => {
+        console.log('Admin received reports:', reportsData.length, reportsData);
         // Sort by timestamp client-side
         const sorted = reportsData.sort((a, b) => {
           const aTime = a.createdAt?.seconds || 0;

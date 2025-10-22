@@ -3,10 +3,12 @@ import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
 import { useSocket } from "../contexts/SocketContext";
+import { useAuth } from "../contexts/AuthContext";
 import { useState, useRef, useEffect } from "react";
 
 export function Header() {
   const { notifications } = useSocket();
+  const { user } = useAuth();
   const notificationCount = notifications.length;
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
@@ -117,14 +119,24 @@ export function Header() {
           {/* Profile */}
           <div className="flex items-center gap-2">
             <Avatar className="w-8 h-8">
-              <AvatarImage src="" />
+              <AvatarImage src={user?.photoURL || ""} />
               <AvatarFallback className="bg-blue-100 text-blue-600">
-                <User className="w-4 h-4" />
+                {user?.role === 'admin' || user?.role === 'super_admin'
+                  ? 'A'
+                  : user?.displayName?.charAt(0)?.toUpperCase() || <User className="w-4 h-4" />}
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:block">
-              <p className="text-sm font-medium">Admin User</p>
-              <p className="text-xs text-gray-500">Batangas Province</p>
+              <p className="text-sm font-medium">
+                {user?.role === 'admin' || user?.role === 'super_admin'
+                  ? 'Admin User'
+                  : user?.displayName || user?.email || 'User'}
+              </p>
+              <p className="text-xs text-gray-500">
+                {user?.role === 'admin' || user?.role === 'super_admin'
+                  ? 'Batangas Province'
+                  : user?.province || 'Batangas'}
+              </p>
             </div>
           </div>
         </div>

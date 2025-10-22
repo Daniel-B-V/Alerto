@@ -1,69 +1,144 @@
 import { useState, useEffect } from "react";
 import {
-  GraduationCap,
-  MapPin,
-  Clock,
-  AlertTriangle,
-  CheckCircle,
+  Search,
   RefreshCw,
-  Search
+  MapPin,
+  Cloud,
+  Droplets,
+  Wind,
+  AlertCircle,
+  CheckCircle,
+  Ban,
+  Thermometer,
+  Gauge
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { useSocket } from '../contexts/SocketContext';
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "../firebase/config";
 
 export function UserSuspensionView() {
-  const [suspensions, setSuspensions] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [filteredCities, setFilteredCities] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const { addNotification } = useSocket();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all"); // all, suspended, active
 
-  useEffect(() => {
-    // Subscribe to real-time suspension updates
-    const suspensionsQuery = query(
-      collection(db, 'suspensions'),
-      where('status', '==', 'active')
-    );
+  // Batangas cities list
+  const batangasCities = [
+    "Agoncillo", "Alitagtag", "Balayan", "Balete", "Batangas City", "Bauan",
+    "Calaca", "Calatagan", "Cuenca", "Ibaan", "Laurel", "Lemery",
+    "Lian", "Lipa City", "Lobo", "Mabini", "Malvar", "Mataasnakahoy",
+    "Nasugbu", "Padre Garcia", "Rosario", "San Jose", "San Juan",
+    "San Luis", "San Nicolas", "San Pascual", "Santa Teresita", "Santo Tomas",
+    "Taal", "Talisay", "Tanauan City", "Taysan", "Tingloy", "Tuy"
+  ];
 
-    const unsubscribe = onSnapshot(suspensionsQuery, (snapshot) => {
-      const suspensionsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
+  // Fetch suspension and weather data
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      // Fetch active suspensions
+      const suspensionsQuery = query(
+        collection(db, 'suspensions'),
+        where('status', '==', 'active')
+      );
+      const suspensionsSnapshot = await getDocs(suspensionsQuery);
+      const suspendedCityNames = new Set(
+        suspensionsSnapshot.docs.map(doc => doc.data().city)
+      );
 
-      // Check for new suspensions to show notification
-      snapshot.docChanges().forEach(change => {
-        if (change.type === 'added') {
-          const newSuspension = change.doc.data();
-          addNotification({
-            id: `suspension-${change.doc.id}`,
-            title: `🚨 Class Suspension Issued`,
-            message: `Classes suspended in ${newSuspension.city}`,
-            severity: 'critical',
-            timestamp: new Date().toISOString()
-          });
+      // Fetch weather data
+      const weatherSnapshot = await getDocs(collection(db, 'weather'));
+      const weatherMap = {};
+      weatherSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        if (data.location?.city) {
+          weatherMap[data.location.city] = data;
         }
       });
 
-      setSuspensions(suspensionsData);
+      // Combine data for all cities
+      const citiesData = batangasCities
+        .map(cityName => {
+          const isSuspended = suspendedCityNames.has(cityName);
+          const weatherData = weatherMap[cityName] || null;
+
+          return {
+            name: cityName,
+            suspended: isSuspended,
+            weather: weatherData?.current || {
+              temperature: null,
+              condition: "No data",
+              humidity: null,
+              windSpeed: null,
+              rainfall: null,
+              pressure: null
+            },
+            lastUpdate: weatherData?.lastUpdate || null
+          };
+        })
+        // Filter out cities without weather data
+        .filter(city => city.weather.temperature !== null);
+
+      // Sort: suspended cities first, then alphabetically
+      citiesData.sort((a, b) => {
+        if (a.suspended && !b.suspended) return -1;
+        if (!a.suspended && b.suspended) return 1;
+        return a.name.localeCompare(b.name);
+      });
+
+      setCities(citiesData);
+      setFilteredCities(citiesData);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    } finally {
       setLoading(false);
-    });
+    }
+  };
 
-    return () => unsubscribe();
-  }, [addNotification]);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-  const filteredSuspensions = suspensions.filter(s =>
-    s.city?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Apply filters
+  useEffect(() => {
+    let filtered = [...cities];
 
-  const formatTimestamp = (timestamp) => {
-    if (!timestamp) return 'Unknown';
-    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-    return date.toLocaleString();
+    // Filter by search query
+    if (searchQuery.trim()) {
+      filtered = filtered.filter(city =>
+        city.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Filter by suspension status
+    if (statusFilter === "suspended") {
+      filtered = filtered.filter(city => city.suspended);
+    } else if (statusFilter === "active") {
+      filtered = filtered.filter(city => !city.suspended);
+    }
+
+    setFilteredCities(filtered);
+  }, [searchQuery, statusFilter, cities]);
+
+  // Get weather icon based on condition
+  const getWeatherIcon = (condition) => {
+    if (!condition) return <Cloud className="w-6 h-6 text-gray-400" />;
+
+    const conditionLower = condition.toLowerCase();
+    if (conditionLower.includes('rain') || conditionLower.includes('shower')) {
+      return <Droplets className="w-6 h-6 text-blue-500" />;
+    }
+    if (conditionLower.includes('cloud')) {
+      return <Cloud className="w-6 h-6 text-gray-500" />;
+    }
+    if (conditionLower.includes('clear') || conditionLower.includes('sunny')) {
+      return <Cloud className="w-6 h-6 text-yellow-500" />;
+    }
+    return <Cloud className="w-6 h-6 text-gray-400" />;
   };
 
   if (loading) {
@@ -71,160 +146,281 @@ export function UserSuspensionView() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <RefreshCw className="w-12 h-12 text-blue-500 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading suspensions...</p>
+          <p className="text-gray-600">Loading city data...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
-          <GraduationCap className="w-8 h-8 text-blue-500" />
-          Class Suspensions
-        </h1>
-        <p className="text-gray-600">
-          Real-time updates on active class suspensions across Batangas Province
-        </p>
-      </div>
-
-      {/* Search */}
-      <div className="max-w-md">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-          <Input
-            type="text"
-            placeholder="Search by city or municipality..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+            <Ban className="w-8 h-8 text-red-500" />
+            Class Suspension Status
+          </h1>
+          <p className="text-gray-600">
+            Real-time suspension status for all cities and municipalities in Batangas Province
+          </p>
         </div>
-      </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="bg-gradient-to-br from-red-50 to-orange-50 border-red-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-red-600 font-medium">Active Suspensions</p>
-                <p className="text-3xl font-bold text-red-900 mt-1">{suspensions.length}</p>
-              </div>
-              <AlertTriangle className="w-12 h-12 text-red-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 font-medium">Normal Operations</p>
-                <p className="text-3xl font-bold text-green-900 mt-1">
-                  {Math.max(0, 31 - suspensions.length)}
-                </p>
-              </div>
-              <CheckCircle className="w-12 h-12 text-green-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-blue-50 to-cyan-50 border-blue-200">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 font-medium">Total Cities</p>
-                <p className="text-3xl font-bold text-blue-900 mt-1">31</p>
-              </div>
-              <MapPin className="w-12 h-12 text-blue-500 opacity-50" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Suspensions List */}
-      {filteredSuspensions.length === 0 ? (
-        <Card>
-          <CardContent className="p-12 text-center">
-            <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              {searchTerm ? 'No matching suspensions' : 'No Active Suspensions'}
-            </h3>
-            <p className="text-gray-600">
-              {searchTerm
-                ? 'Try a different search term'
-                : 'All cities and municipalities are operating normally'}
-            </p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredSuspensions.map((suspension) => (
-            <Card
-              key={suspension.id}
-              className="hover:shadow-lg transition-shadow border-red-200 bg-gradient-to-br from-red-50 to-orange-50"
-            >
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-red-900">
-                  <MapPin className="w-5 h-5 text-red-600" />
-                  {suspension.city}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
                 <div>
-                  <Badge className="bg-red-600 text-white mb-2">
-                    CLASSES SUSPENDED
-                  </Badge>
+                  <p className="text-sm text-blue-600 mb-1">Total Cities</p>
+                  <p className="text-3xl font-bold text-blue-900">{cities.length}</p>
                 </div>
+                <MapPin className="w-10 h-10 text-blue-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
 
-                {suspension.reason && (
-                  <div>
-                    <p className="text-xs text-gray-600 font-medium">Reason:</p>
-                    <p className="text-sm text-gray-900">{suspension.reason}</p>
-                  </div>
-                )}
-
-                {suspension.notes && (
-                  <div>
-                    <p className="text-xs text-gray-600 font-medium">Notes:</p>
-                    <p className="text-sm text-gray-700">{suspension.notes}</p>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2 text-xs text-gray-500 pt-2 border-t">
-                  <Clock className="w-3 h-3" />
-                  Issued: {formatTimestamp(suspension.issuedAt)}
-                </div>
-
-                {suspension.issuedBy && (
-                  <p className="text-xs text-gray-500">
-                    By: {suspension.issuedBy}
+          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-red-600 mb-1">Suspended</p>
+                  <p className="text-3xl font-bold text-red-900">
+                    {cities.filter(c => c.suspended).length}
                   </p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+                </div>
+                <Ban className="w-10 h-10 text-red-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Help Text */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-blue-600 mt-0.5" />
-            <div>
-              <p className="font-semibold text-blue-900 mb-1">Stay Informed</p>
-              <p className="text-sm text-blue-700">
-                This page automatically updates when new class suspensions are issued.
-                You'll also receive real-time notifications for any new announcements.
-              </p>
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-green-600 mb-1">Active</p>
+                  <p className="text-3xl font-bold text-green-900">
+                    {cities.filter(c => !c.suspended).length}
+                  </p>
+                </div>
+                <CheckCircle className="w-10 h-10 text-green-500 opacity-50" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search and Filter Bar */}
+        <Card className="mb-6">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex-1 relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search for a city..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setStatusFilter("all")}
+                  className="flex-1 md:flex-none font-semibold"
+                  style={{
+                    backgroundColor: statusFilter === "all" ? '#E5E7EB' : '#000000',
+                    color: statusFilter === "all" ? '#000000' : '#ffffff'
+                  }}
+                >
+                  All
+                </Button>
+                <Button
+                  onClick={() => setStatusFilter("suspended")}
+                  className="flex-1 md:flex-none font-semibold"
+                  style={{
+                    backgroundColor: statusFilter === "suspended" ? '#FECACA' : '#DC2626',
+                    color: statusFilter === "suspended" ? '#DC2626' : '#ffffff'
+                  }}
+                >
+                  Suspended
+                </Button>
+                <Button
+                  onClick={() => setStatusFilter("active")}
+                  className="flex-1 md:flex-none font-semibold"
+                  style={{
+                    backgroundColor: statusFilter === "active" ? '#BBF7D0' : '#16A34A',
+                    color: statusFilter === "active" ? '#16A34A' : '#ffffff'
+                  }}
+                >
+                  Active
+                </Button>
+              </div>
+
+              <Button
+                onClick={fetchData}
+                className="bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Cities Grid */}
+        {filteredCities.length === 0 ? (
+          <Card>
+            <CardContent className="p-12 text-center">
+              <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-700 mb-2">No cities found</h3>
+              <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredCities.map((city) => (
+              <Card
+                key={city.name}
+                className={`overflow-hidden transition-all duration-200 hover:shadow-lg ${
+                  city.suspended
+                    ? 'border-2 border-red-400 bg-red-50'
+                    : 'border border-gray-200 bg-white'
+                }`}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <MapPin className="w-5 h-5 text-gray-600" />
+                        {city.name}
+                      </CardTitle>
+                    </div>
+                    <Badge
+                      className="flex items-center gap-1 px-3 py-1 font-bold"
+                      style={{
+                        backgroundColor: city.suspended ? '#DC2626' : '#16A34A',
+                        color: '#FFFFFF'
+                      }}
+                    >
+                      {city.suspended ? (
+                        <>
+                          <Ban className="w-4 h-4" />
+                          Suspended
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4" />
+                          Active
+                        </>
+                      )}
+                    </Badge>
+                  </div>
+                </CardHeader>
+
+                <CardContent className="pt-0">
+                  {/* Weather Information */}
+                  <div className="space-y-3">
+                    {/* Temperature */}
+                    {city.weather.temperature !== null ? (
+                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Thermometer className="w-5 h-5 text-red-500" />
+                          <span className="text-sm font-medium text-gray-700">Temperature</span>
+                        </div>
+                        <span className="text-xl font-bold text-gray-900">
+                          {city.weather.temperature}°C
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="p-3 bg-gray-50 rounded-lg text-center text-sm text-gray-500">
+                        No weather data available
+                      </div>
+                    )}
+
+                    {/* Weather Condition */}
+                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+                      {getWeatherIcon(city.weather.condition)}
+                      <span className="text-sm text-gray-700 capitalize">
+                        {city.weather.condition}
+                      </span>
+                    </div>
+
+                    {/* Additional Weather Info Grid */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {/* Humidity */}
+                      {city.weather.humidity !== null && (
+                        <div className="p-2 bg-blue-50 rounded-lg">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Droplets className="w-4 h-4 text-blue-600" />
+                            <span className="text-xs text-gray-600">Humidity</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {city.weather.humidity}%
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Wind Speed */}
+                      {city.weather.windSpeed !== null && (
+                        <div className="p-2 bg-green-50 rounded-lg">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Wind className="w-4 h-4 text-green-600" />
+                            <span className="text-xs text-gray-600">Wind</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {city.weather.windSpeed} km/h
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Rainfall */}
+                      {city.weather.rainfall !== null && city.weather.rainfall > 0 && (
+                        <div className="p-2 bg-indigo-50 rounded-lg">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Droplets className="w-4 h-4 text-indigo-600" />
+                            <span className="text-xs text-gray-600">Rainfall</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {city.weather.rainfall} mm/h
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Pressure */}
+                      {city.weather.pressure !== null && (
+                        <div className="p-2 bg-purple-50 rounded-lg">
+                          <div className="flex items-center gap-1 mb-1">
+                            <Gauge className="w-4 h-4 text-purple-600" />
+                            <span className="text-xs text-gray-600">Pressure</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">
+                            {city.weather.pressure} hPa
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Last Update */}
+                    {city.lastUpdate && (
+                      <div className="text-xs text-gray-500 text-center pt-2 border-t">
+                        Last updated: {new Date(city.lastUpdate).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </CardContent>
-      </Card>
+        )}
+
+        {/* Results Count */}
+        {filteredCities.length > 0 && (
+          <div className="mt-6 text-center text-sm text-gray-600">
+            Showing {filteredCities.length} of {cities.length} cities
+          </div>
+        )}
+      </div>
     </div>
   );
 }

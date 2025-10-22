@@ -1,29 +1,60 @@
 {
-      "name": "Alerto Dashboard UI Design (Copy)",
-      "version": "0.1.0",
-      "private": true,
-      "dependencies": {
-            "@google/generative-ai": "^0.24.1",
-            "@radix-ui/react-avatar": "^1.1.3",
-            "@radix-ui/react-label": "^2.1.7",
-            "@radix-ui/react-select": "^2.1.6",
-            "@radix-ui/react-separator": "^1.1.2",
-            "@radix-ui/react-slot": "^1.1.2",
-            "class-variance-authority": "^0.7.1",
-            "clsx": "*",
-            "firebase": "^12.4.0",
-            "lucide-react": "^0.487.0",
-            "react": "^18.3.1",
-            "react-dom": "^18.3.1",
-            "recharts": "^2.15.2",
-            "tailwind-merge": "*"
-      },
-      "devDependencies": {
-            "@vitejs/plugin-react-swc": "^3.10.2",
-            "vite": "^6.4.1"
-      },
-      "scripts": {
-            "dev": "vite",
-            "build": "vite build"
-      }
+  "name": "alerto",
+  "version": "1.0.0",
+  "description": "Real-time disaster reporting and weather monitoring system for Batangas Province, Philippines",
+  "private": true,
+  "author": "Team Alerto",
+  "license": "MIT",
+  "keywords": [
+    "disaster-reporting",
+    "weather-monitoring",
+    "community-alerts",
+    "firebase",
+    "react",
+    "ai-analytics"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/alerto.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/alerto/issues"
+  },
+  "homepage": "https://github.com/yourusername/alerto#readme",
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "setup": "npm install && npm run setup:env",
+    "setup:env": "node -e \"const fs = require('fs'); if (!fs.existsSync('.env')) { fs.copyFileSync('.env.example', '.env'); console.log('✅ .env file created! Please fill in your API keys.'); } else { console.log('⚠️  .env file already exists.'); }\"",
+    "check:env": "node -e \"const fs = require('fs'); if (!fs.existsSync('.env')) { console.error('❌ .env file not found! Run: npm run setup:env'); process.exit(1); } console.log('✅ .env file exists');\"",
+    "lint": "echo 'Linting not configured yet'",
+    "test": "echo 'Tests not configured yet'",
+    "clean": "rm -rf node_modules dist .vite",
+    "reinstall": "npm run clean && npm install"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "@radix-ui/react-avatar": "^1.1.3",
+    "@radix-ui/react-label": "^2.1.7",
+    "@radix-ui/react-select": "^2.1.6",
+    "@radix-ui/react-separator": "^1.1.2",
+    "@radix-ui/react-slot": "^1.1.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "*",
+    "firebase": "^12.4.0",
+    "lucide-react": "^0.487.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.15.2",
+    "tailwind-merge": "*"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react-swc": "^3.10.2",
+    "vite": "^6.4.1"
+  }
 }

@@ -9,11 +9,7 @@ import {
   signInWithGoogle,
   getCurrentUser
 } from '../firebase';
-<<<<<<< HEAD
-import { setUserProfile, getUserProfile } from '../firebase/firestore';
-=======
-import { getUserData } from '../firebase/firestore';
->>>>>>> d8fed4363f53ed32c3448c2f822b2d1c61003ffe
+import { setUserProfile, getUserProfile, getUserData } from '../firebase/firestore';
 
 const AuthContext = createContext();
 
@@ -31,17 +27,17 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState('user'); // 'admin' or 'user'
 
-  // Inactivity timeout (30 minutes = 1800000 milliseconds)
-  const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+  // Inactivity timeout (2 hours = 7200000 milliseconds)
+  const INACTIVITY_TIMEOUT = 2 * 60 * 60 * 1000;
   const [lastActivityTime, setLastActivityTime] = useState(Date.now());
 
   // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
-<<<<<<< HEAD
         // User is signed in - fetch role from Firestore
         try {
+          const userData = await getUserData(firebaseUser.uid);
           const userProfile = await getUserProfile(firebaseUser.uid);
 
           setUser({
@@ -50,9 +46,10 @@ export const AuthProvider = ({ children }) => {
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
             emailVerified: firebaseUser.emailVerified,
-            role: userProfile?.role || 'user', // Get role from Firestore, default to 'user'
+            role: userData?.role || userProfile?.role || 'user',
             province: userProfile?.province || 'Batangas'
           });
+          setUserRole(userData?.role || userProfile?.role || 'user');
           setIsAuthenticated(true);
           setLastActivityTime(Date.now());
         } catch (error) {
@@ -64,26 +61,12 @@ export const AuthProvider = ({ children }) => {
             displayName: firebaseUser.displayName,
             photoURL: firebaseUser.photoURL,
             emailVerified: firebaseUser.emailVerified,
-            role: 'user' // Default to user if fetch fails
+            role: 'user'
           });
+          setUserRole('user');
           setIsAuthenticated(true);
           setLastActivityTime(Date.now());
         }
-=======
-        // User is signed in - fetch user data including role
-        const userData = await getUserData(firebaseUser.uid);
-
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          emailVerified: firebaseUser.emailVerified
-        });
-        setUserRole(userData.role || 'user'); // Set user role from Firestore
-        setIsAuthenticated(true);
-        setLastActivityTime(Date.now());
->>>>>>> d8fed4363f53ed32c3448c2f822b2d1c61003ffe
       } else {
         // User is signed out
         setUser(null);
@@ -140,13 +123,9 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const firebaseUser = await signIn(credentials.email, credentials.password);
 
-<<<<<<< HEAD
-      // Fetch user profile from Firestore to get role
-      const userProfile = await getUserProfile(firebaseUser.uid);
-=======
       // Fetch user data including role
       const userDataFromFirestore = await getUserData(firebaseUser.uid);
->>>>>>> d8fed4363f53ed32c3448c2f822b2d1c61003ffe
+      const userProfile = await getUserProfile(firebaseUser.uid);
 
       const userData = {
         uid: firebaseUser.uid,
@@ -154,7 +133,7 @@ export const AuthProvider = ({ children }) => {
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL,
         emailVerified: firebaseUser.emailVerified,
-        role: userProfile?.role || 'user',
+        role: userDataFromFirestore?.role || userProfile?.role || 'user',
         province: userProfile?.province || 'Batangas'
       };
 
@@ -168,7 +147,7 @@ export const AuthProvider = ({ children }) => {
       });
 
       setUser(userData);
-      setUserRole(userDataFromFirestore.role || 'user');
+      setUserRole(userDataFromFirestore?.role || userProfile?.role || 'user');
       setIsAuthenticated(true);
       return { success: true, user: userData };
     } catch (error) {
@@ -188,13 +167,9 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       const firebaseUser = await signInWithGoogle();
 
-<<<<<<< HEAD
-      // Fetch existing user profile or use defaults
-      const existingProfile = await getUserProfile(firebaseUser.uid);
-=======
       // Fetch user data including role
       const userDataFromFirestore = await getUserData(firebaseUser.uid);
->>>>>>> d8fed4363f53ed32c3448c2f822b2d1c61003ffe
+      const existingProfile = await getUserProfile(firebaseUser.uid);
 
       const userData = {
         uid: firebaseUser.uid,
@@ -202,7 +177,7 @@ export const AuthProvider = ({ children }) => {
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL,
         emailVerified: firebaseUser.emailVerified,
-        role: existingProfile?.role || 'user',
+        role: userDataFromFirestore?.role || existingProfile?.role || 'user',
         province: existingProfile?.province || 'Batangas'
       };
 
@@ -212,13 +187,13 @@ export const AuthProvider = ({ children }) => {
         displayName: firebaseUser.displayName,
         photoURL: firebaseUser.photoURL || null,
         emailVerified: firebaseUser.emailVerified,
-        role: existingProfile?.role || 'user', // Preserve existing role or default to 'user'
+        role: userDataFromFirestore?.role || existingProfile?.role || 'user',
         provider: 'google',
         lastLogin: new Date().toISOString()
       });
 
       setUser(userData);
-      setUserRole(userDataFromFirestore.role || 'user');
+      setUserRole(userDataFromFirestore?.role || existingProfile?.role || 'user');
       setIsAuthenticated(true);
       return { success: true, user: userData };
     } catch (error) {

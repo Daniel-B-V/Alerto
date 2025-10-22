@@ -2,8 +2,7 @@ import { Header } from "./Header";
 import { UserSidebar } from "./UserSidebar";
 import { UserDashboard } from "./UserDashboard";
 import { UserSuspensionView } from "./UserSuspensionView";
-import { UserReportingCenter } from "./UserReportingCenter";
-import { UserMyReports } from "./UserMyReports";
+import { UserReportsPage } from "./UserReportsPage";
 import { SocketProvider } from "../contexts/SocketContext";
 import { useState } from "react";
 
@@ -76,10 +75,8 @@ export function UserLayout() {
     switch (activeSection) {
       case 'suspensions':
         return <UserSuspensionView />;
-      case 'report':
-        return <UserReportingCenter />;
-      case 'my-reports':
-        return <UserMyReports />;
+      case 'community':
+        return <UserReportsPage />;
       case 'settings':
         return <UserSettings />;
       default:
@@ -97,7 +94,7 @@ export function UserLayout() {
             onSectionChange={setActiveSection}
           />
           <main className="flex-1 overflow-auto">
-            <div className="bg-gradient-to-br from-gray-50/80 to-blue-50/50 min-h-full">
+            <div className="p-6 bg-gradient-to-br from-gray-50/80 to-blue-50/50 min-h-full">
               {renderContent()}
             </div>
           </main>
