@@ -8,6 +8,7 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  setDoc,
   query,
   where,
   orderBy,
@@ -27,6 +28,57 @@ const COLLECTIONS = {
   USERS: 'users',
   COMMENTS: 'comments',
   WEATHER: 'weather'
+};
+
+// ==================== USERS ====================
+
+// Get user data including role
+export const getUserData = async (uid) => {
+  try {
+    const userRef = doc(db, COLLECTIONS.USERS, uid);
+    const userSnap = await getDoc(userRef);
+
+    if (userSnap.exists()) {
+      return {
+        uid,
+        ...userSnap.data()
+      };
+    } else {
+      // User document doesn't exist, return default role
+      return { uid, role: 'user' };
+    }
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    return { uid, role: 'user' }; // Default to user role on error
+  }
+};
+
+// Set or update user role
+export const setUserRole = async (uid, role) => {
+  try {
+    const userRef = doc(db, COLLECTIONS.USERS, uid);
+
+    // Check if document exists first
+    const docSnap = await getDoc(userRef);
+
+    if (docSnap.exists()) {
+      // Update existing document
+      await updateDoc(userRef, { role, updatedAt: serverTimestamp() });
+    } else {
+      // Create new document with role
+      await setDoc(userRef, {
+        role,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    }
+
+    console.log(`✅ User role updated to "${role}" for UID: ${uid}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Error setting user role:', error);
+    return { success: false, error: error.message };
+  }
 };
 
 // ==================== WEATHER ====================
