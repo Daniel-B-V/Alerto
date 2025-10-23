@@ -340,15 +340,21 @@ export const getUserReports = async (userId) => {
     const reportsRef = collection(db, COLLECTIONS.REPORTS);
     const q = query(
       reportsRef,
-      where('userId', '==', userId),
-      orderBy('createdAt', 'desc')
+      where('userId', '==', userId)
     );
 
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => ({
+    const reports = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
+
+    // Sort by createdAt in JavaScript to avoid needing a composite index
+    return reports.sort((a, b) => {
+      const aTime = a.createdAt?.toMillis?.() || 0;
+      const bTime = b.createdAt?.toMillis?.() || 0;
+      return bTime - aTime; // desc order
+    });
   } catch (error) {
     console.error('Error getting user reports:', error);
     throw error;

@@ -41,7 +41,20 @@ export function AnalyticsPanel() {
 
       // Fetch weather data
       const weatherData = await getBatangasWeather();
-      setCitiesWeather(weatherData);
+
+      // Remove duplicate cities (keep only the first occurrence of each city)
+      const uniqueCities = [];
+      const seenCities = new Set();
+
+      weatherData.forEach(city => {
+        const cityName = city.location?.city || 'Unknown';
+        if (!seenCities.has(cityName)) {
+          seenCities.add(cityName);
+          uniqueCities.push(city);
+        }
+      });
+
+      setCitiesWeather(uniqueCities);
 
       // Fetch hourly forecast
       const forecast = await getDetailedHourlyForecast('Batangas');

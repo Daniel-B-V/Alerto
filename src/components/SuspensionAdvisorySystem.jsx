@@ -200,7 +200,7 @@ const SuspensionAdvisorySystem = ({ weatherData = [], reports = [] }) => {
         ) : advisory ? (
           <>
             {/* Risk Level & Recommendation */}
-            <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
+            <div className="bg-white rounded-xl p-6 shadow-sm mb-6" style={{ backgroundColor: 'white' }}>
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center gap-3 mb-2">

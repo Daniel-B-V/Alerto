@@ -220,6 +220,47 @@ export function EnhancedReportsPage() {
     }
   };
 
+  // Get attention level based on reports and AI confidence
+  const getAttentionLevel = (location) => {
+    const { totalReports, aiConfidence } = location;
+
+    // High attention: Many reports AND high confidence
+    if (totalReports >= 10 && aiConfidence >= 75) {
+      return {
+        level: 'High',
+        bgColor: '#DC2626' // red-600
+      };
+    }
+    // High attention: Moderate reports but very high confidence
+    else if (totalReports >= 5 && aiConfidence >= 85) {
+      return {
+        level: 'High',
+        bgColor: '#DC2626' // red-600
+      };
+    }
+    // Medium attention: Moderate reports and confidence
+    else if (totalReports >= 5 && aiConfidence >= 50) {
+      return {
+        level: 'Medium',
+        bgColor: '#F97316' // orange-500
+      };
+    }
+    // Medium attention: Few reports but high confidence
+    else if (totalReports >= 3 && aiConfidence >= 75) {
+      return {
+        level: 'Medium',
+        bgColor: '#F97316' // orange-500
+      };
+    }
+    // Low attention: Few reports or low confidence
+    else {
+      return {
+        level: 'Low',
+        bgColor: '#EAB308' // yellow-500
+      };
+    }
+  };
+
   // Calculate statistics
   const stats = {
     totalReports: reports.length,
@@ -246,19 +287,20 @@ export function EnhancedReportsPage() {
 
   // Export to CSV
   const exportToCSV = () => {
-    const headers = ['Location', 'Total Reports', 'Critical', 'High', 'Medium', 'Verified', 'Pending', 'AI Confidence', 'Status', 'Last Report'];
-    const rows = compiledReports.map(loc => [
+    const headers = ['Location', 'Total Reports', 'Attention Level', 'Verified', 'Pending', 'AI Confidence', 'Status', 'Last Report'];
+    const rows = compiledReports.map(loc => {
+      const attentionLevel = getAttentionLevel(loc);
+      return [
       loc.city,
       loc.totalReports,
-      loc.criticalReports,
-      loc.highReports,
-      loc.mediumReports,
+      attentionLevel.level,
       loc.verifiedReports,
       loc.pendingReports,
       loc.aiConfidence + '%',
       loc.credibilityStatus.label,
       formatTimestamp(loc.lastReportTime)
-    ]);
+    ];
+    });
 
     const csvContent = [
       headers.join(','),
@@ -436,7 +478,9 @@ export function EnhancedReportsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {compiledReports.slice(0, 3).map((city, index) => (
+              {compiledReports.slice(0, 3).map((city, index) => {
+                const attentionLevel = getAttentionLevel(city);
+                return (
                 <div key={index} className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-indigo-200">
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-3xl font-bold text-indigo-600">#{index + 1}</span>
@@ -447,12 +491,17 @@ export function EnhancedReportsPage() {
                   <h3 className="text-xl font-bold text-gray-900 mb-1">{city.city}</h3>
                   <p className="text-2xl font-bold text-indigo-600 mb-2">{city.totalReports} reports</p>
                   <div className="text-sm text-gray-600 space-y-1">
-                    <div>🚨 {city.criticalReports} Critical</div>
-                    <div>⚠️ {city.highReports} High Priority</div>
-                    <div>✓ {city.verifiedReports} Verified</div>
+                    <Badge
+                      className="text-white text-xs"
+                      style={{ backgroundColor: attentionLevel.bgColor }}
+                    >
+                      {attentionLevel.level}
+                    </Badge>
+                    <div>✓ {city.verifiedReports} Verified / {city.pendingReports} Pending</div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -595,7 +644,7 @@ export function EnhancedReportsPage() {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Location</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Number of Reports</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Critical/High</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Attention Level</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">AI Confidence</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Last Report</th>
@@ -605,6 +654,7 @@ export function EnhancedReportsPage() {
                 <tbody className="divide-y-2 divide-gray-300">
                   {filteredCompiledReports.map((location, index) => {
                     const StatusIcon = location.credibilityStatus.icon;
+                    const attentionLevel = getAttentionLevel(location);
                     return (
                       <tr key={index} className="hover:bg-gray-50 transition-colors border-b border-gray-200">
                         <td className="px-4 py-3">
@@ -619,10 +669,12 @@ export function EnhancedReportsPage() {
                           </Badge>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="text-sm">
-                            <div className="text-red-600 font-semibold">🚨 {location.criticalReports}</div>
-                            <div className="text-orange-600">⚠️ {location.highReports}</div>
-                          </div>
+                          <Badge
+                            className="text-white font-semibold w-fit"
+                            style={{ backgroundColor: attentionLevel.bgColor }}
+                          >
+                            {attentionLevel.level}
+                          </Badge>
                         </td>
                         <td className="px-4 py-3">
                           <div className="space-y-1">
@@ -759,24 +811,11 @@ export function EnhancedReportsPage() {
                       categoryCounts[category] = (categoryCounts[category] || 0) + 1;
                     });
 
-                    const categoryIcons = {
-                      flood: '🌊',
-                      power_outage: '⚡',
-                      landslide: '🏔️',
-                      road_closure: '🚧',
-                      heavy_rain: '🌧️',
-                      strong_wind: '💨',
-                      general: '📋',
-                      storm: '⛈️',
-                      typhoon: '🌀'
-                    };
-
                     return Object.entries(categoryCounts).map(([category, count]) => (
-                      <Card key={category} className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+                      <Card key={category} className="bg-gray-100 border-gray-300">
                         <CardContent className="p-3">
                           <div className="text-center">
-                            <div className="text-2xl mb-1">{categoryIcons[category] || '📊'}</div>
-                            <div className="text-xl font-bold text-gray-900">{count}</div>
+                            <div className="text-2xl font-bold text-gray-900 mb-1">{count}</div>
                             <div className="text-xs text-gray-600 capitalize">
                               {category.replace(/_/g, ' ')}
                             </div>
@@ -808,30 +847,21 @@ export function EnhancedReportsPage() {
                     return (
                       <Card key={idx} className="hover:shadow-md transition-shadow bg-white">
                         <CardContent className="p-3">
-                          <div className="flex items-start justify-between mb-1.5">
-                            <div className="flex items-center gap-2">
-                              <Badge
-                                className="text-xs"
-                                style={{
-                                  backgroundColor:
-                                    report.severity === 'critical' ? '#dc2626' :
-                                    report.severity === 'high' ? '#f97316' :
-                                    report.severity === 'medium' ? '#ca8a04' :
-                                    '#3b82f6',
-                                  color: 'white'
-                                }}
-                              >
-                                {report.severity?.toUpperCase() || 'N/A'}
-                              </Badge>
-                              <span className="text-xs text-gray-600">
-                                {report.category?.replace(/_/g, ' ') || 'General'}
-                              </span>
-                            </div>
-                            <Badge variant={report.status === 'verified' ? 'default' : 'secondary'} className="text-xs">
-                              {report.status}
+                          <div className="flex items-start justify-between mb-2">
+                            <span className="text-xs text-gray-600 font-medium">
+                              {report.category?.replace(/_/g, ' ') || 'General'}
+                            </span>
+                            <Badge
+                              className="text-xs"
+                              style={{
+                                backgroundColor: report.status === 'verified' ? '#16a34a' : '#eab308',
+                                color: 'white'
+                              }}
+                            >
+                              {report.status === 'verified' ? '✓ Verified' : '⏳ Pending'}
                             </Badge>
                           </div>
-                          <p className="text-xs text-gray-700 mb-1.5 line-clamp-2">{report.description}</p>
+                          <p className="text-sm text-gray-800 mb-2">{report.description}</p>
 
                           {/* AI Credibility Badge */}
                           {credibility && (

@@ -45,7 +45,19 @@ export function SuspensionPanel() {
         console.log(`Using ${weather.length} weather records from Firestore test data`);
       }
 
-      setWeatherData(weather || []);
+      // Remove duplicate cities (keep only the first occurrence of each city)
+      const uniqueCities = [];
+      const seenCities = new Set();
+
+      (weather || []).forEach(city => {
+        const cityName = city.location?.city || 'Unknown';
+        if (!seenCities.has(cityName)) {
+          seenCities.add(cityName);
+          uniqueCities.push(city);
+        }
+      });
+
+      setWeatherData(uniqueCities);
 
       // Fetch existing active suspensions
       const suspensionsQuery = query(
@@ -420,10 +432,10 @@ export function SuspensionPanel() {
 
       {/* Main Suspension Recommendation */}
       {suspensionAnalysis && (
-        <Card className={`border-2 shadow-lg ${
+        <Card className={`border-2 shadow-lg bg-white ${
           suspensionAnalysis.suspensionRecommended
-            ? 'bg-gradient-to-r from-red-50 to-orange-50 border-red-400'
-            : 'bg-gradient-to-r from-green-50 to-blue-50 border-green-400'
+            ? 'border-red-400'
+            : 'border-green-400'
         }`}>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -467,11 +479,16 @@ export function SuspensionPanel() {
           <CardContent>
             <div className="space-y-4">
               {/* Advisory */}
-              <div className={`p-4 rounded-lg ${
-                suspensionAnalysis.suspensionRecommended
-                  ? 'bg-red-100 border border-red-300'
-                  : 'bg-green-100 border border-green-300'
-              }`}>
+              <div
+                className={`p-4 rounded-lg border ${
+                  suspensionAnalysis.suspensionRecommended
+                    ? 'border-red-300'
+                    : 'border-green-300'
+                }`}
+                style={{
+                  backgroundColor: suspensionAnalysis.suspensionRecommended ? '#fee2e2' : '#dcfce7'
+                }}
+              >
                 <h4 className="font-semibold text-gray-900 mb-2">Official Advisory:</h4>
                 <p className="text-sm text-gray-700">{suspensionAnalysis.advisory}</p>
               </div>

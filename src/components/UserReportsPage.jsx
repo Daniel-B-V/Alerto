@@ -10,9 +10,7 @@ import {
   FileText,
   MapPin,
   Calendar,
-  Image as ImageIcon,
-  X,
-  Upload
+  X
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -20,7 +18,6 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useAuth } from "../contexts/AuthContext";
 import { createReport, getUserReports } from "../firebase/firestore";
-import { uploadMultipleImages } from "../firebase/storage";
 
 export function UserReportsPage() {
   const { user } = useAuth();
@@ -31,16 +28,23 @@ export function UserReportsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [submitting, setSubmitting] = useState(false);
-  const [selectedImages, setSelectedImages] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
+
+  // Helper function to convert location to string
+  const getLocationString = (location) => {
+    if (!location) return '';
+    if (typeof location === 'string') return location;
+    if (typeof location === 'object') {
+      return location.province || location.city || location.country || '';
+    }
+    return String(location);
+  };
 
   // Form state
   const [formData, setFormData] = useState({
-    type: "",
+    types: [], // Changed to array for multiple selection
     title: "",
     description: "",
-    location: "",
-    severity: "medium"
+    location: ""
   });
 
   const reportTypes = [
@@ -49,19 +53,26 @@ export function UserReportsPage() {
     { value: "road_accident", label: "Road Accident" },
     { value: "fire", label: "Fire Incident" },
     { value: "landslide", label: "Landslide" },
+    { value: "heavy_rain", label: "Heavy Rain" },
+    { value: "strong_wind", label: "Strong Wind" },
     { value: "other", label: "Other" }
   ];
 
-  const severityLevels = [
-    { value: "low", label: "Low", color: "bg-blue-500" },
-    { value: "medium", label: "Medium", color: "bg-yellow-500" },
-    { value: "high", label: "High", color: "bg-orange-500" },
-    { value: "critical", label: "Critical", color: "bg-red-500" }
+  const batangasCities = [
+    "Agoncillo", "Alitagtag", "Balayan", "Balete", "Batangas City", "Bauan",
+    "Calaca", "Calatagan", "Cuenca", "Ibaan", "Laurel", "Lemery",
+    "Lian", "Lipa City", "Lobo", "Mabini", "Malvar", "Mataasnakahoy",
+    "Nasugbu", "Padre Garcia", "Rosario", "San Jose", "San Juan",
+    "San Luis", "San Nicolas", "San Pascual", "Santa Teresita", "Santo Tomas",
+    "Taal", "Talisay", "Tanauan City", "Taysan", "Tingloy", "Tuy"
   ];
 
   // Fetch user's reports
   const fetchReports = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     try {
@@ -85,11 +96,14 @@ export function UserReportsPage() {
 
     // Search filter
     if (searchQuery.trim()) {
-      filtered = filtered.filter(report =>
-        report.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        report.location?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+      filtered = filtered.filter(report => {
+        const locationStr = getLocationString(report.location);
+        return (
+          report.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          report.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          locationStr.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      });
     }
 
     // Status filter
@@ -100,30 +114,14 @@ export function UserReportsPage() {
     setFilteredReports(filtered);
   }, [searchQuery, statusFilter, reports]);
 
-  // Handle image selection
-  const handleImageSelect = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length + selectedImages.length > 4) {
-      alert('You can only upload up to 4 images');
-      return;
-    }
-
-    setSelectedImages(prev => [...prev, ...files]);
-
-    // Create previews
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreviews(prev => [...prev, reader.result]);
-      };
-      reader.readAsDataURL(file);
+  // Handle category checkbox change
+  const handleCategoryChange = (categoryValue) => {
+    setFormData(prev => {
+      const types = prev.types.includes(categoryValue)
+        ? prev.types.filter(t => t !== categoryValue)
+        : [...prev.types, categoryValue];
+      return { ...prev, types };
     });
-  };
-
-  // Remove image
-  const removeImage = (index) => {
-    setSelectedImages(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   // Handle form submit
@@ -131,25 +129,41 @@ export function UserReportsPage() {
     e.preventDefault();
     if (!user) return;
 
+    // Validate at least one category is selected
+    if (formData.types.length === 0) {
+      alert('Please select at least one report category.');
+      return;
+    }
+
     setSubmitting(true);
     try {
-      // Upload images if any
-      let imageUrls = [];
-      if (selectedImages.length > 0) {
-        const uploadedImages = await uploadMultipleImages(selectedImages, 'reports');
-        imageUrls = uploadedImages.map(img => img.url);
+      // Validate location is selected
+      if (!formData.location) {
+        alert('Please select a city/municipality.');
+        setSubmitting(false);
+        return;
       }
 
+      // Create title from selected categories if not provided
+      const categoryLabels = formData.types.map(type =>
+        reportTypes.find(rt => rt.value === type)?.label || type
+      ).join(', ');
+
       const reportData = {
-        ...formData,
-        title: formData.title || `${formData.type} Report`,
-        category: formData.type,
-        severity: formData.severity,
-        location: formData.location || user.province || 'Batangas',
+        title: formData.title || `${categoryLabels} Report`,
+        description: formData.description,
+        category: formData.types[0], // Primary category
+        categories: formData.types, // All selected categories
+        location: {
+          city: formData.location, // Store as object with city property
+          province: 'Batangas',
+          country: 'Philippines'
+        },
+        city: formData.location, // Store as city field for easier filtering
+        province: 'Batangas', // Explicitly set province
         userName: user.displayName || user.email || 'Anonymous',
         userPhotoURL: user.photoURL || null,
-        userEmail: user.email,
-        images: imageUrls
+        userEmail: user.email
       };
 
       const createdReport = await createReport(reportData, user.uid);
@@ -157,14 +171,11 @@ export function UserReportsPage() {
 
       // Reset form
       setFormData({
-        type: "",
+        types: [],
         title: "",
         description: "",
-        location: "",
-        severity: "medium"
+        location: ""
       });
-      setSelectedImages([]);
-      setImagePreviews([]);
 
       setShowModal(false);
       fetchReports();
@@ -216,7 +227,7 @@ export function UserReportsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 p-6">
+    <>
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 flex justify-between items-start">
@@ -230,11 +241,7 @@ export function UserReportsPage() {
             </p>
           </div>
           <Button
-            onClick={() => {
-              setShowModal(true);
-              setSelectedImages([]);
-              setImagePreviews([]);
-            }}
+            onClick={() => setShowModal(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2"
           >
             <Plus className="w-5 h-5" />
@@ -302,49 +309,51 @@ export function UserReportsPage() {
         {/* Search and Filter */}
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="space-y-3">
+              {/* Search Bar */}
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Search reports..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-10 text-sm"
                 />
               </div>
 
-              <div className="flex gap-2">
-                <Button
+              {/* Filter Buttons */}
+              <div className="flex gap-1.5">
+                <button
                   onClick={() => setStatusFilter("all")}
-                  className="flex-1 md:flex-none font-semibold"
-                  style={{
-                    backgroundColor: statusFilter === "all" ? '#E5E7EB' : '#000000',
-                    color: statusFilter === "all" ? '#000000' : '#ffffff'
-                  }}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    statusFilter === "all"
+                      ? 'bg-gray-100 text-gray-900 border border-gray-300'
+                      : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                  }`}
                 >
                   All
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={() => setStatusFilter("pending")}
-                  className="flex-1 md:flex-none font-semibold"
-                  style={{
-                    backgroundColor: statusFilter === "pending" ? '#FEF3C7' : '#EAB308',
-                    color: statusFilter === "pending" ? '#854D0E' : '#ffffff'
-                  }}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    statusFilter === "pending"
+                      ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                      : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                  }`}
                 >
                   Pending
-                </Button>
-                <Button
+                </button>
+                <button
                   onClick={() => setStatusFilter("resolved")}
-                  className="flex-1 md:flex-none font-semibold"
-                  style={{
-                    backgroundColor: statusFilter === "resolved" ? '#BBF7D0' : '#16A34A',
-                    color: statusFilter === "resolved" ? '#16A34A' : '#ffffff'
-                  }}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    statusFilter === "resolved"
+                      ? 'bg-green-50 text-green-700 border border-green-200'
+                      : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                  }`}
                 >
                   Resolved
-                </Button>
+                </button>
               </div>
             </div>
           </CardContent>
@@ -393,54 +402,27 @@ export function UserReportsPage() {
                   {report.location && (
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <MapPin className="w-4 h-4 text-gray-400" />
-                      {report.location}
+                      {getLocationString(report.location)}
+                    </div>
+                  )}
+
+                  {/* Display categories */}
+                  {report.categories && report.categories.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {report.categories.map((cat, idx) => {
+                        const categoryLabel = reportTypes.find(rt => rt.value === cat)?.label || cat;
+                        return (
+                          <Badge key={idx} className="bg-blue-100 text-blue-700 text-xs">
+                            {categoryLabel}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   )}
 
                   <p className="text-sm text-gray-700 line-clamp-3">
                     {report.description}
                   </p>
-
-                  {/* Images Gallery */}
-                  {report.images && report.images.length > 0 && (
-                    <div className={`grid gap-2 rounded-lg overflow-hidden ${
-                      report.images.length === 1 ? 'grid-cols-1' :
-                      report.images.length === 2 ? 'grid-cols-2' :
-                      'grid-cols-2'
-                    }`}>
-                      {report.images.slice(0, 4).map((img, idx) => (
-                        <div
-                          key={idx}
-                          className="relative group cursor-pointer overflow-hidden bg-gray-100"
-                          style={{ aspectRatio: report.images.length === 1 ? '16/9' : '1/1' }}
-                        >
-                          <img
-                            src={img}
-                            alt={`Report image ${idx + 1}`}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          />
-                          {idx === 3 && report.images.length > 4 && (
-                            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                              <span className="text-white text-xl font-bold">
-                                +{report.images.length - 4}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {report.severity && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">Severity:</span>
-                      <Badge className={`${
-                        severityLevels.find(s => s.value === report.severity)?.color || 'bg-gray-500'
-                      } text-white text-xs`}>
-                        {report.severity.toUpperCase()}
-                      </Badge>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             ))}
@@ -457,39 +439,74 @@ export function UserReportsPage() {
 
       {/* Submit Report Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
+        <div
+          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowModal(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-xl flex flex-col overflow-hidden"
+            style={{ width: '850px', maxWidth: '90vw', maxHeight: '90vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0 px-6 pt-5 pb-4">
+              <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900">Submit Report</h2>
                 <button
-                  onClick={() => {
-                    setShowModal(false);
-                    setSelectedImages([]);
-                    setImagePreviews([]);
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
+                  onClick={() => setShowModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <X className="w-6 h-6" />
                 </button>
               </div>
+            </div>
 
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6">
               <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Report Type */}
+                {/* Report Categories */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-3">
+                    Report Categories * (Select all that apply)
+                  </label>
+                  <div className="grid grid-cols-4 gap-2">
+                    {reportTypes.map(type => (
+                      <label
+                        key={type.value}
+                        className="flex items-center gap-2 p-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors text-sm whitespace-nowrap"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={formData.types.includes(type.value)}
+                          onChange={() => handleCategoryChange(type.value)}
+                          className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
+                        />
+                        <span className="text-xs">{type.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                  {formData.types.length > 0 && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Selected: {formData.types.map(t => reportTypes.find(rt => rt.value === t)?.label).join(', ')}
+                    </p>
+                  )}
+                </div>
+
+                {/* Location */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Report Type *
+                    City/Municipality *
                   </label>
                   <select
                     required
-                    value={formData.type}
-                    onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    <option value="">Select type...</option>
-                    {reportTypes.map(type => (
-                      <option key={type.value} value={type.value}>
-                        {type.label}
+                    <option value="">Select location...</option>
+                    {batangasCities.map(city => (
+                      <option key={city} value={city}>
+                        {city}
                       </option>
                     ))}
                   </select>
@@ -506,6 +523,9 @@ export function UserReportsPage() {
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="Brief title for your report"
                   />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leave blank to auto-generate from selected categories
+                  </p>
                 </div>
 
                 {/* Description */}
@@ -523,102 +543,11 @@ export function UserReportsPage() {
                   />
                 </div>
 
-                {/* Location */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Location (Optional)
-                  </label>
-                  <Input
-                    type="text"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="Specific location or address"
-                  />
-                </div>
-
-                {/* Severity */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Severity Level
-                  </label>
-                  <select
-                    value={formData.severity}
-                    onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    {severityLevels.map(level => (
-                      <option key={level.value} value={level.value}>
-                        {level.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Image Upload */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Images (Optional - Max 4)
-                  </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageSelect}
-                      className="hidden"
-                      id="image-upload"
-                      disabled={selectedImages.length >= 4}
-                    />
-                    <label
-                      htmlFor="image-upload"
-                      className={`flex flex-col items-center justify-center cursor-pointer ${
-                        selectedImages.length >= 4 ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
-                      <span className="text-sm text-gray-600">
-                        {selectedImages.length >= 4
-                          ? 'Maximum images reached'
-                          : 'Click to upload images'}
-                      </span>
-                      <span className="text-xs text-gray-500 mt-1">
-                        {selectedImages.length}/4 images selected
-                      </span>
-                    </label>
-
-                    {/* Image Previews */}
-                    {imagePreviews.length > 0 && (
-                      <div className="grid grid-cols-2 gap-2 mt-4">
-                        {imagePreviews.map((preview, index) => (
-                          <div key={index} className="relative group">
-                            <img
-                              src={preview}
-                              alt={`Preview ${index + 1}`}
-                              className="w-full h-24 object-cover rounded-lg"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(index)}
-                              className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-
                 {/* Actions */}
                 <div className="flex gap-3 pt-4">
                   <Button
                     type="button"
-                    onClick={() => {
-                      setShowModal(false);
-                      setSelectedImages([]);
-                      setImagePreviews([]);
-                    }}
+                    onClick={() => setShowModal(false)}
                     className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800"
                   >
                     Cancel
@@ -636,6 +565,6 @@ export function UserReportsPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

@@ -812,7 +812,20 @@ ${reportsData}
 
 Your task is to analyze ALL these reports comprehensively and provide:
 
-1. **COMPILED SUMMARY**: A concise 3-4 sentence executive summary that compiles all reports into ONE coherent description of what's actually happening in ${locationData.city}. Don't just list reports - synthesize them into a single narrative.
+1. **COMPILED SUMMARY**: Write a 2-3 sentence natural, descriptive narrative about what's happening. Focus on:
+   - WHAT incidents users are experiencing (flooding, landslides, power outages, etc.)
+   - WHERE in ${locationData.city} (mention specific areas/barangays if mentioned in reports)
+   - The SEVERITY and IMPACT on the community
+
+   RULES:
+   - NO statistics (avoid "X reports", "Y critical", "received", "marked as")
+   - Write like a news reporter describing the scene
+   - Be specific and descriptive, not formulaic
+   - Use active voice and present tense
+
+   GOOD EXAMPLE: "Residents in downtown ${locationData.city} are experiencing severe flooding, with water levels reaching waist-high in some areas. Several landslides have blocked major roads, isolating communities in the northern barangays."
+
+   BAD EXAMPLE: "The city has received reports with critical incidents requiring attention based on volume and severity."
 
 2. **CREDIBILITY SCORE (0-100)**: Assess how credible these reports are based on:
    - Consistency between reports (do they corroborate each other?)
@@ -964,13 +977,50 @@ const fallbackLocationAnalysis = (locationData) => {
 
   const topCategories = Object.entries(categories)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 3)
-    .map(([cat, count]) => `${cat} (${count} reports)`);
+    .slice(0, 3);
+
+  // Create descriptive summary based on report content
+  let summaryText;
+  if (topCategories.length > 0) {
+    // Get the most common descriptor based on highest count
+    const maxCount = topCategories[0][1];
+    const descriptor = maxCount > 3 ? 'Multiple residents have' : maxCount > 1 ? 'Several users have' : 'A user has';
+
+    // Format category names properly
+    const incidents = topCategories.map(([cat]) => cat.replace(/_/g, ' '));
+
+    // Create grammatically correct list
+    let incidentList;
+    if (incidents.length === 1) {
+      incidentList = incidents[0];
+    } else if (incidents.length === 2) {
+      incidentList = `${incidents[0]} and ${incidents[1]}`;
+    } else {
+      const lastIncident = incidents.pop();
+      incidentList = `${incidents.join(', ')}, and ${lastIncident}`;
+    }
+
+    // Create more natural description based on severity
+    let situationDesc;
+    if (actualSeverity === 'CRITICAL') {
+      situationDesc = `${locationData.city} is experiencing severe conditions with ${incidentList}. Immediate action is recommended to ensure public safety.`;
+    } else if (actualSeverity === 'HIGH') {
+      situationDesc = `${locationData.city} is facing significant weather impacts including ${incidentList}. The situation requires close monitoring.`;
+    } else if (actualSeverity === 'MEDIUM') {
+      situationDesc = `${locationData.city} residents are experiencing ${incidentList}. Authorities are monitoring the developing situation.`;
+    } else {
+      situationDesc = `${locationData.city} has reports of ${incidentList}. Conditions appear manageable at this time.`;
+    }
+
+    summaryText = `${descriptor} reported ${incidentList} in ${locationData.city}. ${situationDesc}`;
+  } else {
+    summaryText = `${locationData.city} has received ${locationData.totalReports} community incident reports requiring assessment.`;
+  }
 
   return {
     success: true,
     analysis: {
-      compiledSummary: `${locationData.city} has received ${locationData.totalReports} incident reports, with ${locationData.criticalReports} marked as critical. The situation requires ${actualSeverity.toLowerCase()} priority attention based on the volume and severity of reported incidents.`,
+      compiledSummary: summaryText,
       credibilityScore: Math.min(100, credibilityScore),
       credibilityAssessment: `Based on ${locationData.verifiedReports} verified reports out of ${locationData.totalReports} total reports. Credibility assessment uses basic heuristics.`,
       actualSeverity,

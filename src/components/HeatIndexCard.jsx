@@ -16,136 +16,43 @@ export function HeatIndexCard({ temperature, humidity, showDetails = false, clas
 
   const heatIndex = calculateHeatIndex(temperature, humidity);
   const category = getHeatIndexCategory(heatIndex);
-  const display = formatHeatIndexDisplay(heatIndex);
-  const isAlertLevel = category.suspensionRecommended;
-  const isPeakTime = isPeakHeatTime();
+
+  // Determine gradient colors based on category
+  const getGradientStyle = () => {
+    if (heatIndex >= 52) return { from: '#fef2f2', to: '#fee2e2', border: '#fecaca' }; // Extreme danger - red
+    if (heatIndex >= 42) return { from: '#fff7ed', to: '#ffedd5', border: '#fed7aa' }; // Danger - orange
+    if (heatIndex >= 33) return { from: '#fefce8', to: '#fef9c3', border: '#fef08a' }; // Extreme caution - yellow
+    if (heatIndex >= 27) return { from: '#fffbeb', to: '#fef3c7', border: '#fde68a' }; // Caution - amber
+    return { from: '#f0fdf4', to: '#dcfce7', border: '#bbf7d0' }; // Normal - green
+  };
+
+  const gradientColors = getGradientStyle();
 
   return (
-    <Card
-      className={`${className} border-2`}
-      style={{ borderColor: category.color }}
+    <div
+      className={`${className} backdrop-blur-sm shadow-sm hover:shadow-md transition-all duration-200 rounded-lg border`}
+      style={{
+        background: `linear-gradient(to bottom right, ${gradientColors.from}, ${gradientColors.to})`,
+        borderColor: gradientColors.border
+      }}
     >
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center justify-between">
-          <span className="flex items-center gap-2 text-lg">
-            <Thermometer className="w-5 h-5" style={{ color: category.color }} />
-            Heat Index
-          </span>
-          <Badge
-            className="text-xs font-bold"
-            style={{
-              backgroundColor: category.bgColor,
-              color: category.textColor,
-              border: `1px solid ${category.color}`
-            }}
-          >
-            {category.icon} {category.label}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-
-      <CardContent className="space-y-4">
-        {/* Heat Index Value */}
-        <div className="text-center py-4 rounded-lg" style={{ backgroundColor: category.bgColor }}>
-          <div className="text-5xl font-bold mb-2" style={{ color: category.color }}>
-            {heatIndex}°C
+      <div className="p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm mb-1" style={{ color: category.color }}>
+              Heat Index
+            </p>
+            <p className="text-2xl font-bold mb-1" style={{ color: category.textColor }}>
+              {heatIndex}°C
+            </p>
+            <p className="text-xs" style={{ color: category.textColor }}>
+              Feels like {heatIndex}°C
+            </p>
           </div>
-          <div className="text-sm" style={{ color: category.textColor }}>
-            Feels like {heatIndex}°C
-          </div>
+          <Thermometer className="w-8 h-8" style={{ color: category.color }} />
         </div>
-
-        {/* Current Conditions */}
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-            <Thermometer className="w-4 h-4 text-gray-500" />
-            <div>
-              <div className="text-xs text-gray-500">Temperature</div>
-              <div className="font-semibold">{temperature}°C</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 p-2 bg-gray-50 rounded">
-            <Droplet className="w-4 h-4 text-gray-500" />
-            <div>
-              <div className="text-xs text-gray-500">Humidity</div>
-              <div className="font-semibold">{humidity}%</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Peak Heat Time Warning */}
-        {isPeakTime && (
-          <div className="flex items-start gap-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-            <div className="text-xs text-yellow-800">
-              <strong>Peak Heat Hours:</strong> It's currently 11 AM - 3 PM when heat is most intense.
-            </div>
-          </div>
-        )}
-
-        {/* Suspension Warning */}
-        {isAlertLevel && (
-          <div
-            className="flex items-start gap-2 p-3 rounded-lg border-2"
-            style={{
-              backgroundColor: category.bgColor,
-              borderColor: category.color
-            }}
-          >
-            <AlertTriangle
-              className="w-5 h-5 flex-shrink-0 mt-0.5"
-              style={{ color: category.color }}
-            />
-            <div>
-              <div className="font-bold text-sm mb-1" style={{ color: category.textColor }}>
-                Class Suspension Recommended
-              </div>
-              <div className="text-xs" style={{ color: category.textColor }}>
-                {category.suspensionReason}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Description */}
-        <div
-          className="p-3 rounded-lg text-sm"
-          style={{
-            backgroundColor: category.bgColor,
-            color: category.textColor
-          }}
-        >
-          <div className="flex items-start gap-2">
-            <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <div>
-              <div className="font-semibold mb-1">{category.description}</div>
-              <div className="text-xs">{category.recommendation}</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Safety Tips (if showDetails) */}
-        {showDetails && (
-          <div className="space-y-2">
-            <div className="font-semibold text-sm flex items-center gap-2">
-              <Info className="w-4 h-4" />
-              Safety Tips
-            </div>
-            <div className="space-y-1.5">
-              {getHeatSafetyTips(heatIndex).map((tip, index) => (
-                <div
-                  key={index}
-                  className="text-xs p-2 bg-gray-50 rounded flex items-start gap-2"
-                >
-                  <span className="flex-shrink-0">{tip.split(' ')[0]}</span>
-                  <span>{tip.substring(tip.indexOf(' ') + 1)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
 

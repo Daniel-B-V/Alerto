@@ -46,9 +46,17 @@ export function UserSuspensionView() {
         where('status', '==', 'active')
       );
       const suspensionsSnapshot = await getDocs(suspensionsQuery);
-      const suspendedCityNames = new Set(
-        suspensionsSnapshot.docs.map(doc => doc.data().city)
-      );
+      const suspensionsMap = {};
+      suspensionsSnapshot.docs.forEach(doc => {
+        const data = doc.data();
+        suspensionsMap[data.city] = {
+          reason: data.reason || 'Severe weather conditions',
+          effectiveFrom: data.effectiveFrom,
+          effectiveUntil: data.effectiveUntil,
+          createdAt: data.createdAt
+        };
+      });
+      const suspendedCityNames = new Set(Object.keys(suspensionsMap));
 
       // Fetch weather data
       const weatherSnapshot = await getDocs(collection(db, 'weather'));
@@ -65,10 +73,12 @@ export function UserSuspensionView() {
         .map(cityName => {
           const isSuspended = suspendedCityNames.has(cityName);
           const weatherData = weatherMap[cityName] || null;
+          const suspensionData = suspensionsMap[cityName] || null;
 
           return {
             name: cityName,
             suspended: isSuspended,
+            suspensionInfo: suspensionData,
             weather: weatherData?.current || {
               temperature: null,
               condition: "No data",
@@ -168,8 +178,14 @@ export function UserSuspensionView() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
-            <CardContent className="p-4">
+          <div
+            className="rounded-lg border shadow-sm hover:shadow-md transition-all duration-200"
+            style={{
+              background: 'linear-gradient(to bottom right, #eff6ff, #dbeafe)',
+              borderColor: '#bfdbfe'
+            }}
+          >
+            <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-blue-600 mb-1">Total Cities</p>
@@ -177,11 +193,17 @@ export function UserSuspensionView() {
                 </div>
                 <MapPin className="w-10 h-10 text-blue-500 opacity-50" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200">
-            <CardContent className="p-4">
+          <div
+            className="rounded-lg border shadow-sm hover:shadow-md transition-all duration-200"
+            style={{
+              background: 'linear-gradient(to bottom right, #fef2f2, #fee2e2)',
+              borderColor: '#fecaca'
+            }}
+          >
+            <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-red-600 mb-1">Suspended</p>
@@ -191,11 +213,17 @@ export function UserSuspensionView() {
                 </div>
                 <Ban className="w-10 h-10 text-red-500 opacity-50" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
-            <CardContent className="p-4">
+          <div
+            className="rounded-lg border shadow-sm hover:shadow-md transition-all duration-200"
+            style={{
+              background: 'linear-gradient(to bottom right, #f0fdf4, #dcfce7)',
+              borderColor: '#bbf7d0'
+            }}
+          >
+            <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-green-600 mb-1">Active</p>
@@ -205,65 +233,69 @@ export function UserSuspensionView() {
                 </div>
                 <CheckCircle className="w-10 h-10 text-green-500 opacity-50" />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Search and Filter Bar */}
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <div className="space-y-3">
+              {/* Search Bar */}
+              <div className="relative w-full">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <Input
                   type="text"
                   placeholder="Search for a city..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 h-10 text-sm"
                 />
               </div>
 
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setStatusFilter("all")}
-                  className="flex-1 md:flex-none font-semibold"
-                  style={{
-                    backgroundColor: statusFilter === "all" ? '#E5E7EB' : '#000000',
-                    color: statusFilter === "all" ? '#000000' : '#ffffff'
-                  }}
-                >
-                  All
-                </Button>
-                <Button
-                  onClick={() => setStatusFilter("suspended")}
-                  className="flex-1 md:flex-none font-semibold"
-                  style={{
-                    backgroundColor: statusFilter === "suspended" ? '#FECACA' : '#DC2626',
-                    color: statusFilter === "suspended" ? '#DC2626' : '#ffffff'
-                  }}
-                >
-                  Suspended
-                </Button>
-                <Button
-                  onClick={() => setStatusFilter("active")}
-                  className="flex-1 md:flex-none font-semibold"
-                  style={{
-                    backgroundColor: statusFilter === "active" ? '#BBF7D0' : '#16A34A',
-                    color: statusFilter === "active" ? '#16A34A' : '#ffffff'
-                  }}
-                >
-                  Active
-                </Button>
-              </div>
+              {/* Filter Buttons and Refresh */}
+              <div className="flex justify-between items-center">
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => setStatusFilter("all")}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      statusFilter === "all"
+                        ? 'bg-gray-100 text-gray-900 border border-gray-300'
+                        : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                    }`}
+                  >
+                    All
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter("suspended")}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      statusFilter === "suspended"
+                        ? 'bg-red-50 text-red-700 border border-red-200'
+                        : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                    }`}
+                  >
+                    Suspended
+                  </button>
+                  <button
+                    onClick={() => setStatusFilter("active")}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                      statusFilter === "active"
+                        ? 'bg-green-50 text-green-700 border border-green-200'
+                        : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                    }`}
+                  >
+                    Active
+                  </button>
+                </div>
 
-              <Button
-                onClick={fetchData}
-                className="bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
-              </Button>
+                <button
+                  onClick={fetchData}
+                  className="px-3 py-1.5 text-xs font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Refresh
+                </button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -284,7 +316,7 @@ export function UserSuspensionView() {
                 key={city.name}
                 className={`overflow-hidden transition-all duration-200 hover:shadow-lg ${
                   city.suspended
-                    ? 'border-2 border-red-400 bg-red-50'
+                    ? 'border border-red-500 bg-white'
                     : 'border border-gray-200 bg-white'
                 }`}
               >
@@ -319,69 +351,73 @@ export function UserSuspensionView() {
                 </CardHeader>
 
                 <CardContent className="pt-0">
+                  {/* Suspension Reason (if suspended) */}
+                  {city.suspended && city.suspensionInfo && (
+                    <div className="mb-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-lg">
+                      <div className="flex items-start gap-2 mb-2">
+                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                        <div className="flex-1">
+                          <p className="font-semibold text-red-900 text-sm mb-1">Suspension Reason:</p>
+                          <p className="text-sm text-red-800">{city.suspensionInfo.reason}</p>
+                        </div>
+                      </div>
+                      {city.suspensionInfo.effectiveUntil && (
+                        <div className="mt-2 pt-2 border-t border-red-200">
+                          <p className="text-xs text-red-700">
+                            <span className="font-medium">Effective until:</span>{' '}
+                            {new Date(city.suspensionInfo.effectiveUntil.seconds * 1000).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
+                      <div className="mt-3 p-2 bg-red-100 rounded text-xs text-red-800">
+                        <strong>⚠️ Safety Advisory:</strong> Stay indoors and avoid unnecessary travel.
+                        Monitor official announcements for updates.
+                      </div>
+                    </div>
+                  )}
+
                   {/* Weather Information */}
                   <div className="space-y-3">
                     {/* Temperature */}
                     {city.weather.temperature !== null ? (
-                      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                      <div className="flex items-center justify-between p-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
                         <div className="flex items-center gap-2">
-                          <Thermometer className="w-5 h-5 text-red-500" />
-                          <span className="text-sm font-medium text-gray-700">Temperature</span>
+                          <Thermometer className="w-4 h-4 text-red-500" />
+                          <span className="text-xs font-medium text-gray-700">Temperature</span>
                         </div>
-                        <span className="text-xl font-bold text-gray-900">
+                        <span className="text-base font-bold text-gray-900">
                           {city.weather.temperature}°C
                         </span>
                       </div>
                     ) : (
-                      <div className="p-3 bg-gray-50 rounded-lg text-center text-sm text-gray-500">
+                      <div className="p-2 bg-gray-50 rounded-lg text-center text-xs text-gray-500">
                         No weather data available
                       </div>
                     )}
 
-                    {/* Weather Condition */}
-                    <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
-                      {getWeatherIcon(city.weather.condition)}
-                      <span className="text-sm text-gray-700 capitalize">
-                        {city.weather.condition}
-                      </span>
-                    </div>
-
-                    {/* Additional Weather Info Grid */}
-                    <div className="grid grid-cols-2 gap-2">
-                      {/* Humidity */}
-                      {city.weather.humidity !== null && (
-                        <div className="p-2 bg-blue-50 rounded-lg">
-                          <div className="flex items-center gap-1 mb-1">
-                            <Droplets className="w-4 h-4 text-blue-600" />
-                            <span className="text-xs text-gray-600">Humidity</span>
-                          </div>
-                          <span className="text-sm font-semibold text-gray-900">
-                            {city.weather.humidity}%
-                          </span>
-                        </div>
-                      )}
-
+                    {/* Critical Weather Metrics - Top 3 */}
+                    <div className="space-y-2">
                       {/* Wind Speed */}
                       {city.weather.windSpeed !== null && (
-                        <div className="p-2 bg-green-50 rounded-lg">
-                          <div className="flex items-center gap-1 mb-1">
+                        <div className="flex items-center justify-between p-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                          <div className="flex items-center gap-2">
                             <Wind className="w-4 h-4 text-green-600" />
-                            <span className="text-xs text-gray-600">Wind</span>
+                            <span className="text-xs font-medium text-gray-700">Wind</span>
                           </div>
-                          <span className="text-sm font-semibold text-gray-900">
+                          <span className="text-base font-bold text-gray-900">
                             {city.weather.windSpeed} km/h
                           </span>
                         </div>
                       )}
 
                       {/* Rainfall */}
-                      {city.weather.rainfall !== null && city.weather.rainfall > 0 && (
-                        <div className="p-2 bg-indigo-50 rounded-lg">
-                          <div className="flex items-center gap-1 mb-1">
-                            <Droplets className="w-4 h-4 text-indigo-600" />
-                            <span className="text-xs text-gray-600">Rainfall</span>
+                      {city.weather.rainfall !== null && (
+                        <div className="flex items-center justify-between p-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Droplets className="w-4 h-4 text-blue-600" />
+                            <span className="text-xs font-medium text-gray-700">Rainfall</span>
                           </div>
-                          <span className="text-sm font-semibold text-gray-900">
+                          <span className="text-base font-bold text-gray-900">
                             {city.weather.rainfall} mm/h
                           </span>
                         </div>
@@ -389,12 +425,12 @@ export function UserSuspensionView() {
 
                       {/* Pressure */}
                       {city.weather.pressure !== null && (
-                        <div className="p-2 bg-purple-50 rounded-lg">
-                          <div className="flex items-center gap-1 mb-1">
+                        <div className="flex items-center justify-between p-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
+                          <div className="flex items-center gap-2">
                             <Gauge className="w-4 h-4 text-purple-600" />
-                            <span className="text-xs text-gray-600">Pressure</span>
+                            <span className="text-xs font-medium text-gray-700">Pressure</span>
                           </div>
-                          <span className="text-sm font-semibold text-gray-900">
+                          <span className="text-base font-bold text-gray-900">
                             {city.weather.pressure} hPa
                           </span>
                         </div>
@@ -405,6 +441,21 @@ export function UserSuspensionView() {
                     {city.lastUpdate && (
                       <div className="text-xs text-gray-500 text-center pt-2 border-t">
                         Last updated: {new Date(city.lastUpdate).toLocaleString()}
+                      </div>
+                    )}
+
+                    {/* Active Status Message */}
+                    {!city.suspended && (
+                      <div className="mt-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-lg">
+                        <div className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-xs text-green-800">
+                              <strong>Normal Operations:</strong> Classes are ongoing. Stay updated on weather conditions
+                              and follow school announcements.
+                            </p>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

@@ -47,7 +47,20 @@ export function WeatherPanel() {
 
       // Fetch weather for all Batangas cities
       const allCities = await getBatangasWeather();
-      setBatangasStats(allCities);
+
+      // Remove duplicate cities (keep only the first occurrence of each city)
+      const uniqueCities = [];
+      const seenCities = new Set();
+
+      allCities.forEach(city => {
+        const cityName = city.location?.city || 'Unknown';
+        if (!seenCities.has(cityName)) {
+          seenCities.add(cityName);
+          uniqueCities.push(city);
+        }
+      });
+
+      setBatangasStats(uniqueCities);
 
       // Fetch community reports from Firebase
       const reports = await getReports({ limit: 100 });
