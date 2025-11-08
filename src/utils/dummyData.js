@@ -108,16 +108,16 @@ export const generateHighDensityReports = (city, count = 45) => {
   const now = new Date();
 
   const categories = [
-    { type: 'flooding', severity: 'critical', count: 12 },
-    { type: 'flooding', severity: 'high', count: 18 },
-    { type: 'heavy_rain', severity: 'high', count: 8 },
-    { type: 'strong_wind', severity: 'medium', count: 5 },
-    { type: 'road_blockage', severity: 'high', count: 2 }
+    { type: 'flooding', count: 12 },
+    { type: 'flooding', count: 18 },
+    { type: 'heavy_rain', count: 8 },
+    { type: 'strong_wind', count: 5 },
+    { type: 'road_blockage', count: 2 }
   ];
 
   let reportId = 1;
 
-  categories.forEach(({ type, severity, count: catCount }) => {
+  categories.forEach(({ type, count: catCount }) => {
     for (let i = 0; i < catCount; i++) {
       const user = SAMPLE_USERS[Math.floor(Math.random() * SAMPLE_USERS.length)];
       const descriptions = SAMPLE_DESCRIPTIONS[type] || SAMPLE_DESCRIPTIONS.flooding;
@@ -133,7 +133,6 @@ export const generateHighDensityReports = (city, count = 45) => {
       reports.push({
         id: `report_${city.replace(/\s/g, '_').toLowerCase()}_${reportId++}`,
         category: type,
-        severity: severity,
         description: description,
         location: {
           city: city,
@@ -150,11 +149,7 @@ export const generateHighDensityReports = (city, count = 45) => {
         status: isVerified ? 'verified' : 'pending',
         verifiedBy: isVerified ? 'Admin' : null,
         verifiedAt: isVerified ? { seconds: Math.floor((createdAt.getTime() + 1800000) / 1000), nanoseconds: 0 } : null,
-        imageCount: Math.floor(Math.random() * 4),
-        aiAnalysis: {
-          confidence: severity === 'critical' ? 85 + Math.floor(Math.random() * 15) : 70 + Math.floor(Math.random() * 20),
-          assessment: generateAIAssessment(type, severity, true)
-        }
+        imageCount: Math.floor(Math.random() * 4)
       });
     }
   });
@@ -171,19 +166,6 @@ export const generateScatteredReports = (cities, totalCount = 30) => {
     const city = cities[Math.floor(Math.random() * cities.length)];
     const user = SAMPLE_USERS[Math.floor(Math.random() * SAMPLE_USERS.length)];
     const category = REPORT_CATEGORIES[Math.floor(Math.random() * REPORT_CATEGORIES.length)];
-    const severities = ['low', 'medium', 'high', 'critical'];
-    const weights = [0.3, 0.4, 0.2, 0.1]; // More low/medium, fewer critical
-
-    const random = Math.random();
-    let severity = 'low';
-    let cumulative = 0;
-    for (let j = 0; j < weights.length; j++) {
-      cumulative += weights[j];
-      if (random <= cumulative) {
-        severity = severities[j];
-        break;
-      }
-    }
 
     const descriptions = SAMPLE_DESCRIPTIONS[category.value] || SAMPLE_DESCRIPTIONS.flooding;
     const description = descriptions[Math.floor(Math.random() * descriptions.length)];
@@ -198,7 +180,6 @@ export const generateScatteredReports = (cities, totalCount = 30) => {
     reports.push({
       id: `report_${city.replace(/\s/g, '_').toLowerCase()}_${i + 1}`,
       category: category.value,
-      severity: severity,
       description: description,
       location: {
         city: city,
@@ -215,36 +196,11 @@ export const generateScatteredReports = (cities, totalCount = 30) => {
       status: isVerified ? 'verified' : 'pending',
       verifiedBy: isVerified ? 'Admin' : null,
       verifiedAt: isVerified ? { seconds: Math.floor((createdAt.getTime() + 1800000) / 1000), nanoseconds: 0 } : null,
-      imageCount: Math.floor(Math.random() * 3),
-      aiAnalysis: {
-        confidence: 40 + Math.floor(Math.random() * 40), // Lower confidence for scattered
-        assessment: generateAIAssessment(category.value, severity, false)
-      }
+      imageCount: Math.floor(Math.random() * 3)
     });
   }
 
   return reports.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-};
-
-// Generate AI assessment text
-const generateAIAssessment = (category, severity, highDensity) => {
-  const assessments = {
-    high_density: {
-      critical: 'Multiple critical reports from the same area confirm severe conditions. Community consensus strongly supports immediate action. Visual evidence and report details are consistent across multiple sources.',
-      high: 'Several reports from the same location validate serious conditions. Community members confirm similar observations. Evidence suggests genuine emergency situation.',
-      medium: 'Multiple reports from this area show consistent patterns. Community validation supports the reported conditions.',
-      low: 'Report shows consistency with other submissions from the area. Community feedback indicates moderate conditions.'
-    },
-    low_density: {
-      critical: 'Critical severity reported but limited corroboration from other sources. Requires admin verification before taking action.',
-      high: 'High priority report but only a few submissions from this location. Additional verification recommended.',
-      medium: 'Report appears credible but lacks strong community consensus. Monitor for additional reports from this area.',
-      low: 'Single or limited reports from this location. Unable to verify with community consensus at this time.'
-    }
-  };
-
-  const densityKey = highDensity ? 'high_density' : 'low_density';
-  return assessments[densityKey][severity] || assessments[densityKey].low;
 };
 
 // Main function to generate all dummy data

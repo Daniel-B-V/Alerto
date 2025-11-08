@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState('user'); // 'admin' or 'user'
+  const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
   // Inactivity timeout (2 hours = 7200000 milliseconds)
   const INACTIVITY_TIMEOUT = 2 * 60 * 60 * 1000;
@@ -74,6 +75,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(false);
       }
       setLoading(false);
+      setInitialLoadComplete(true);
     });
 
     // Cleanup subscription on unmount
@@ -120,7 +122,10 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async (credentials) => {
     try {
-      setLoading(true);
+      // Only show loading screen if initial load hasn't completed
+      if (!initialLoadComplete) {
+        setLoading(true);
+      }
       const firebaseUser = await signIn(credentials.email, credentials.password);
 
       // Fetch user data including role
@@ -157,14 +162,19 @@ export const AuthProvider = ({ children }) => {
         error: error.message || 'Login failed'
       };
     } finally {
-      setLoading(false);
+      if (!initialLoadComplete) {
+        setLoading(false);
+      }
     }
   };
 
   // Login with Google
   const loginWithGoogle = async () => {
     try {
-      setLoading(true);
+      // Only show loading screen if initial load hasn't completed
+      if (!initialLoadComplete) {
+        setLoading(true);
+      }
       const firebaseUser = await signInWithGoogle();
 
       // Fetch user data including role
@@ -203,7 +213,9 @@ export const AuthProvider = ({ children }) => {
         error: error.message || 'Google login failed'
       };
     } finally {
-      setLoading(false);
+      if (!initialLoadComplete) {
+        setLoading(false);
+      }
     }
   };
 

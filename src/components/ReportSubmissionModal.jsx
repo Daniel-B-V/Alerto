@@ -1,12 +1,10 @@
 import { useState } from "react";
-import { X, Upload, MapPin, AlertTriangle, Loader, Info } from "lucide-react";
+import { X, Upload, MapPin, AlertTriangle, Loader } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { createReport } from "../firebase/firestore";
-import { uploadMultipleImages } from "../firebase/storage";
-import { analyzeReportWithImages } from "../services/geminiService";
-import { getCurrentWeather } from "../services/weatherService";
+import { uploadMultipleImagesToCloudinary } from "../services/cloudinaryService";
 import { useAuth } from "../contexts/AuthContext";
 
 const REPORT_CATEGORIES = [
@@ -34,7 +32,7 @@ const BATANGAS_CITIES = [
 export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [analyzingWithAI, setAnalyzingWithAI] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState({
     category: '',
@@ -46,42 +44,9 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
     images: []
   });
   const [imagePreview, setImagePreview] = useState([]);
-  const [aiAnalysis, setAiAnalysis] = useState(null);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-  };
-
-  // Manual weather credibility check (fallback when AI fails)
-  const checkWeatherCredibility = (category, weatherCurrent) => {
-    const { rainfall, windSpeed, weather } = weatherCurrent;
-
-    switch (category) {
-      case 'storm':
-        if (rainfall < 5 && windSpeed < 30 && weather.main === 'Clear') {
-          return { isCredible: false, reason: 'No storm conditions detected. Weather is clear with low wind and no rain.' };
-        }
-        break;
-
-      case 'heavy_rain':
-      case 'flooding':
-        if (rainfall === 0 && weather.main === 'Clear') {
-          return { isCredible: false, reason: 'No rainfall detected. Current weather is clear.' };
-        }
-        break;
-
-      case 'strong_wind':
-        if (windSpeed < 20) {
-          return { isCredible: false, reason: `Wind speed is low (${windSpeed}km/h). No strong winds detected.` };
-        }
-        break;
-
-      default:
-        // Non-weather categories or unverifiable
-        return { isCredible: true, reason: 'Report type accepted' };
-    }
-
-    return { isCredible: true, reason: 'Weather conditions match report type' };
   };
 
   const handleImageChange = (e) => {
@@ -120,63 +85,25 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
     }
 
     setLoading(true);
-    setAnalyzingWithAI(true);
 
     try {
-      // Upload images to Firebase Storage
+      // Upload images to Cloudinary
       let imageUrls = [];
       if (formData.images.length > 0) {
-        imageUrls = await uploadMultipleImages(formData.images, 'reports');
+        const uploadResults = await uploadMultipleImagesToCloudinary(
+          formData.images,
+          (current, total) => {
+            setUploadProgress(Math.round((current / total) * 100));
+          }
+        );
+        imageUrls = uploadResults.map(result => result.url);
       }
 
-      // Fetch current weather data for credibility verification
-      let weatherData = null;
-      try {
-        weatherData = await getCurrentWeather(formData.city);
-        console.log('Weather data fetched:', weatherData);
-      } catch (weatherError) {
-        console.error('Failed to fetch weather data:', weatherError);
-      }
-
-      // Prepare report data for AI analysis
-      const reportForAnalysis = {
-        location: `${formData.barangay ? formData.barangay + ', ' : ''}${formData.city}`,
-        description: formData.description,
-        type: formData.category,
-        images: imageUrls
-      };
-
-      // Try AI analysis (optional, won't block submission)
-      let aiResult = null;
-
-      try {
-        aiResult = await analyzeReportWithImages(reportForAnalysis, weatherData);
-        setAiAnalysis(aiResult);
-      } catch (aiError) {
-        console.error('AI analysis failed (optional):', aiError);
-        // AI analysis is optional - continue with submission
-      }
-
-      // Use AI result if available, otherwise set defaults
-      if (!aiResult) {
-        aiResult = {
-          severity: 'medium',
-          confidence: 75,
-          assessment: 'Report submitted successfully',
-          isAuthentic: true,
-          isCredible: true,
-          credibilityReason: 'Weather-based validation passed'
-        };
-      }
-
-      setAnalyzingWithAI(false);
-
-      // Create report in Firestore with AI analysis and credibility check
+      // Create report in Firestore
       const reportData = {
         title: formData.title || `${formData.category} in ${formData.city}`,
         description: formData.description,
         category: formData.category,
-        severity: aiResult.severity,
         location: {
           city: formData.city,
           barangay: formData.barangay || '',
@@ -187,22 +114,6 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         userEmail: user?.email || '',
         userPhotoURL: user?.photoURL || '',
         userVerified: user?.emailVerified || false,
-        aiAnalysis: {
-          confidence: aiResult.confidence,
-          assessment: aiResult.assessment,
-          isAuthentic: aiResult.isAuthentic,
-          isCredible: aiResult.isCredible,
-          credibilityReason: aiResult.credibilityReason,
-          analyzedAt: new Date().toISOString()
-        },
-        weatherAtSubmission: weatherData ? {
-          temperature: weatherData.current.temperature,
-          weather: weatherData.current.weather.description,
-          rainfall: weatherData.current.rainfall,
-          windSpeed: weatherData.current.windSpeed,
-          humidity: weatherData.current.humidity,
-          recordedAt: new Date().toISOString()
-        } : null,
         tags: [formData.category, formData.city],
         status: 'pending'
       };
@@ -220,7 +131,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         images: []
       });
       setImagePreview([]);
-      setAiAnalysis(null);
+      setUploadProgress(0);
 
       if (onSubmitSuccess) {
         onSubmitSuccess();
@@ -240,7 +151,6 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
       alert('Failed to submit report. Please try again.');
     } finally {
       setLoading(false);
-      setAnalyzingWithAI(false);
     }
   };
 
@@ -275,147 +185,121 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
       {/* Report Submission Modal */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="max-w-[480px] w-full my-6">
-        <Card className="w-full max-h-[85vh] overflow-y-auto">
-          <CardHeader className="border-b sticky top-0 bg-white z-10 shadow-sm p-4">
+      <div className="max-w-2xl w-full my-6">
+        <Card className="w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+          <CardHeader className="border-b-2 sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 z-10 shadow-lg p-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-blue-500 flex-shrink-0" />
-                  <span>Submit Weather Report</span>
+                <CardTitle className="text-xl font-bold flex items-center gap-3 text-white">
+                  <AlertTriangle className="w-6 h-6 flex-shrink-0" />
+                  <span>Submit Report</span>
                 </CardTitle>
-                <p className="text-xs text-gray-600 mt-1">
-                  Help your community by reporting real-time weather conditions
+                <p className="text-sm text-blue-100 mt-1">
+                  Help your community by reporting incidents
                 </p>
               </div>
               <button
                 onClick={onClose}
-                className="p-1.5 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+                className="p-2 hover:bg-white/20 rounded-full transition-colors flex-shrink-0 text-white"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
           </CardHeader>
 
-          <CardContent className="p-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Category Selection */}
+          <CardContent className="p-6">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Category Selection - Two Columns */}
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Report Type <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-gray-800 mb-3">
+                Report Categories <span className="text-red-500">*</span>
+                <span className="text-xs font-normal text-gray-500 ml-2">(Select all that apply)</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                {REPORT_CATEGORIES.map((cat, index) => (
+                  <label
+                    key={cat.value}
+                    className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
+                      formData.category === cat.value
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
+                    } ${index === 3 ? 'col-span-2' : ''}`}
+                  >
+                    <input
+                      type="radio"
+                      name="category"
+                      value={cat.value}
+                      checked={formData.category === cat.value}
+                      onChange={(e) => handleInputChange('category', e.target.value)}
+                      className="sr-only"
+                    />
+                    <span className="text-2xl mr-3">{cat.icon}</span>
+                    <span className={`text-sm font-medium ${
+                      formData.category === cat.value ? 'text-blue-700' : 'text-gray-700'
+                    }`}>
+                      {cat.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* City/Municipality */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                City/Municipality <span className="text-red-500">*</span>
               </label>
               <select
-                value={formData.category}
-                onChange={(e) => handleInputChange('category', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                value={formData.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required
               >
-                <option value="">Select Report Type</option>
-                {REPORT_CATEGORIES.map(cat => (
-                  <option key={cat.value} value={cat.value}>
-                    {cat.icon} {cat.label}
-                  </option>
+                <option value="">Select location...</option>
+                {BATANGAS_CITIES.map(city => (
+                  <option key={city} value={city}>{city}</option>
                 ))}
               </select>
             </div>
 
             {/* Title */}
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Report Title (Optional)
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                Title (Optional)
               </label>
               <input
                 type="text"
-                placeholder="e.g., Heavy flooding on Main Street"
+                placeholder="Brief title for your report"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+              <p className="text-xs text-gray-500 mt-1.5">
+                Leave blank to auto-generate from selected categories
+              </p>
             </div>
 
             {/* Description */}
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
                 Description <span className="text-red-500">*</span>
               </label>
               <textarea
-                placeholder="Describe the situation in detail..."
+                placeholder="Describe the incident in detail..."
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                rows={4}
+                className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Be specific about the location, severity, and any immediate dangers
-              </p>
-            </div>
-
-            {/* Location */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  City/Municipality <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select City</option>
-                  {BATANGAS_CITIES.map(city => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                  Barangay (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter barangay"
-                  value={formData.barangay}
-                  onChange={(e) => handleInputChange('barangay', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Specific Location (Optional)
-              </label>
-              <input
-                type="text"
-                placeholder="e.g., Near City Hall"
-                value={formData.specificLocation}
-                onChange={(e) => handleInputChange('specificLocation', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* AI Verification Notice */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex items-start gap-2">
-                <Info className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-semibold text-blue-900 mb-0.5">AI Credibility Verification</h4>
-                  <p className="text-xs text-blue-700">
-                    Your report will be automatically verified using AI.
-                  </p>
-                </div>
-              </div>
             </div>
 
             {/* Image Upload */}
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                Upload Images (Optional, Max 5)
+              <label className="block text-sm font-semibold text-gray-800 mb-2">
+                Add Images (Optional)
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-all cursor-pointer">
                 <input
                   type="file"
                   accept="image/*"
@@ -429,32 +313,34 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
                   htmlFor="image-upload"
                   className="cursor-pointer flex flex-col items-center"
                 >
-                  <Upload className="w-8 h-8 text-gray-400 mb-1.5" />
-                  <p className="text-xs text-gray-600">
-                    Click to upload
+                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                    <Upload className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">
+                    Click to upload images
                   </p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    PNG, JPG ({imagePreview.length}/5)
+                  <p className="text-xs text-gray-500">
+                    PNG, JPG up to 10MB • {imagePreview.length}/5 uploaded
                   </p>
                 </label>
               </div>
 
               {/* Image Previews */}
               {imagePreview.length > 0 && (
-                <div className="grid grid-cols-5 gap-2 mt-3">
+                <div className="grid grid-cols-5 gap-3 mt-4">
                   {imagePreview.map((img, idx) => (
                     <div key={idx} className="relative group">
                       <img
                         src={img.url}
                         alt={`Preview ${idx + 1}`}
-                        className="w-full h-20 object-cover rounded-lg"
+                        className="w-full h-20 object-cover rounded-lg border-2 border-gray-200"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
                       >
-                        <X className="w-4 h-4" />
+                        <X className="w-3 h-3" />
                       </button>
                     </div>
                   ))}
@@ -462,58 +348,46 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
               )}
             </div>
 
-            {/* AI Analysis Preview */}
-            {analyzingWithAI && (
+            {/* Upload Progress */}
+            {loading && uploadProgress > 0 && uploadProgress < 100 && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-blue-700">
+                <div className="flex items-center gap-2 text-blue-700 mb-2">
                   <Loader className="w-5 h-5 animate-spin" />
-                  <span className="font-medium">AI is analyzing your report...</span>
+                  <span className="font-medium">Uploading images... {uploadProgress}%</span>
                 </div>
-                <p className="text-sm text-blue-600 mt-1">
-                  Assessing severity and authenticity
-                </p>
-              </div>
-            )}
-
-            {aiAnalysis && !analyzingWithAI && (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-green-800">AI Analysis Complete</span>
-                  <Badge className="bg-green-600">
-                    {aiAnalysis.confidence}% Confidence
-                  </Badge>
+                <div className="w-full bg-blue-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
                 </div>
-                <p className="text-sm text-green-700">
-                  Severity: <span className="font-semibold">{aiAnalysis.severity?.toUpperCase()}</span>
-                </p>
-                <p className="text-sm text-green-600 mt-1">{aiAnalysis.assessment}</p>
               </div>
             )}
 
             {/* Submit Buttons */}
-            <div className="flex gap-3 pt-4 border-t">
+            <div className="flex gap-3 pt-6 border-t-2 border-gray-100 mt-6">
               <Button
                 type="button"
                 variant="outline"
                 onClick={onClose}
                 disabled={loading}
-                className="flex-1"
+                className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-100 font-medium"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 disabled={loading || !formData.category || !formData.description || !formData.city}
-                className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? (
                   <>
-                    <Loader className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader className="w-5 h-5 mr-2 animate-spin" />
                     Submitting...
                   </>
                 ) : (
                   <>
-                    <MapPin className="w-4 h-4 mr-2" />
+                    <MapPin className="w-5 h-5 mr-2" />
                     Submit Report
                   </>
                 )}

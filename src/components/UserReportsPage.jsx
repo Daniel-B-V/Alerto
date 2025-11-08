@@ -10,7 +10,9 @@ import {
   FileText,
   MapPin,
   Calendar,
-  X
+  X,
+  Upload,
+  Loader
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -41,11 +43,13 @@ export function UserReportsPage() {
 
   // Form state
   const [formData, setFormData] = useState({
-    types: [], // Changed to array for multiple selection
+    types: [], // Changed back to array for multiple selection
     title: "",
     description: "",
-    location: ""
+    location: "",
+    images: []
   });
+  const [imagePreview, setImagePreview] = useState([]);
 
   const reportTypes = [
     { value: "flooding", label: "Flooding" },
@@ -124,6 +128,35 @@ export function UserReportsPage() {
     });
   };
 
+  // Handle image selection
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length + imagePreview.length > 5) {
+      alert('Maximum 5 images allowed');
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, images: [...prev.images, ...files] }));
+
+    // Create previews
+    files.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(prev => [...prev, { file, url: e.target.result }]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Remove image
+  const removeImage = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index)
+    }));
+    setImagePreview(prev => prev.filter((_, i) => i !== index));
+  };
+
   // Handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -150,20 +183,21 @@ export function UserReportsPage() {
       ).join(', ');
 
       const reportData = {
-        title: formData.title || `${categoryLabels} Report`,
+        title: formData.title || `${categoryLabels} in ${formData.location}`,
         description: formData.description,
         category: formData.types[0], // Primary category
         categories: formData.types, // All selected categories
         location: {
-          city: formData.location, // Store as object with city property
+          city: formData.location,
           province: 'Batangas',
           country: 'Philippines'
         },
-        city: formData.location, // Store as city field for easier filtering
-        province: 'Batangas', // Explicitly set province
+        tags: [...formData.types, formData.location],
+        status: 'pending',
         userName: user.displayName || user.email || 'Anonymous',
         userPhotoURL: user.photoURL || null,
-        userEmail: user.email
+        userEmail: user.email,
+        userVerified: user.emailVerified || false
       };
 
       const createdReport = await createReport(reportData, user.uid);
@@ -174,8 +208,10 @@ export function UserReportsPage() {
         types: [],
         title: "",
         description: "",
-        location: ""
+        location: "",
+        images: []
       });
+      setImagePreview([]);
 
       setShowModal(false);
       fetchReports();
@@ -449,39 +485,42 @@ export function UserReportsPage() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 flex-shrink-0 px-6 pt-5 pb-4">
+            <div className="border-b-2 bg-gradient-to-r from-blue-600 to-blue-700 flex-shrink-0 px-6 pt-5 pb-4 shadow-lg">
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-900">Submit Report</h2>
+                <h2 className="text-2xl font-bold text-white">Submit Report</h2>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
                 >
                   <X className="w-6 h-6" />
                 </button>
               </div>
+              <p className="text-sm text-blue-100 mt-1">
+                Help your community by reporting incidents
+              </p>
             </div>
 
             {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {/* Report Categories */}
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Report Categories - Two Columns with Checkboxes */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-3">
                     Report Categories * (Select all that apply)
                   </label>
-                  <div className="grid grid-cols-4 gap-2">
-                    {reportTypes.map(type => (
+                  <div className="grid grid-cols-2 gap-3">
+                    {reportTypes.map((type) => (
                       <label
                         key={type.value}
-                        className="flex items-center gap-2 p-2 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors text-sm whitespace-nowrap"
+                        className="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
                       >
                         <input
                           type="checkbox"
                           checked={formData.types.includes(type.value)}
                           onChange={() => handleCategoryChange(type.value)}
-                          className="w-4 h-4 text-blue-500 border-gray-300 rounded focus:ring-blue-500 flex-shrink-0"
+                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                         />
-                        <span className="text-xs">{type.label}</span>
+                        <span className="text-sm text-gray-700">{type.label}</span>
                       </label>
                     ))}
                   </div>
@@ -492,16 +531,16 @@ export function UserReportsPage() {
                   )}
                 </div>
 
-                {/* Location */}
+                {/* City/Municipality */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    City/Municipality *
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    City/Municipality <span className="text-red-500">*</span>
                   </label>
                   <select
                     required
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
                     <option value="">Select location...</option>
                     {batangasCities.map(city => (
@@ -514,7 +553,7 @@ export function UserReportsPage() {
 
                 {/* Title */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
                     Title (Optional)
                   </label>
                   <Input
@@ -522,16 +561,17 @@ export function UserReportsPage() {
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                     placeholder="Brief title for your report"
+                    className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 mt-1.5">
                     Leave blank to auto-generate from selected categories
                   </p>
                 </div>
 
                 {/* Description */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Description *
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    Description <span className="text-red-500">*</span>
                   </label>
                   <textarea
                     required
@@ -539,25 +579,89 @@ export function UserReportsPage() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows="4"
                     placeholder="Describe the incident in detail..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                   />
                 </div>
 
+                {/* Image Upload */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-800 mb-2">
+                    Add Images (Optional)
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-all cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageChange}
+                      className="hidden"
+                      id="image-upload"
+                      disabled={imagePreview.length >= 5}
+                    />
+                    <label
+                      htmlFor="image-upload"
+                      className="cursor-pointer flex flex-col items-center"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
+                        <Upload className="w-6 h-6 text-blue-600" />
+                      </div>
+                      <p className="text-sm font-medium text-gray-700 mb-1">
+                        Click to upload images
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        PNG, JPG up to 10MB • {imagePreview.length}/5 uploaded
+                      </p>
+                    </label>
+                  </div>
+
+                  {/* Image Previews */}
+                  {imagePreview.length > 0 && (
+                    <div className="grid grid-cols-5 gap-3 mt-4">
+                      {imagePreview.map((img, idx) => (
+                        <div key={idx} className="relative group">
+                          <img
+                            src={img.url}
+                            alt={`Preview ${idx + 1}`}
+                            className="w-full h-20 object-cover rounded-lg border-2 border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(idx)}
+                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {/* Actions */}
-                <div className="flex gap-3 pt-4">
+                <div className="flex gap-3 pt-6 border-t-2 border-gray-100 mt-6">
                   <Button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800"
+                    className="flex-1 h-12 bg-gray-500 hover:bg-gray-600 text-white font-medium"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    disabled={submitting}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white"
+                    disabled={submitting || formData.types.length === 0 || !formData.description || !formData.location}
+                    className="flex-1 h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {submitting ? 'Submitting...' : 'Submit Report'}
+                    {submitting ? (
+                      <>
+                        <Loader className="w-5 h-5 mr-2 animate-spin" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <MapPin className="w-5 h-5 mr-2" />
+                        Submit Report
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>
