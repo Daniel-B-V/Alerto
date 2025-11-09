@@ -2,7 +2,6 @@ import {
   LayoutDashboard,
   GraduationCap,
   FileText,
-  Settings,
   ChevronLeft,
   List
 } from "lucide-react";
@@ -16,7 +15,6 @@ export function UserSidebar({ activeSection, onSectionChange }) {
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { id: "suspensions", icon: GraduationCap, label: "Class Suspensions" },
     { id: "community", icon: FileText, label: "My Reports" },
-    { id: "settings", icon: Settings, label: "Settings" },
   ];
 
   return (

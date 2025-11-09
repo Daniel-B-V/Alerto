@@ -1,4 +1,4 @@
-import { Bell, Cloud, User, X, AlertTriangle } from "lucide-react";
+import { Bell, Cloud, User, X, AlertTriangle, LogOut } from "lucide-react";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Badge } from "./ui/badge";
@@ -8,9 +8,10 @@ import { useState, useRef, useEffect } from "react";
 
 export function Header() {
   const { notifications } = useSocket();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const notificationCount = notifications.length;
   const [showNotifications, setShowNotifications] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const dropdownRef = useRef(null);
 
   // Close dropdown when clicking outside
@@ -29,6 +30,17 @@ export function Header() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showNotifications]);
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100/50 px-6 py-4 shadow-sm">
@@ -115,6 +127,18 @@ export function Header() {
               </div>
             )}
           </div>
+
+          {/* Logout Button */}
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-10 h-10 rounded-full hover:bg-red-50 hover:text-red-600 transition-all duration-200"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            title={loggingOut ? 'Logging out...' : 'Logout'}
+          >
+            <LogOut className="w-5 h-5" />
+          </Button>
 
           {/* Profile */}
           <div className="flex items-center gap-2">

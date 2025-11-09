@@ -4,7 +4,6 @@ import {
   GraduationCap,
   Users,
   FileText,
-  Settings,
   ChevronLeft,
   BarChart3,
   Database
@@ -26,7 +25,6 @@ export function Sidebar({ activeSection, onSectionChange }) {
     { id: "analytics", icon: BarChart3, label: "Analytics", roles: ["admin", "super_admin"] },
     { id: "admin", icon: FileText, label: "Reports", roles: ["admin", "super_admin"] },
     { id: "seeder", icon: Database, label: "Test Data", roles: ["admin", "super_admin"] },
-    { id: "settings", icon: Settings, label: "Settings", roles: ["user", "admin", "super_admin"] },
   ];
 
   // Filter nav items based on user role

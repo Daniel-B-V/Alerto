@@ -77,8 +77,6 @@ export function UserLayout() {
         return <UserSuspensionView />;
       case 'community':
         return <UserReportsPage />;
-      case 'settings':
-        return <UserSettings />;
       default:
         return <UserDashboard />;
     }

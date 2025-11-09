@@ -138,8 +138,6 @@ export function DashboardContent({ activeSection }) {
         return <EnhancedReportsPage />;
       case 'seeder':
         return <DatabaseSeeder />;
-      case 'settings':
-        return <SettingsPanel />;
       default:
         return <DashboardOverview />;
     }
