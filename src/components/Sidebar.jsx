@@ -19,14 +19,14 @@ export function Sidebar({ activeSection, onSectionChange }) {
 
   // Define all navigation items with role requirements
   const allNavItems = [
-    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ["user", "admin", "super_admin"] },
-    { id: "community", icon: Users, label: "Community", roles: ["user", "admin", "super_admin"] },
+    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ["user", "admin", "super_admin", "governor", "mayor"] },
+    { id: "community", icon: Users, label: "Community", roles: ["user", "admin", "super_admin", "governor", "mayor"] },
     { id: "user-suspension", icon: GraduationCap, label: "Suspensions", roles: ["user"] },
-    { id: "suspension", icon: GraduationCap, label: "Suspension", roles: ["admin", "super_admin"] },
-    { id: "analytics", icon: BarChart3, label: "Analytics", roles: ["admin", "super_admin"] },
-    { id: "admin", icon: FileText, label: "Reports", roles: ["admin", "super_admin"] },
-    { id: "seeder", icon: Database, label: "Test Data", roles: ["admin", "super_admin"] },
-    { id: "settings", icon: Settings, label: "Settings", roles: ["user", "admin", "super_admin"] },
+    { id: "suspension", icon: GraduationCap, label: "Suspension", roles: ["admin", "super_admin", "governor", "mayor"] },
+    { id: "analytics", icon: BarChart3, label: "Analytics", roles: ["admin", "super_admin", "governor"] },
+    { id: "admin", icon: FileText, label: "Reports", roles: ["admin", "super_admin", "governor"] },
+    { id: "seeder", icon: Database, label: "Test Data", roles: ["admin", "super_admin", "governor"] },
+    { id: "settings", icon: Settings, label: "Settings", roles: ["user", "admin", "super_admin", "governor", "mayor"] },
   ];
 
   // Filter nav items based on user role

@@ -38,7 +38,7 @@ const weatherDataSchema = new mongoose.Schema({
   }],
   alerts: [{
     type: { type: String, enum: ['storm', 'flood', 'heat', 'cold', 'wind', 'rain'] },
-    severity: { type: String, enum: ['low', 'medium', 'high', 'extreme'] },
+    severity: { type: String, enum: ['low', 'medium', 'high', 'critical'] },
     title: String,
     description: String,
     startTime: Date,

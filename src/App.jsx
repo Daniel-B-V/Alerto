@@ -6,6 +6,7 @@ import { Login } from "./components/Login";
 import { SignUp } from "./components/SignUp";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
+import { SuspensionProvider } from "./contexts/SuspensionContext";
 import { useState, useEffect } from "react";
 
 // Import weather API test utility (for development testing)
@@ -24,11 +25,14 @@ if (import.meta.env.DEV) {
   import('./utils/adminUtils').then(module => {
     window.makeCurrentUserAdmin = module.makeCurrentUserAdmin;
     window.makeUserAdmin = module.makeUserAdmin;
+    window.makeCurrentUserGovernor = module.makeCurrentUserGovernor;
+    window.makeCurrentUserMayor = module.makeCurrentUserMayor;
     window.checkMyRole = module.checkCurrentUserRole;
-    console.log('\n👑 Admin utilities loaded! Available commands:');
-    console.log('   window.checkMyRole() - Check your current user info');
-    console.log('   window.makeCurrentUserAdmin() - Make yourself admin');
-    console.log('   window.makeUserAdmin("uid") - Make any user admin\n');
+    console.log('\n👑 Role Management Commands:');
+    console.log('   window.checkMyRole() - Check your current role');
+    console.log('   window.makeCurrentUserGovernor() - Become Governor (full access)');
+    console.log('   window.makeCurrentUserMayor("Batangas City") - Become Mayor of a city');
+    console.log('   window.makeCurrentUserAdmin() - Become Admin (same as Governor)\n');
   });
 }
 
@@ -78,23 +82,29 @@ function AppContent() {
     // Admin Interface (existing)
     return (
       <SocketProvider>
-        <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30">
-          <Header />
-          <div className="flex-1 flex overflow-hidden">
-            <Sidebar
-              activeSection={activeSection}
-              onSectionChange={setActiveSection}
-            />
-            <main className="flex-1 overflow-auto">
-              <DashboardContent activeSection={activeSection} />
-            </main>
+        <SuspensionProvider>
+          <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30">
+            <Header />
+            <div className="flex-1 flex overflow-hidden">
+              <Sidebar
+                activeSection={activeSection}
+                onSectionChange={setActiveSection}
+              />
+              <main className="flex-1 overflow-auto">
+                <DashboardContent activeSection={activeSection} />
+              </main>
+            </div>
           </div>
-        </div>
+        </SuspensionProvider>
       </SocketProvider>
     );
   } else {
     // User Interface (new)
-    return <UserLayout />;
+    return (
+      <SuspensionProvider>
+        <UserLayout />
+      </SuspensionProvider>
+    );
   }
 }
 

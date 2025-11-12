@@ -53,26 +53,36 @@ export const getUserData = async (uid) => {
 };
 
 // Set or update user role
-export const setUserRole = async (uid, role) => {
+export const setUserRole = async (uid, role, city = null) => {
   try {
     const userRef = doc(db, COLLECTIONS.USERS, uid);
 
     // Check if document exists first
     const docSnap = await getDoc(userRef);
 
+    const updateData = {
+      role,
+      updatedAt: serverTimestamp()
+    };
+
+    // If role is mayor, store the city
+    if (role === 'mayor' && city) {
+      updateData.city = city;
+    }
+
     if (docSnap.exists()) {
       // Update existing document
-      await updateDoc(userRef, { role, updatedAt: serverTimestamp() });
+      await updateDoc(userRef, updateData);
     } else {
       // Create new document with role
       await setDoc(userRef, {
-        role,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
+        ...updateData,
+        createdAt: serverTimestamp()
       });
     }
 
-    console.log(`✅ User role updated to "${role}" for UID: ${uid}`);
+    const cityInfo = city ? ` of ${city}` : '';
+    console.log(`✅ User role updated to "${role}"${cityInfo} for UID: ${uid}`);
     return { success: true };
   } catch (error) {
     console.error('Error setting user role:', error);

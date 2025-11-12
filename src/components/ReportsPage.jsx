@@ -17,6 +17,7 @@ import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { subscribeToReports } from "../firebase/firestore";
+import { getSeverityConfig } from "../constants/categorization";
 
 export function ReportsPage() {
   const [reports, setReports] = useState([]);
@@ -118,15 +119,10 @@ export function ReportsPage() {
     uniqueReporters: new Set(filteredReports.map(r => r.userId).filter(Boolean)).size
   };
 
-  // Get severity badge style
+  // Get severity badge style using centralized config
   const getSeverityStyle = (severity) => {
-    const styles = {
-      critical: 'bg-red-600 text-white',
-      high: 'bg-orange-500 text-white',
-      medium: 'bg-yellow-500 text-white',
-      low: 'bg-blue-500 text-white'
-    };
-    return styles[severity] || styles.medium;
+    const config = getSeverityConfig(severity);
+    return config.badgeClass;
   };
 
   // Format timestamp

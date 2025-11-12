@@ -1,4 +1,6 @@
 // Gemini AI Service for Report Compilation and Analysis
+import { getSeverityConfig } from '../constants/categorization';
+
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyDDL3nl6cR3xsIQ8Ilv046_7xjIa-iIo0E';
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
@@ -322,15 +324,15 @@ export const groupReportsByLocationAndTime = (reports, timeWindowMinutes = 60) =
 
 /**
  * Get severity badge color
+ * Now uses centralized categorization system
  */
 export const getSeverityColor = (severity) => {
-  const colors = {
-    critical: { bg: 'bg-red-500', text: 'text-red-500', border: 'border-red-500' },
-    high: { bg: 'bg-orange-500', text: 'text-orange-500', border: 'border-orange-500' },
-    medium: { bg: 'bg-yellow-500', text: 'text-yellow-500', border: 'border-yellow-500' },
-    low: { bg: 'bg-blue-500', text: 'text-blue-500', border: 'border-blue-500' },
+  const config = getSeverityConfig(severity);
+  return {
+    bg: config.bgClass,
+    text: config.textClass,
+    border: config.borderClass
   };
-  return colors[severity] || colors.medium;
 };
 
 /**

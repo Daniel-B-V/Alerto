@@ -1,5 +1,5 @@
 import { WeatherPanel } from "./WeatherPanel";
-import { SuspensionPanel } from "./SuspensionPanel";
+import SuspensionPanel from "./suspension/SuspensionPanel";
 import { UserSuspensionView } from "./UserSuspensionView";
 import { CommunityFeed } from "./CommunityFeed";
 import { AdminPanel } from "./AdminPanel";
@@ -75,6 +75,33 @@ function SettingsPanel() {
           </CardHeader>
           <CardContent>
             <p className="text-gray-600">Configure emergency alert thresholds and notification preferences.</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="w-5 h-5 text-green-500" />
+              Role Switching
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <p className="text-gray-600 text-sm">Switch between Mayor and Governor roles for testing.</p>
+            <div className="grid grid-cols-2 gap-3 mt-4">
+              <button
+                onClick={() => window.location.href = '/settings'}
+                className="px-4 py-2 !bg-purple-600 hover:!bg-purple-700 !text-white rounded-md font-medium transition-colors"
+              >
+                Switch to Governor
+              </button>
+              <button
+                onClick={() => window.location.href = '/settings'}
+                className="px-4 py-2 !bg-blue-600 hover:!bg-blue-700 !text-white rounded-md font-medium transition-colors"
+              >
+                Switch to Mayor
+              </button>
+            </div>
+            <p className="text-xs text-gray-500">Opens role management page</p>
           </CardContent>
         </Card>
 

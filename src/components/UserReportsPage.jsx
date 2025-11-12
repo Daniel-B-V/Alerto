@@ -9,17 +9,15 @@ import {
   XCircle,
   FileText,
   MapPin,
-  Calendar,
-  X,
-  Upload,
-  Loader
+  Calendar
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { useAuth } from "../contexts/AuthContext";
-import { createReport, getUserReports } from "../firebase/firestore";
+import { getUserReports } from "../firebase/firestore";
+import { ReportSubmissionModal } from "./ReportSubmissionModal";
 
 export function UserReportsPage() {
   const { user } = useAuth();
@@ -29,7 +27,6 @@ export function UserReportsPage() {
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [submitting, setSubmitting] = useState(false);
 
   // Helper function to convert location to string
   const getLocationString = (location) => {
@@ -40,36 +37,6 @@ export function UserReportsPage() {
     }
     return String(location);
   };
-
-  // Form state
-  const [formData, setFormData] = useState({
-    types: [], // Changed back to array for multiple selection
-    title: "",
-    description: "",
-    location: "",
-    images: []
-  });
-  const [imagePreview, setImagePreview] = useState([]);
-
-  const reportTypes = [
-    { value: "flooding", label: "Flooding" },
-    { value: "power_outage", label: "Power Outage" },
-    { value: "road_accident", label: "Road Accident" },
-    { value: "fire", label: "Fire Incident" },
-    { value: "landslide", label: "Landslide" },
-    { value: "heavy_rain", label: "Heavy Rain" },
-    { value: "strong_wind", label: "Strong Wind" },
-    { value: "other", label: "Other" }
-  ];
-
-  const batangasCities = [
-    "Agoncillo", "Alitagtag", "Balayan", "Balete", "Batangas City", "Bauan",
-    "Calaca", "Calatagan", "Cuenca", "Ibaan", "Laurel", "Lemery",
-    "Lian", "Lipa City", "Lobo", "Mabini", "Malvar", "Mataasnakahoy",
-    "Nasugbu", "Padre Garcia", "Rosario", "San Jose", "San Juan",
-    "San Luis", "San Nicolas", "San Pascual", "Santa Teresita", "Santo Tomas",
-    "Taal", "Talisay", "Tanauan City", "Taysan", "Tingloy", "Tuy"
-  ];
 
   // Fetch user's reports
   const fetchReports = async () => {
@@ -94,6 +61,11 @@ export function UserReportsPage() {
     fetchReports();
   }, [user]);
 
+  // Refresh reports after submission
+  const handleSubmitSuccess = () => {
+    fetchReports(); // Refresh the list
+  };
+
   // Apply filters
   useEffect(() => {
     let filtered = [...reports];
@@ -117,114 +89,6 @@ export function UserReportsPage() {
 
     setFilteredReports(filtered);
   }, [searchQuery, statusFilter, reports]);
-
-  // Handle category checkbox change
-  const handleCategoryChange = (categoryValue) => {
-    setFormData(prev => {
-      const types = prev.types.includes(categoryValue)
-        ? prev.types.filter(t => t !== categoryValue)
-        : [...prev.types, categoryValue];
-      return { ...prev, types };
-    });
-  };
-
-  // Handle image selection
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length + imagePreview.length > 5) {
-      alert('Maximum 5 images allowed');
-      return;
-    }
-
-    setFormData(prev => ({ ...prev, images: [...prev.images, ...files] }));
-
-    // Create previews
-    files.forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(prev => [...prev, { file, url: e.target.result }]);
-      };
-      reader.readAsDataURL(file);
-    });
-  };
-
-  // Remove image
-  const removeImage = (index) => {
-    setFormData(prev => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index)
-    }));
-    setImagePreview(prev => prev.filter((_, i) => i !== index));
-  };
-
-  // Handle form submit
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!user) return;
-
-    // Validate at least one category is selected
-    if (formData.types.length === 0) {
-      alert('Please select at least one report category.');
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      // Validate location is selected
-      if (!formData.location) {
-        alert('Please select a city/municipality.');
-        setSubmitting(false);
-        return;
-      }
-
-      // Create title from selected categories if not provided
-      const categoryLabels = formData.types.map(type =>
-        reportTypes.find(rt => rt.value === type)?.label || type
-      ).join(', ');
-
-      const reportData = {
-        title: formData.title || `${categoryLabels} in ${formData.location}`,
-        description: formData.description,
-        category: formData.types[0], // Primary category
-        categories: formData.types, // All selected categories
-        location: {
-          city: formData.location,
-          province: 'Batangas',
-          country: 'Philippines'
-        },
-        tags: [...formData.types, formData.location],
-        status: 'pending',
-        userName: user.displayName || user.email || 'Anonymous',
-        userPhotoURL: user.photoURL || null,
-        userEmail: user.email,
-        userVerified: user.emailVerified || false
-      };
-
-      const createdReport = await createReport(reportData, user.uid);
-      console.log('Report created successfully:', createdReport);
-
-      // Reset form
-      setFormData({
-        types: [],
-        title: "",
-        description: "",
-        location: "",
-        images: []
-      });
-      setImagePreview([]);
-
-      setShowModal(false);
-      fetchReports();
-
-      // Show success message
-      alert('Report submitted successfully!');
-    } catch (error) {
-      console.error('Error submitting report:', error);
-      alert('Failed to submit report. Please try again.');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -473,202 +337,12 @@ export function UserReportsPage() {
         )}
       </div>
 
-      {/* Submit Report Modal */}
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-white rounded-xl shadow-xl flex flex-col overflow-hidden"
-            style={{ width: '850px', maxWidth: '90vw', maxHeight: '90vh' }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="border-b-2 bg-gradient-to-r from-blue-600 to-blue-700 flex-shrink-0 px-6 pt-5 pb-4 shadow-lg">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-white">Submit Report</h2>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="text-white hover:bg-white/20 rounded-full p-2 transition-colors"
-                >
-                  <X className="w-6 h-6" />
-                </button>
-              </div>
-              <p className="text-sm text-blue-100 mt-1">
-                Help your community by reporting incidents
-              </p>
-            </div>
-
-            {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Report Categories - Two Columns with Checkboxes */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-3">
-                    Report Categories * (Select all that apply)
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {reportTypes.map((type) => (
-                      <label
-                        key={type.value}
-                        className="flex items-center gap-2 p-3 border border-gray-300 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                      >
-                        <input
-                          type="checkbox"
-                          checked={formData.types.includes(type.value)}
-                          onChange={() => handleCategoryChange(type.value)}
-                          className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-700">{type.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                  {formData.types.length > 0 && (
-                    <p className="text-xs text-gray-500 mt-2">
-                      Selected: {formData.types.map(t => reportTypes.find(rt => rt.value === t)?.label).join(', ')}
-                    </p>
-                  )}
-                </div>
-
-                {/* City/Municipality */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-2">
-                    City/Municipality <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">Select location...</option>
-                    {batangasCities.map(city => (
-                      <option key={city} value={city}>
-                        {city}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Title */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-2">
-                    Title (Optional)
-                  </label>
-                  <Input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Brief title for your report"
-                    className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                  <p className="text-xs text-gray-500 mt-1.5">
-                    Leave blank to auto-generate from selected categories
-                  </p>
-                </div>
-
-                {/* Description */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-2">
-                    Description <span className="text-red-500">*</span>
-                  </label>
-                  <textarea
-                    required
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows="4"
-                    placeholder="Describe the incident in detail..."
-                    className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                  />
-                </div>
-
-                {/* Image Upload */}
-                <div>
-                  <label className="block text-sm font-semibold text-gray-800 mb-2">
-                    Add Images (Optional)
-                  </label>
-                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-all cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageChange}
-                      className="hidden"
-                      id="image-upload"
-                      disabled={imagePreview.length >= 5}
-                    />
-                    <label
-                      htmlFor="image-upload"
-                      className="cursor-pointer flex flex-col items-center"
-                    >
-                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-                        <Upload className="w-6 h-6 text-blue-600" />
-                      </div>
-                      <p className="text-sm font-medium text-gray-700 mb-1">
-                        Click to upload images
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        PNG, JPG up to 10MB • {imagePreview.length}/5 uploaded
-                      </p>
-                    </label>
-                  </div>
-
-                  {/* Image Previews */}
-                  {imagePreview.length > 0 && (
-                    <div className="grid grid-cols-5 gap-3 mt-4">
-                      {imagePreview.map((img, idx) => (
-                        <div key={idx} className="relative group">
-                          <img
-                            src={img.url}
-                            alt={`Preview ${idx + 1}`}
-                            className="w-full h-20 object-cover rounded-lg border-2 border-gray-200"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removeImage(idx)}
-                            className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
-                          >
-                            <X className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-3 pt-6 border-t-2 border-gray-100 mt-6">
-                  <Button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="flex-1 h-12 bg-gray-500 hover:bg-gray-600 text-white font-medium"
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={submitting || formData.types.length === 0 || !formData.description || !formData.location}
-                    className="flex-1 h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {submitting ? (
-                      <>
-                        <Loader className="w-5 h-5 mr-2 animate-spin" />
-                        Submitting...
-                      </>
-                    ) : (
-                      <>
-                        <MapPin className="w-5 h-5 mr-2" />
-                        Submit Report
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Submit Report Modal - Using Shared Component */}
+      <ReportSubmissionModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        onSubmitSuccess={handleSubmitSuccess}
+      />
     </>
   );
 }

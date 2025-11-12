@@ -14,31 +14,31 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   MoreVertical,
   Bookmark,
   TrendingUp,
-  Users
+  Users,
+  Eye
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { getReports, toggleLike, subscribeToReports } from "../firebase";
+import { getReports, toggleLike, subscribeToReports, updateReport } from "../firebase";
 import { useAuth } from "../contexts/AuthContext";
 import { ReportSubmissionModal } from "./ReportSubmissionModal";
+import { CATEGORY_CONFIG } from "../constants/categorization";
+import { getCredibilityBadge } from "../services/imageAnalysisService";
 
-const REPORT_CATEGORIES = [
-  { value: 'flooding', label: 'Flooding', icon: '🌊' },
-  { value: 'heavy_rain', label: 'Heavy Rain', icon: '🌧️' },
-  { value: 'landslide', label: 'Landslide', icon: '⛰️' },
-  { value: 'strong_wind', label: 'Strong Wind', icon: '💨' },
-  { value: 'storm', label: 'Storm/Typhoon', icon: '🌀' },
-  { value: 'road_blockage', label: 'Road Blockage', icon: '🚧' },
-  { value: 'power_outage', label: 'Power Outage', icon: '⚡' },
-  { value: 'infrastructure', label: 'Infrastructure Damage', icon: '🏗️' },
-  { value: 'other', label: 'Other', icon: '📋' }
-];
+// Convert centralized categories to format needed for this component
+const REPORT_CATEGORIES = Object.entries(CATEGORY_CONFIG).map(([value, config]) => ({
+  value,
+  label: config.label,
+  icon: config.emoji
+}));
 
 const BATANGAS_CITIES = [
   'Batangas City', 'Lipa City', 'Tanauan City', 'Sto. Tomas',
@@ -58,6 +58,7 @@ export function CommunityFeed() {
   const [commentText, setCommentText] = useState({});
   const [showComments, setShowComments] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
+  const [expandedReports, setExpandedReports] = useState({});
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(10); // Show 10 reports initially
   const [filters, setFilters] = useState({
@@ -66,6 +67,20 @@ export function CommunityFeed() {
     limit: 20
   });
   const { user, isAuthenticated } = useAuth();
+
+  // Check if user is admin
+  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+
+  // Handle verify report
+  const handleVerifyReport = async (reportId) => {
+    try {
+      await updateReport(reportId, { status: 'verified' });
+      console.log('Report verified successfully');
+    } catch (error) {
+      console.error('Error verifying report:', error);
+      alert('Failed to verify report');
+    }
+  };
 
   // Load reports on component mount
   useEffect(() => {
@@ -167,6 +182,14 @@ export function CommunityFeed() {
   // Toggle comments section
   const toggleComments = (reportId) => {
     setShowComments(prev => ({
+      ...prev,
+      [reportId]: !prev[reportId]
+    }));
+  };
+
+  // Toggle report expansion
+  const toggleReportExpansion = (reportId) => {
+    setExpandedReports(prev => ({
       ...prev,
       [reportId]: !prev[reportId]
     }));
@@ -318,36 +341,61 @@ export function CommunityFeed() {
             {filteredReports.slice(0, displayLimit).map((report) => {
               const isLiked = report.likes?.includes(user?.uid);
               const likesCount = report.likes?.length || 0;
+              const isExpanded = expandedReports[report.id];
 
               return (
                 <Card key={report.id} className="overflow-hidden hover:shadow-lg transition-all duration-200">
                   {/* Report Header */}
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-12 h-12 border-2 border-gray-200 shadow-md">
-                        <AvatarImage src={report.userPhotoURL} />
-                        <AvatarFallback
-                          className="text-white font-bold text-lg"
-                          style={{
-                            backgroundColor: getUserColor(report.userName),
-                            backgroundImage: `linear-gradient(to bottom right, ${getUserColor(report.userName)}, ${getUserColor(report.userName)}dd)`
-                          }}
-                        >
-                          {report.userName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
-                        </AvatarFallback>
-                      </Avatar>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <div 
+                        className="flex-shrink-0"
+                        style={{
+                          width: '36px',
+                          height: '36px',
+                          borderRadius: '50%',
+                          overflow: 'hidden',
+                          border: '2px solid #e5e7eb',
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                        }}
+                      >
+                        {report.userPhotoURL ? (
+                          <img 
+                            src={report.userPhotoURL} 
+                            alt={report.userName}
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              objectFit: 'cover'
+                            }}
+                          />
+                        ) : (
+                          <div
+                            style={{
+                              width: '100%',
+                              height: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: getUserColor(report.userName),
+                              backgroundImage: `linear-gradient(to bottom right, ${getUserColor(report.userName)}, ${getUserColor(report.userName)}dd)`,
+                              color: 'white',
+                              fontWeight: 'bold',
+                              fontSize: '14px'
+                            }}
+                          >
+                            {report.userName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'U'}
+                          </div>
+                        )}
+                      </div>
 
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-gray-900">{report.userName || 'Anonymous User'}</span>
-                          {report.userVerified && (
-                            <CheckCircle className="w-4 h-4 text-blue-500" fill="currentColor" />
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <span>{formatTimestamp(report.createdAt)}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="font-semibold text-gray-900 text-sm">{report.userName || 'Anonymous User'}</span>
+                          <span className="text-xs text-gray-500">•</span>
+                          <span className="text-xs text-gray-500">{formatTimestamp(report.createdAt)}</span>
+                          <span className="text-xs text-gray-500">•</span>
+                          <span className="flex items-center gap-0.5 text-xs text-gray-500">
                             <MapPin className="w-3 h-3" />
                             {report.location?.city || 'Unknown'}
                           </span>
@@ -356,41 +404,42 @@ export function CommunityFeed() {
                     </div>
                   </CardHeader>
 
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 pb-3">
                     {/* Report Title */}
                     {report.title && (
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">{report.title}</h3>
+                      <h3 className="text-base font-semibold text-gray-900 mb-1">{report.title}</h3>
                     )}
 
                     {/* Report Description */}
-                    <p className="text-gray-700 mb-4 leading-relaxed whitespace-pre-wrap">
-                      {report.description}
+                    <p className="text-sm text-gray-700 mb-2 leading-snug whitespace-pre-wrap">
+                      {isExpanded ? report.description : (report.description?.length > 100 ? report.description.substring(0, 100) + '...' : report.description)}
                     </p>
 
                     {/* Report Images */}
                     {report.images && report.images.length > 0 && (
-                      <div className="mb-4">
-                        <div className={`grid gap-2 ${
-                          report.images.length === 1 ? 'grid-cols-1' :
-                          report.images.length === 2 ? 'grid-cols-2' :
-                          report.images.length === 3 ? 'grid-cols-3' :
-                          'grid-cols-2'
-                        }`}>
-                          {report.images.slice(0, 4).map((image, idx) => (
+                      <div className="mb-2">
+                        <div className="flex flex-wrap gap-1.5">
+                          {report.images.slice(0, isExpanded ? report.images.length : 5).map((image, idx) => (
                             <div
                               key={idx}
-                              className="relative cursor-pointer group overflow-hidden rounded-lg"
+                              className="relative cursor-pointer group overflow-hidden rounded-md"
+                              style={{ width: '70px', height: '70px' }}
                               onClick={() => setSelectedImage({ images: report.images, index: idx })}
                             >
                               <img
                                 src={typeof image === 'string' ? image : image.url}
                                 alt={`Report image ${idx + 1}`}
-                                className="w-full h-48 object-cover transition-transform group-hover:scale-105"
+                                style={{
+                                  width: '70px',
+                                  height: '70px',
+                                  objectFit: 'cover'
+                                }}
+                                className="transition-transform group-hover:scale-105"
                               />
-                              {idx === 3 && report.images.length > 4 && (
+                              {!isExpanded && idx === 4 && report.images.length > 5 && (
                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                  <span className="text-white text-2xl font-bold">
-                                    +{report.images.length - 4}
+                                  <span className="text-white text-sm font-bold">
+                                    +{report.images.length - 5}
                                   </span>
                                 </div>
                               )}
@@ -401,20 +450,58 @@ export function CommunityFeed() {
                     )}
 
                     {/* Status Badge & Tags */}
-                    <div className="flex items-center gap-2 mb-4 flex-wrap">
-                      <Badge
-                        variant={report.status === 'verified' ? 'default' : 'secondary'}
-                        className="text-xs"
-                      >
-                        {report.status === 'verified' && '✓ '}
-                        {report.status}
-                      </Badge>
-
-                      {report.tags?.map((tag) => (
-                        <Badge key={tag} variant="outline" className="text-xs">
-                          #{tag}
+                    <div className="flex items-center justify-between gap-1.5 flex-wrap">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Badge
+                          variant={report.status === 'verified' ? 'default' : 'secondary'}
+                          className="text-[10px] px-1.5 py-0.5 h-5"
+                        >
+                          {report.status === 'verified' && '✓ '}
+                          {report.status}
                         </Badge>
-                      ))}
+
+                        {/* AI Credibility Badge */}
+                        {report.imageAnalysis && (
+                          <Badge
+                            className={`text-[10px] px-1.5 py-0.5 h-5 ${getCredibilityBadge(report.imageAnalysis).color} text-white`}
+                            title={report.imageAnalysis.reason}
+                          >
+                            {getCredibilityBadge(report.imageAnalysis).text} {report.imageAnalysis.confidence}%
+                          </Badge>
+                        )}
+
+                        {report.tags?.map((tag) => (
+                          <Badge key={tag} variant="outline" className="text-[10px] px-1.5 py-0.5 h-5">
+                            #{tag}
+                          </Badge>
+                        ))}
+                      </div>
+
+                      {/* Verify Button (Admin Only) */}
+                      {isAdmin && report.status !== 'verified' && (
+                        <Button
+                          onClick={() => handleVerifyReport(report.id)}
+                          size="sm"
+                          className="bg-green-500 hover:bg-green-600 text-white text-[11px] px-2 py-1 h-6"
+                        >
+                          <CheckCircle className="w-3 h-3 mr-0.5" />
+                          Verify
+                        </Button>
+                      )}
+                    </div>
+
+                    {/* View Full Report Button */}
+                    <div className="mt-2 pt-2 border-t border-gray-100">
+                      <Button
+                        onClick={() => toggleReportExpansion(report.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] h-6 gap-1"
+                      >
+                        <Eye className="w-3 h-3" />
+                        {isExpanded ? 'Show Less' : 'View Full Report'}
+                        {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                      </Button>
                     </div>
 
                   </CardContent>

@@ -1,5 +1,5 @@
 import { WeatherPanel } from "./WeatherPanel";
 
 export function UserDashboard() {
-  return <WeatherPanel />;
+  return <WeatherPanel showAnnouncement={true} />;
 }

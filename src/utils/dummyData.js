@@ -146,9 +146,9 @@ export const generateHighDensityReports = (city, count = 45) => {
         userName: user.name,
         userEmail: user.email,
         createdAt: { seconds: Math.floor(createdAt.getTime() / 1000), nanoseconds: 0 },
-        status: isVerified ? 'verified' : 'pending',
-        verifiedBy: isVerified ? 'Admin' : null,
-        verifiedAt: isVerified ? { seconds: Math.floor((createdAt.getTime() + 1800000) / 1000), nanoseconds: 0 } : null,
+        status: 'verified', // All reports auto-verified by AI
+        verifiedBy: 'AI (Gemini)',
+        verifiedAt: { seconds: Math.floor((createdAt.getTime() + 1000) / 1000), nanoseconds: 0 }, // Verified shortly after creation
         imageCount: Math.floor(Math.random() * 4)
       });
     }
@@ -193,9 +193,9 @@ export const generateScatteredReports = (cities, totalCount = 30) => {
       userName: user.name,
       userEmail: user.email,
       createdAt: { seconds: Math.floor(createdAt.getTime() / 1000), nanoseconds: 0 },
-      status: isVerified ? 'verified' : 'pending',
-      verifiedBy: isVerified ? 'Admin' : null,
-      verifiedAt: isVerified ? { seconds: Math.floor((createdAt.getTime() + 1800000) / 1000), nanoseconds: 0 } : null,
+      status: 'verified', // All reports auto-verified by AI
+      verifiedBy: 'AI (Gemini)',
+      verifiedAt: { seconds: Math.floor((createdAt.getTime() + 1000) / 1000), nanoseconds: 0 }, // Verified shortly after creation
       imageCount: Math.floor(Math.random() * 3)
     });
   }

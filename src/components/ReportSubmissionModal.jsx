@@ -5,29 +5,22 @@ import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { createReport } from "../firebase/firestore";
 import { uploadMultipleImagesToCloudinary } from "../services/cloudinaryService";
+import { analyzeReportImages } from "../services/imageAnalysisService";
 import { useAuth } from "../contexts/AuthContext";
+import { CATEGORY_CONFIG, CATEGORIES } from "../constants/categorization";
+import { BATANGAS_MUNICIPALITIES, getBarangays } from "../constants/batangasLocations";
 
-const REPORT_CATEGORIES = [
-  { value: 'flooding', label: 'Flooding', icon: '🌊' },
-  { value: 'heavy_rain', label: 'Heavy Rain', icon: '🌧️' },
-  { value: 'landslide', label: 'Landslide', icon: '⛰️' },
-  { value: 'strong_wind', label: 'Strong Wind', icon: '💨' },
-  { value: 'storm', label: 'Storm/Typhoon', icon: '🌀' },
-  { value: 'road_blockage', label: 'Road Blockage', icon: '🚧' },
-  { value: 'power_outage', label: 'Power Outage', icon: '⚡' },
-  { value: 'infrastructure', label: 'Infrastructure Damage', icon: '🏗️' },
-  { value: 'other', label: 'Other', icon: '📋' }
+// Hazard types for dropdown
+const HAZARD_TYPES = [
+  { value: 'rain', label: '🌧️ Heavy Rain' },
+  { value: 'flood', label: '🌊 Flooding' },
+  { value: 'landslide', label: '⛰️ Landslide' },
+  { value: 'strong_winds', label: '💨 Strong Winds' },
+  { value: 'power_outage', label: '⚡ Power Outage' },
+  { value: 'road_damage', label: '🚧 Road Damage' },
+  { value: 'other', label: '📋 Other' }
 ];
 
-const BATANGAS_CITIES = [
-  'Batangas City', 'Lipa City', 'Tanauan City', 'Sto. Tomas',
-  'Calamba', 'San Pablo', 'Taal', 'Lemery', 'Balayan',
-  'Bauan', 'Mabini', 'San Juan', 'Rosario', 'Taysan',
-  'Lobo', 'Mataas na Kahoy', 'Cuenca', 'Alitagtag',
-  'Malvar', 'Laurel', 'Agoncillo', 'San Nicolas', 'Santa Teresita',
-  'Talisay', 'San Luis', 'Ibaan', 'Padre Garcia', 'Tingloy',
-  'Calatagan', 'Lian', 'Nasugbu', 'Other'
-];
 
 export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
   const { user } = useAuth();
@@ -35,18 +28,27 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState({
-    category: '',
+    reporterName: '',
     title: '',
     description: '',
     city: '',
     barangay: '',
     specificLocation: '',
+    hazardType: '',
     images: []
   });
+  const [availableBarangays, setAvailableBarangays] = useState([]);
   const [imagePreview, setImagePreview] = useState([]);
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Update barangays when city changes
+    if (field === 'city') {
+      const barangays = getBarangays(value);
+      setAvailableBarangays(barangays);
+      setFormData(prev => ({ ...prev, barangay: '' })); // Reset barangay
+    }
   };
 
   const handleImageChange = (e) => {
@@ -79,8 +81,8 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.category || !formData.description || !formData.city) {
-      alert('Please fill in all required fields');
+    if (!formData.hazardType || !formData.description || !formData.city || !formData.barangay) {
+      alert('Please fill in all required fields (Hazard Type, Municipality, Barangay, and Description)');
       return;
     }
 
@@ -90,46 +92,122 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
       // Upload images to Cloudinary
       let imageUrls = [];
       if (formData.images.length > 0) {
-        const uploadResults = await uploadMultipleImagesToCloudinary(
-          formData.images,
-          (current, total) => {
-            setUploadProgress(Math.round((current / total) * 100));
-          }
-        );
-        imageUrls = uploadResults.map(result => result.url);
+        try {
+          const uploadResults = await uploadMultipleImagesToCloudinary(
+            formData.images,
+            (current, total) => {
+              setUploadProgress(Math.round((current / total) * 100));
+            }
+          );
+          imageUrls = uploadResults.map(result => result.url);
+        } catch (uploadError) {
+          console.error('Image upload error:', uploadError);
+          alert('Failed to upload images. Submitting report without images.');
+        }
       }
 
-      // Create report in Firestore
+      // Fetch current weather data for the location
+      let weatherData = null;
+      if (formData.city) {
+        try {
+          const weatherResponse = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?q=${formData.city},PH&appid=895284fb2d2c50a520ea537456963d9c&units=metric`
+          );
+          if (weatherResponse.ok) {
+            const weather = await weatherResponse.json();
+            weatherData = {
+              temp: weather.main.temp,
+              feels_like: weather.main.feels_like,
+              humidity: weather.main.humidity,
+              pressure: weather.main.pressure,
+              weather_main: weather.weather[0].main,
+              weather_description: weather.weather[0].description,
+              wind_speed: weather.wind.speed,
+              clouds: weather.clouds.all,
+              visibility: weather.visibility,
+              rain_1h: weather.rain?.['1h'] || 0
+            };
+          }
+        } catch (error) {
+          console.error('Error fetching weather data:', error);
+          // Continue without weather data
+        }
+      }
+
+      // Analyze images with Gemini AI (with weather data cross-reference)
+      let imageAnalysis = null;
+      if (imageUrls.length > 0) {
+        try {
+          setUploadProgress(0);
+          imageAnalysis = await analyzeReportImages(
+            imageUrls, 
+            {
+              hazardType: formData.hazardType,
+              title: formData.title,
+              description: formData.description,
+              location: {
+                city: formData.city,
+                barangay: formData.barangay
+              }
+            },
+            weatherData // Pass actual weather conditions
+          );
+          console.log('Image Analysis Result:', imageAnalysis);
+          console.log('Weather Data Used:', weatherData);
+        } catch (analysisError) {
+          console.error('Image analysis error:', analysisError);
+          // Continue without image analysis
+          imageAnalysis = {
+            credible: true,
+            confidence: 50,
+            reason: 'Image analysis unavailable',
+            matchesReport: 'unknown',
+            detectedHazards: []
+          };
+        }
+      }
+
+      // Create report in Firestore with AI analysis
       const reportData = {
-        title: formData.title || `${formData.category} in ${formData.city}`,
+        reporterName: formData.reporterName || 'Anonymous',
+        title: formData.title || `${formData.hazardType} in ${formData.city}`,
         description: formData.description,
-        category: formData.category,
+        category: formData.hazardType, // Use hazardType as category
+        hazardType: formData.hazardType,
         location: {
           city: formData.city,
           barangay: formData.barangay || '',
           specificLocation: formData.specificLocation || ''
         },
-        images: imageUrls,
+        images: imageUrls || [],
         userName: user?.displayName || 'Anonymous',
         userEmail: user?.email || '',
         userPhotoURL: user?.photoURL || '',
         userVerified: user?.emailVerified || false,
-        tags: [formData.category, formData.city],
-        status: 'pending'
+        tags: [formData.hazardType, formData.city],
+        // AI Image Analysis Results (simplified)
+        aiCredibility: imageAnalysis ? imageAnalysis.confidence : null,
+        aiReason: imageAnalysis ? imageAnalysis.reason : null,
+        aiMatchesReport: imageAnalysis ? imageAnalysis.matchesReport : null,
+        imageAnalysis: imageAnalysis || null
       };
 
+      console.log('Attempting to create report with data:', reportData);
       await createReport(reportData, user.uid);
+      console.log('Report created successfully!');
 
       // Reset form
       setFormData({
-        category: '',
+        reporterName: '',
         title: '',
         description: '',
         city: '',
         barangay: '',
         specificLocation: '',
+        hazardType: '',
         images: []
       });
+      setAvailableBarangays([]);
       setImagePreview([]);
       setUploadProgress(0);
 
@@ -148,7 +226,8 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
     } catch (error) {
       console.error('Error submitting report:', error);
-      alert('Failed to submit report. Please try again.');
+      console.error('Error details:', error.message, error.stack);
+      alert(`Failed to submit report: ${error.message || 'Unknown error'}. Please try again.`);
     } finally {
       setLoading(false);
     }
@@ -184,122 +263,150 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
       {/* Report Submission Modal */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
-      <div className="max-w-2xl w-full my-6">
-        <Card className="w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-          <CardHeader className="border-b-2 sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 z-10 shadow-lg p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1">
-                <CardTitle className="text-xl font-bold flex items-center gap-3 text-white">
-                  <AlertTriangle className="w-6 h-6 flex-shrink-0" />
-                  <span>Submit Report</span>
-                </CardTitle>
-                <p className="text-sm text-blue-100 mt-1">
-                  Help your community by reporting incidents
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-white/20 rounded-full transition-colors flex-shrink-0 text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-          </CardHeader>
-
-          <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Category Selection - Two Columns */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-3">
-                Report Categories <span className="text-red-500">*</span>
-                <span className="text-xs font-normal text-gray-500 ml-2">(Select all that apply)</span>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                {REPORT_CATEGORIES.map((cat, index) => (
-                  <label
-                    key={cat.value}
-                    className={`flex items-center p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                      formData.category === cat.value
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-blue-300 hover:bg-gray-50'
-                    } ${index === 3 ? 'col-span-2' : ''}`}
-                  >
-                    <input
-                      type="radio"
-                      name="category"
-                      value={cat.value}
-                      checked={formData.category === cat.value}
-                      onChange={(e) => handleInputChange('category', e.target.value)}
-                      className="sr-only"
-                    />
-                    <span className="text-2xl mr-3">{cat.icon}</span>
-                    <span className={`text-sm font-medium ${
-                      formData.category === cat.value ? 'text-blue-700' : 'text-gray-700'
-                    }`}>
-                      {cat.label}
-                    </span>
-                  </label>
-                ))}
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div 
+            className="bg-white rounded-lg shadow-2xl"
+            style={{ 
+              width: '800px', 
+              height: '85vh',
+              maxWidth: '95vw', 
+              maxHeight: '90vh', 
+              display: 'grid',
+              gridTemplateRows: 'auto 1fr auto'
+            }}
+          >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 rounded-t-lg">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 text-white">
+                    <AlertTriangle className="w-6 h-6" />
+                    <h2 className="text-xl font-bold">Submit Report</h2>
+                  </div>
+                  <p className="text-sm text-blue-100 mt-1">
+                    Help your community by reporting incidents
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
             </div>
 
-            {/* City/Municipality */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
-                City/Municipality <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.city}
-                onChange={(e) => handleInputChange('city', e.target.value)}
-                className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="">Select location...</option>
-                {BATANGAS_CITIES.map(city => (
-                  <option key={city} value={city}>{city}</option>
-                ))}
-              </select>
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto px-6 py-4">
+          <form id="report-form" onSubmit={handleSubmit} className="space-y-4">
+            {/* Two Column Grid */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Reporter Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reporter Name <span className="text-gray-400">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Your name or 'Anonymous'"
+                  value={formData.reporterName}
+                  onChange={(e) => handleInputChange('reporterName', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              {/* Type of Hazard */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Type of Hazard <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.hazardType}
+                  onChange={(e) => handleInputChange('hazardType', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select hazard type...</option>
+                  {HAZARD_TYPES.map(hazard => (
+                    <option key={hazard.value} value={hazard.value}>{hazard.label}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* City/Municipality */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Municipality <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.city}
+                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                >
+                  <option value="">Select municipality...</option>
+                  {BATANGAS_MUNICIPALITIES.map(city => (
+                    <option key={city} value={city}>{city}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Barangay */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Barangay <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.barangay}
+                  onChange={(e) => handleInputChange('barangay', e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                  required
+                  disabled={!formData.city}
+                >
+                  <option value="">Select barangay...</option>
+                  {availableBarangays.map(barangay => (
+                    <option key={barangay} value={barangay}>{barangay}</option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Title */}
+            {/* Title - Full Width */}
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
-                Title (Optional)
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Title <span className="text-gray-400">(Optional)</span>
               </label>
               <input
                 type="text"
                 placeholder="Brief title for your report"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <p className="text-xs text-gray-500 mt-1.5">
-                Leave blank to auto-generate from selected categories
-              </p>
             </div>
 
-            {/* Description */}
+            {/* Description - Full Width */}
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description <span className="text-red-500">*</span>
               </label>
               <textarea
-                placeholder="Describe the incident in detail..."
+                placeholder="Describe the incident in detail (e.g., 'Flood rising near school', 'Roof damage', etc.)..."
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
                 rows={4}
-                className="w-full px-4 py-3 text-sm border-2 border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 required
               />
             </div>
 
             {/* Image Upload */}
             <div>
-              <label className="block text-sm font-semibold text-gray-800 mb-2">
-                Add Images (Optional)
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Add Images <span className="text-gray-400">(Optional)</span>
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50/30 transition-all cursor-pointer">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
                 <input
                   type="file"
                   accept="image/*"
@@ -313,9 +420,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
                   htmlFor="image-upload"
                   className="cursor-pointer flex flex-col items-center"
                 >
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center mb-3">
-                    <Upload className="w-6 h-6 text-blue-600" />
-                  </div>
+                  <Upload className="w-10 h-10 text-blue-500 mb-3" />
                   <p className="text-sm font-medium text-gray-700 mb-1">
                     Click to upload images
                   </p>
@@ -327,18 +432,39 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
               {/* Image Previews */}
               {imagePreview.length > 0 && (
-                <div className="grid grid-cols-5 gap-3 mt-4">
+                <div className="flex flex-wrap gap-2 mt-3">
                   {imagePreview.map((img, idx) => (
-                    <div key={idx} className="relative group">
+                    <div key={idx} className="relative group" style={{ width: '100px', height: '100px' }}>
                       <img
                         src={img.url}
                         alt={`Preview ${idx + 1}`}
-                        className="w-full h-20 object-cover rounded-lg border-2 border-gray-200"
+                        style={{
+                          width: '100px',
+                          height: '100px',
+                          objectFit: 'cover',
+                          borderRadius: '0.375rem',
+                          border: '1px solid #d1d5db'
+                        }}
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                        style={{
+                          position: 'absolute',
+                          top: '-4px',
+                          right: '-4px',
+                          backgroundColor: '#ef4444',
+                          color: 'white',
+                          borderRadius: '50%',
+                          padding: '4px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          opacity: 0,
+                          transition: 'opacity 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                        onMouseOut={(e) => e.currentTarget.style.opacity = '0'}
+                        className="group-hover:opacity-100"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -364,40 +490,74 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
               </div>
             )}
 
-            {/* Submit Buttons */}
-            <div className="flex gap-3 pt-6 border-t-2 border-gray-100 mt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={loading}
-                className="flex-1 h-12 border-2 border-gray-300 hover:bg-gray-100 font-medium"
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={loading || !formData.category || !formData.description || !formData.city}
-                className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? (
-                  <>
-                    <Loader className="w-5 h-5 mr-2 animate-spin" />
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <MapPin className="w-5 h-5 mr-2" />
-                    Submit Report
-                  </>
-                )}
-              </Button>
-            </div>
           </form>
-        </CardContent>
-        </Card>
-      </div>
-      </div>
+            </div>
+
+            {/* Footer - ALWAYS VISIBLE */}
+            <div style={{ 
+              borderTop: '1px solid #e5e7eb',
+              padding: '1rem 1.5rem',
+              backgroundColor: '#f9fafb',
+              borderBottomLeftRadius: '0.5rem',
+              borderBottomRightRadius: '0.5rem'
+            }}>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={loading}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#6b7280',
+                    color: 'white',
+                    fontWeight: '600',
+                    borderRadius: '0.375rem',
+                    border: 'none',
+                    cursor: 'pointer'
+                  }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#4b5563'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = '#6b7280'}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="report-form"
+                  disabled={loading || !formData.description || !formData.city || !formData.barangay || !formData.hazardType}
+                  style={{
+                    flex: 1,
+                    padding: '0.75rem 1.5rem',
+                    backgroundColor: '#2563eb',
+                    color: 'white',
+                    fontWeight: '600',
+                    borderRadius: '0.375rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem'
+                  }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#1d4ed8'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = '#2563eb'}
+                >
+                  {loading ? (
+                    <>
+                      <Loader className="w-5 h-5 animate-spin" />
+                      <span>Submitting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <MapPin className="w-5 h-5" />
+                      <span>Submit Report</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );

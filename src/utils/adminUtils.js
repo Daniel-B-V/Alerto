@@ -57,6 +57,71 @@ export const makeUserAdmin = async (uid) => {
 };
 
 /**
+ * Make the current logged-in user a mayor
+ * Usage in browser console: window.makeCurrentUserMayor('Batangas City')
+ */
+export const makeCurrentUserMayor = async (city) => {
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    console.error('❌ No user is currently logged in. Please log in first.');
+    return { success: false, error: 'No user logged in' };
+  }
+
+  if (!city) {
+    console.error('❌ Please provide a city name.');
+    console.log('💡 Usage: window.makeCurrentUserMayor("Batangas City")');
+    console.log('Available cities: Batangas City, Lipa City, Tanauan City, Santo Tomas, etc.');
+    return { success: false, error: 'No city provided' };
+  }
+
+  console.log(`🔄 Making user ${currentUser.email} (${currentUser.uid}) a mayor of ${city}...`);
+
+  const result = await setUserRole(currentUser.uid, 'mayor', city);
+
+  if (result.success) {
+    console.log(`✅ Success! You are now the Mayor of ${city}. Please refresh the page.`);
+    console.log('🔄 Refreshing page in 2 seconds...');
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+  } else {
+    console.error('❌ Failed to set mayor role:', result.error);
+  }
+
+  return result;
+};
+
+/**
+ * Make the current logged-in user a governor
+ * Usage in browser console: window.makeCurrentUserGovernor()
+ */
+export const makeCurrentUserGovernor = async () => {
+  const currentUser = auth.currentUser;
+
+  if (!currentUser) {
+    console.error('❌ No user is currently logged in. Please log in first.');
+    return { success: false, error: 'No user logged in' };
+  }
+
+  console.log(`🔄 Making user ${currentUser.email} (${currentUser.uid}) a governor...`);
+
+  const result = await setUserRole(currentUser.uid, 'governor');
+
+  if (result.success) {
+    console.log('✅ Success! You are now a Governor. Please refresh the page.');
+    console.log('🔄 Refreshing page in 2 seconds...');
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+  } else {
+    console.error('❌ Failed to set governor role:', result.error);
+  }
+
+  return result;
+};
+
+/**
  * Check current user's role
  * Usage in browser console: window.checkMyRole()
  */
@@ -72,7 +137,10 @@ export const checkCurrentUserRole = () => {
   console.log('  Email:', currentUser.email);
   console.log('  UID:', currentUser.uid);
   console.log('  Display Name:', currentUser.displayName);
-  console.log('\n💡 To make yourself admin, run: window.makeCurrentUserAdmin()');
+  console.log('\n💡 Available commands:');
+  console.log('  window.makeCurrentUserGovernor() - Become a Governor');
+  console.log('  window.makeCurrentUserMayor("Batangas City") - Become a Mayor');
+  console.log('  window.makeCurrentUserAdmin() - Become an Admin (same as Governor)');
 
   return {
     email: currentUser.email,

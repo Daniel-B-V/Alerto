@@ -21,6 +21,7 @@ import {
 } from "recharts";
 import { getBatangasWeather, getDetailedHourlyForecast } from "../services/weatherService";
 import { getReports } from "../firebase/firestore";
+import { calculateWeatherSeverity, getSeverityConfig, CATEGORY_CONFIG } from "../constants/categorization";
 
 export function AnalyticsPanel() {
   const [loading, setLoading] = useState(true);
@@ -104,30 +105,21 @@ export function AnalyticsPanel() {
       }
       setWeeklyTrends(last7Days);
 
-      // Calculate category breakdown
+      // Calculate category breakdown using centralized config
       const categoryCount = {};
       reports.forEach(report => {
         const category = report.category || 'other';
         categoryCount[category] = (categoryCount[category] || 0) + 1;
       });
 
-      const categoryColors = {
-        flooding: '#3b82f6',
-        heavy_rain: '#0ea5e9',
-        landslide: '#f59e0b',
-        strong_wind: '#8b5cf6',
-        storm: '#ef4444',
-        road_blockage: '#f97316',
-        power_outage: '#eab308',
-        infrastructure: '#06b6d4',
-        other: '#6b7280'
-      };
-
-      const categories = Object.entries(categoryCount).map(([name, count]) => ({
-        name: name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-        value: count,
-        color: categoryColors[name] || '#6b7280'
-      })).sort((a, b) => b.value - a.value);
+      const categories = Object.entries(categoryCount).map(([categoryKey, count]) => {
+        const categoryConfig = CATEGORY_CONFIG[categoryKey] || CATEGORY_CONFIG.other;
+        return {
+          name: categoryConfig.label,
+          value: count,
+          color: categoryConfig.color
+        };
+      }).sort((a, b) => b.value - a.value);
 
       setCategoryBreakdown(categories);
 
@@ -206,37 +198,37 @@ export function AnalyticsPanel() {
       )}
 
       {/* City-by-City Weather Details */}
-      {!loading && !error && citiesWeather && citiesWeather.length > 0 && (
+      {!loading && !error && (
         <div className="max-w-7xl mx-auto mb-6">
           <div className="mb-4">
             <h2 className="text-2xl font-bold text-gray-900">City-by-City Weather Conditions</h2>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {(showAllCities ? citiesWeather : citiesWeather.slice(0, 8)).map((city, index) => {
+          {citiesWeather && citiesWeather.length > 0 ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {(showAllCities ? citiesWeather : citiesWeather.slice(0, 8)).map((city, index) => {
               // Check if weather data has alerts array with risk level
               const alertLevel = city.alerts && city.alerts.length > 0 ? city.alerts[0].level : null;
 
-              // Calculate risk level based on alerts or weather conditions
-              const riskLevel = alertLevel || (
-                city.current.rainfall >= 30 || city.current.windSpeed >= 55 ? 'critical' :
-                city.current.rainfall >= 20 || city.current.windSpeed >= 40 ? 'high' :
-                city.current.rainfall >= 10 || city.current.windSpeed >= 30 ? 'medium' :
-                city.current.rainfall >= 5 || city.current.windSpeed >= 20 ? 'low' : 'safe'
+              // Calculate risk level using centralized function
+              const riskLevel = alertLevel || calculateWeatherSeverity(
+                city.current.rainfall,
+                city.current.windSpeed
               );
+
+              // Get severity configuration
+              const severityConfig = getSeverityConfig(riskLevel);
 
               return (
                 <Card key={index} className="bg-white border border-gray-200 shadow-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{city.location.city}</CardTitle>
-                      <Badge className={`${
-                        riskLevel === 'critical' ? 'bg-purple-700' :
-                        riskLevel === 'high' ? 'bg-red-600' :
-                        riskLevel === 'medium' ? 'bg-orange-600' :
-                        riskLevel === 'low' ? 'bg-yellow-600' :
-                        'bg-green-600'
-                      } text-white text-xs`}>
-                        {riskLevel.toUpperCase()}
+                      <Badge
+                        className="text-xs text-white"
+                        style={{ backgroundColor: severityConfig.color }}
+                      >
+                        {severityConfig.label.toUpperCase()}
                       </Badge>
                     </div>
                   </CardHeader>
@@ -276,38 +268,12 @@ export function AnalyticsPanel() {
                         </span>
                       </div>
 
-                      <div className="flex items-center justify-between pb-2 border-b border-gray-100">
+                      <div className="flex items-center justify-between">
                         <span className="flex items-center gap-2">
                           <Droplets className="w-4 h-4 text-blue-600" />
                           <span>Humidity</span>
                         </span>
                         <span className="font-semibold text-gray-700">{city.current.humidity}%</span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="flex items-center gap-2">
-                          <AlertTriangle className={`w-4 h-4 ${
-                            riskLevel === 'critical' ? 'text-purple-700' :
-                            riskLevel === 'high' ? 'text-red-600' :
-                            riskLevel === 'medium' ? 'text-orange-600' :
-                            riskLevel === 'low' ? 'text-yellow-600' :
-                            'text-green-600'
-                          }`} />
-                          <span>Condition</span>
-                        </span>
-                        <span className={`font-semibold ${
-                          riskLevel === 'critical' ? 'text-purple-700' :
-                          riskLevel === 'high' ? 'text-red-600' :
-                          riskLevel === 'medium' ? 'text-orange-600' :
-                          riskLevel === 'low' ? 'text-yellow-600' :
-                          'text-green-600'
-                        }`}>
-                          {riskLevel === 'critical' ? 'CRITICAL' :
-                           riskLevel === 'high' ? 'High Risk' :
-                           riskLevel === 'medium' ? 'Moderate' :
-                           riskLevel === 'low' ? 'Low Risk' :
-                           'Safe'}
-                        </span>
                       </div>
                     </div>
                   </CardContent>
@@ -316,16 +282,38 @@ export function AnalyticsPanel() {
             })}
           </div>
 
-          {/* Show All Button */}
-          {citiesWeather.length > 8 && (
-            <div className="flex justify-center mt-8">
-              <button
-                onClick={() => setShowAllCities(!showAllCities)}
-                className="text-black font-medium hover:underline"
-              >
-                {showAllCities ? 'Hide all' : 'Show all'}
-              </button>
-            </div>
+          {/* Show All Button - Always visible when there are cities */}
+          <div className="flex justify-center mt-8">
+            <button
+              onClick={() => setShowAllCities(!showAllCities)}
+              className="text-black font-medium hover:underline"
+            >
+              {showAllCities ? 'Show less' : 'Show all'}
+            </button>
+          </div>
+        </>
+          ) : (
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-6 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <Cloud className="w-12 h-12 text-blue-500" />
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Weather Data Available</h3>
+                    <p className="text-gray-600 mb-4">
+                      Weather data is currently unavailable. This could be due to:
+                    </p>
+                    <ul className="text-sm text-gray-600 text-left max-w-md mx-auto space-y-1">
+                      <li>• No seeded data in the database</li>
+                      <li>• Weather API connection issues</li>
+                      <li>• API key configuration problems</li>
+                    </ul>
+                    <p className="text-sm text-gray-500 mt-4">
+                      Try clicking "Refresh Data" or seed the database with test data.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
@@ -348,10 +336,10 @@ export function AnalyticsPanel() {
                   <PieChart>
                     <Pie
                       data={[
-                        { name: 'Critical', value: communityReports.filter(r => r.severity === 'critical').length, color: '#dc2626' },
-                        { name: 'High', value: communityReports.filter(r => r.severity === 'high').length, color: '#f97316' },
-                        { name: 'Medium', value: communityReports.filter(r => r.severity === 'medium').length, color: '#eab308' },
-                        { name: 'Low', value: communityReports.filter(r => r.severity === 'low').length, color: '#22c55e' }
+                        { name: getSeverityConfig('critical').shortLabel, value: communityReports.filter(r => r.severity === 'critical').length, color: getSeverityConfig('critical').color },
+                        { name: getSeverityConfig('high').shortLabel, value: communityReports.filter(r => r.severity === 'high').length, color: getSeverityConfig('high').color },
+                        { name: getSeverityConfig('medium').shortLabel, value: communityReports.filter(r => r.severity === 'medium').length, color: getSeverityConfig('medium').color },
+                        { name: getSeverityConfig('low').shortLabel, value: communityReports.filter(r => r.severity === 'low').length, color: getSeverityConfig('low').color }
                       ].filter(d => d.value > 0)}
                       cx="50%"
                       cy="50%"
@@ -360,10 +348,10 @@ export function AnalyticsPanel() {
                       label={({ name, value }) => `${name}: ${value}`}
                     >
                       {[
-                        { name: 'Critical', value: communityReports.filter(r => r.severity === 'critical').length, color: '#dc2626' },
-                        { name: 'High', value: communityReports.filter(r => r.severity === 'high').length, color: '#f97316' },
-                        { name: 'Medium', value: communityReports.filter(r => r.severity === 'medium').length, color: '#eab308' },
-                        { name: 'Low', value: communityReports.filter(r => r.severity === 'low').length, color: '#22c55e' }
+                        { name: getSeverityConfig('critical').shortLabel, value: communityReports.filter(r => r.severity === 'critical').length, color: getSeverityConfig('critical').color },
+                        { name: getSeverityConfig('high').shortLabel, value: communityReports.filter(r => r.severity === 'high').length, color: getSeverityConfig('high').color },
+                        { name: getSeverityConfig('medium').shortLabel, value: communityReports.filter(r => r.severity === 'medium').length, color: getSeverityConfig('medium').color },
+                        { name: getSeverityConfig('low').shortLabel, value: communityReports.filter(r => r.severity === 'low').length, color: getSeverityConfig('low').color }
                       ].filter(d => d.value > 0).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}

@@ -1,6 +1,12 @@
 // OpenWeather API Service for Real-time Weather Data
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import {
+  getRainfallWarningLevel,
+  getTCWSLevel,
+  checkAutoSuspendCriteria,
+  PAGASA_WARNINGS
+} from '../constants/suspensionCriteria';
 
 const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 const WEATHER_API_URL = import.meta.env.VITE_WEATHER_API_URL || 'https://api.openweathermap.org/data/2.5';
@@ -139,16 +145,23 @@ export const getBatangasWeather = async () => {
     }
 
     // If no Firestore data, fall back to OpenWeather API
-    console.log('🌐 Fetching weather data from OpenWeather API');
+    console.log('🌐 No seeded data found. Fetching weather data from OpenWeather API...');
     const batangasCities = [
       'Batangas City',
       'Lipa City',
       'Tanauan City',
       'Santo Tomas',
+      'Rosario',
+      'Ibaan',
       'Taal',
+      'Lemery',
       'Balayan',
       'Nasugbu',
-      'Lemery',
+      'Mabini',
+      'San Juan',
+      'Bauan',
+      'San Pascual',
+      'Calaca',
     ];
 
     const weatherPromises = batangasCities.map(city =>
@@ -161,20 +174,36 @@ export const getBatangasWeather = async () => {
     const results = await Promise.all(weatherPromises);
 
     // Filter out any failed requests
-    return results.filter(result => result !== null);
+    const validResults = results.filter(result => result !== null);
+
+    if (validResults.length === 0) {
+      console.warn('⚠️ No weather data available from API');
+    } else {
+      console.log(`✅ Successfully fetched weather data for ${validResults.length} cities from API`);
+    }
+
+    return validResults;
   } catch (error) {
     console.error('Error fetching Batangas weather:', error);
     // If Firestore fails, try API as fallback
     try {
+      console.log('🔄 Firestore error, attempting API fallback...');
       const batangasCities = [
         'Batangas City',
         'Lipa City',
         'Tanauan City',
         'Santo Tomas',
+        'Rosario',
+        'Ibaan',
         'Taal',
+        'Lemery',
         'Balayan',
         'Nasugbu',
-        'Lemery',
+        'Mabini',
+        'San Juan',
+        'Bauan',
+        'San Pascual',
+        'Calaca',
       ];
 
       const weatherPromises = batangasCities.map(city =>
@@ -185,9 +214,17 @@ export const getBatangasWeather = async () => {
       );
 
       const results = await Promise.all(weatherPromises);
-      return results.filter(result => result !== null);
+      const validResults = results.filter(result => result !== null);
+
+      if (validResults.length === 0) {
+        console.error('❌ No weather data available from API fallback');
+        return [];
+      }
+
+      return validResults;
     } catch (apiError) {
-      handleApiError(apiError, 'Batangas weather data');
+      console.error('❌ API fallback failed:', apiError);
+      return [];
     }
   }
 };
@@ -404,6 +441,165 @@ export const getDetailedHourlyForecast = async (city = DEFAULT_LOCATION.city) =>
   }
 };
 
+/**
+ * Get PAGASA rainfall warning for a city's current conditions
+ * @param {object} weatherData - Weather data object with rainfall
+ * @returns {object|null} PAGASA warning object or null
+ */
+export const getPAGASAWarning = (weatherData) => {
+  const rainfall = weatherData?.current?.rainfall || 0;
+  return getRainfallWarningLevel(rainfall);
+};
+
+/**
+ * Get TCWS level for a city's current wind speed
+ * @param {object} weatherData - Weather data object with windSpeed
+ * @returns {object|null} TCWS level object or null
+ */
+export const getTCWS = (weatherData) => {
+  const windSpeed = weatherData?.current?.windSpeed || 0;
+  return getTCWSLevel(windSpeed);
+};
+
+/**
+ * Check if weather conditions meet DepEd auto-suspend criteria
+ * @param {object} weatherData - Weather data object
+ * @returns {object} Auto-suspend assessment
+ */
+export const checkSuspensionCriteria = (weatherData) => {
+  const criteria = {
+    rainfall: weatherData?.current?.rainfall || 0,
+    windSpeed: weatherData?.current?.windSpeed || 0,
+    tcws: weatherData?.tcws || null
+  };
+
+  return checkAutoSuspendCriteria(criteria);
+};
+
+/**
+ * Get comprehensive weather assessment for suspension decision
+ * @param {string} city - City name
+ * @returns {object} Comprehensive weather assessment
+ */
+export const getWeatherAssessmentForSuspension = async (city) => {
+  try {
+    const weatherData = await getCurrentWeather(city);
+    const pagasaWarning = getPAGASAWarning(weatherData);
+    const tcws = getTCWS(weatherData);
+    const autoSuspend = checkSuspensionCriteria(weatherData);
+
+    return {
+      city,
+      weather: weatherData,
+      pagasaWarning,
+      tcws,
+      autoSuspend,
+      timestamp: new Date(),
+      criteria: {
+        rainfall: weatherData.current.rainfall,
+        windSpeed: weatherData.current.windSpeed,
+        temperature: weatherData.current.temperature,
+        humidity: weatherData.current.humidity,
+        conditions: weatherData.current.weather.description
+      }
+    };
+  } catch (error) {
+    console.error(`Error getting weather assessment for ${city}:`, error);
+    return null;
+  }
+};
+
+/**
+ * Get weather assessments for all Batangas cities with suspension criteria
+ * @returns {Array} Array of weather assessments for all cities
+ */
+export const getBatangasWeatherWithSuspensionCriteria = async () => {
+  try {
+    const batangasWeather = await getBatangasWeather();
+
+    return batangasWeather.map(weatherData => {
+      const pagasaWarning = getPAGASAWarning(weatherData);
+      const tcws = getTCWS(weatherData);
+      const autoSuspend = checkSuspensionCriteria(weatherData);
+
+      return {
+        city: weatherData.location.city,
+        weather: weatherData,
+        pagasaWarning,
+        tcws,
+        autoSuspend,
+        timestamp: weatherData.current.timestamp,
+        criteria: {
+          rainfall: weatherData.current.rainfall,
+          windSpeed: weatherData.current.windSpeed,
+          temperature: weatherData.current.temperature,
+          humidity: weatherData.current.humidity,
+          conditions: weatherData.current.weather.description
+        }
+      };
+    });
+  } catch (error) {
+    console.error('Error getting Batangas weather with suspension criteria:', error);
+    return [];
+  }
+};
+
+/**
+ * Get cities that meet auto-suspension criteria
+ * @returns {Array} Array of cities that should be auto-suspended
+ */
+export const getCitiesForAutoSuspension = async () => {
+  try {
+    const assessments = await getBatangasWeatherWithSuspensionCriteria();
+
+    return assessments
+      .filter(assessment => assessment.autoSuspend.shouldAutoSuspend)
+      .map(assessment => ({
+        city: assessment.city,
+        reason: assessment.autoSuspend.triggers.map(t => t.description).join(', '),
+        pagasaWarning: assessment.pagasaWarning,
+        tcws: assessment.tcws,
+        criteria: assessment.criteria,
+        affectedLevels: assessment.autoSuspend.affectedLevels,
+        triggers: assessment.autoSuspend.triggers
+      }));
+  } catch (error) {
+    console.error('Error getting cities for auto-suspension:', error);
+    return [];
+  }
+};
+
+/**
+ * Get PAGASA warning badge color and label
+ * @param {string} warningLevel - Warning level (yellow/orange/red)
+ * @returns {object} Badge properties
+ */
+export const getPAGASAWarningBadge = (warningLevel) => {
+  if (!warningLevel) {
+    return {
+      label: 'No Warning',
+      color: '#10B981',
+      bgColor: '#D1FAE5',
+      icon: '✓'
+    };
+  }
+
+  const warning = PAGASA_WARNINGS[warningLevel.toUpperCase()];
+  return warning
+    ? {
+        label: warning.label,
+        color: warning.color,
+        bgColor: warning.bgColor,
+        icon: warning.icon
+      }
+    : {
+        label: 'Unknown',
+        color: '#6B7280',
+        bgColor: '#F3F4F6',
+        icon: '?'
+      };
+};
+
 export default {
   getCurrentWeather,
   getWeatherForecast,
@@ -413,4 +609,12 @@ export default {
   getWeatherAlerts,
   getWeatherStatistics,
   getWeatherIconName,
+  // New suspension-related functions
+  getPAGASAWarning,
+  getTCWS,
+  checkSuspensionCriteria,
+  getWeatherAssessmentForSuspension,
+  getBatangasWeatherWithSuspensionCriteria,
+  getCitiesForAutoSuspension,
+  getPAGASAWarningBadge
 };

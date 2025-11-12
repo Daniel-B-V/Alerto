@@ -14,7 +14,7 @@ const reportSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['flooding', 'traffic', 'power', 'infrastructure', 'weather', 'emergency', 'other'],
+    enum: ['flooding', 'heavy_rain', 'strong_wind', 'typhoon', 'landslide', 'road_blockage', 'power_outage', 'infrastructure_damage', 'other'],
     required: true
   },
   severity: {
@@ -24,8 +24,8 @@ const reportSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'verified', 'investigating', 'resolved', 'false_report'],
-    default: 'pending'
+    enum: ['verified', 'investigating', 'resolved', 'false_report'],
+    default: 'verified'
   },
   location: {
     barangay: { type: String, required: true },
