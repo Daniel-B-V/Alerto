@@ -1,13 +1,13 @@
 import { Thermometer, AlertTriangle, Info, Droplet } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
 import {
   calculateHeatIndex,
   getHeatIndexCategory,
   formatHeatIndexDisplay,
   getHeatSafetyTips,
   isPeakHeatTime
-} from "../utils/heatIndexUtils";
+} from "../../utils/heatIndexUtils";
 
 export function HeatIndexCard({ temperature, humidity, showDetails = false, className = "" }) {
   if (!temperature || !humidity) {

@@ -10,7 +10,7 @@ import {
   RefreshCw,
   Brain
 } from 'lucide-react';
-import { analyzeClassSuspensionReports } from '../services/geminiService';
+import { analyzeClassSuspensionReports } from '../../services/geminiService';
 
 /**
  * AI Reports Analyzer Component

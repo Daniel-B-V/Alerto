@@ -1,9 +1,9 @@
-import { Header } from "./components/Header";
-import { Sidebar } from "./components/Sidebar";
-import { DashboardContent } from "./components/DashboardContent";
-import { UserLayout } from "./components/UserLayout";
-import { Login } from "./components/Login";
-import { SignUp } from "./components/SignUp";
+import { Header } from "./components/shared/Header";
+import { Sidebar } from "./components/shared/Sidebar";
+import { DashboardContent } from "./components/dashboard/admin/DashboardContent";
+import { UserLayout } from "./components/dashboard/user/UserLayout";
+import { Login } from "./components/auth/Login";
+import { SignUp } from "./components/auth/SignUp";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { SocketProvider } from "./contexts/SocketContext";
 import { SuspensionProvider } from "./contexts/SuspensionContext";

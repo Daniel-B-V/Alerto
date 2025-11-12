@@ -9,9 +9,9 @@ import {
   BarChart3,
   Database
 } from "lucide-react";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import { useState } from "react";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../../contexts/AuthContext";
 
 export function Sidebar({ activeSection, onSectionChange }) {
   const [collapsed, setCollapsed] = useState(false);

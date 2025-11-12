@@ -1,14 +1,14 @@
 import { useState, useEffect } from "react";
-import { X, Check, Clock, AlertTriangle, RefreshCw, MapPin, Cloud, List, Ban, GraduationCap, Thermometer } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { getReports, getWeatherData } from "../firebase/firestore";
-import { getBatangasWeather } from "../services/weatherService";
-import { analyzeSuspensionAdvisory } from "../services/geminiService";
+import { X, Check, Clock, AlertTriangle, RefreshCw, MapPin, Cloud, List, Ban } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { getReports, getWeatherData } from "../../firebase/firestore";
+import { getBatangasWeather } from "../../services/weatherService";
+import { analyzeSuspensionAdvisory } from "../../services/geminiService";
 import { collection, addDoc, serverTimestamp, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
-import { useSocket } from '../contexts/SocketContext';
+import { db } from '../../firebase/config';
+import { useSocket } from '../../contexts/SocketContext';
 import { calculateHeatIndex, getHeatIndexCategory } from "../utils/heatIndexUtils";
 
 export function SuspensionPanel() {

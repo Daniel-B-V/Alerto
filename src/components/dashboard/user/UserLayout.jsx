@@ -1,10 +1,14 @@
-import { Header } from "./Header";
-import { UserSidebar } from "./UserSidebar";
+import { Header } from "../../shared/Header";
+import { UserSidebar } from "../../shared/UserSidebar";
 import { UserDashboard } from "./UserDashboard";
 import { UserSuspensionView } from "./UserSuspensionView";
-import { UserReportsPage } from "./UserReportsPage";
-import { SocketProvider } from "../contexts/SocketContext";
+import { UserReportsPage } from "../../reports/UserReportsPage";
+import { SocketProvider } from "../../../contexts/SocketContext";
 import { useState } from "react";
+import { useAuth } from "../../../contexts/AuthContext";
+import { Card, CardHeader, CardTitle, CardContent } from "../../ui/card";
+import { Button } from "../../ui/button";
+import { User, LogOut } from "lucide-react";
 
 // Settings panel for users (logout, notifications)
 function UserSettings() {
@@ -63,10 +67,6 @@ function UserSettings() {
   );
 }
 
-import { useAuth } from "../contexts/AuthContext";
-import { Card, CardHeader, CardTitle, CardContent } from "./ui/card";
-import { Button } from "./ui/button";
-import { User, LogOut } from "lucide-react";
 
 export function UserLayout() {
   const [activeSection, setActiveSection] = useState("dashboard");

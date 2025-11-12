@@ -20,18 +20,17 @@ import {
   Loader2,
   AlertOctagon,
   Target,
-  TrendingDown,
   Filter
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { subscribeToReports } from "../firebase/firestore";
-import { analyzeCompiledLocationReports, analyzeIndividualReportCredibility } from "../services/geminiService";
-import { useSuspensions } from "../hooks/useSuspensions";
-import { getWeatherAssessmentForSuspension } from "../services/weatherService";
-import { SUSPENSION_LEVELS } from "../constants/suspensionCriteria";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { subscribeToReports } from "../../firebase/firestore";
+import { analyzeCompiledLocationReports, analyzeIndividualReportCredibility } from "../../services/geminiService";
+import { useSuspensions } from "../../hooks/useSuspensions";
+import { getWeatherAssessmentForSuspension } from "../../services/weatherService";
+import { SUSPENSION_LEVELS } from "../../constants/suspensionCriteria";
 
 export function EnhancedReportsPage() {
   const [reports, setReports] = useState([]);

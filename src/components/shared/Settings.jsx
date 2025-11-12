@@ -4,10 +4,10 @@
  */
 
 import React, { useState } from 'react';
-import { Card } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Alert, AlertDescription } from './ui/alert';
+import { Card } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { Alert, AlertDescription } from '../ui/alert';
 import {
   User,
   Shield,
@@ -18,9 +18,9 @@ import {
   Check,
   Info
 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { setUserRole } from '../firebase/firestore';
-import { BATANGAS_LOCATIONS } from '../constants/suspensionCriteria';
+import { useAuth } from '../../contexts/AuthContext';
+import { setUserRole } from '../../firebase/firestore';
+import { BATANGAS_LOCATIONS } from '../../constants/suspensionCriteria';
 
 const Settings = () => {
   const { user, logout } = useAuth();

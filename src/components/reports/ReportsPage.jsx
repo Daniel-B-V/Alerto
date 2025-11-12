@@ -8,16 +8,14 @@ import {
   Download,
   RefreshCw,
   TrendingUp,
-  Users,
-  FileText,
-  BarChart3
+  FileText
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { subscribeToReports } from "../firebase/firestore";
-import { getSeverityConfig } from "../constants/categorization";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { subscribeToReports } from "../../firebase/firestore";
+import { getSeverityConfig } from "../../constants/categorization";
 
 export function ReportsPage() {
   const [reports, setReports] = useState([]);

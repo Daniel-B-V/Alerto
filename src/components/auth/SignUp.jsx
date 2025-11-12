@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { Cloud, Bell } from 'lucide-react';
 import { validateSignUpForm, getAuthErrorMessage } from './LoginUtils';
-import { Label } from './ui/label';
-import { Input } from './ui/input';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 import { LoginAlert } from './LoginAlert';
 
 const SignUp = () => {

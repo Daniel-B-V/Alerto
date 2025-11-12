@@ -15,7 +15,7 @@ import {
   AlertCircle,
   Sparkles
 } from 'lucide-react';
-import { analyzeSuspensionAdvisory } from '../services/geminiService';
+import { analyzeSuspensionAdvisory } from '../../services/geminiService';
 
 /**
  * Suspension Advisory System

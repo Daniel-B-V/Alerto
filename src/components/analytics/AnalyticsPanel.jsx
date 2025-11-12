@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { BarChart3, RefreshCw, Cloud, AlertTriangle, CloudRain, Wind, Droplets, PieChart as PieChartIcon, TrendingUp, Calendar } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
 import {
   PieChart,
   Pie,
@@ -19,9 +19,9 @@ import {
   YAxis,
   CartesianGrid
 } from "recharts";
-import { getBatangasWeather, getDetailedHourlyForecast } from "../services/weatherService";
-import { getReports } from "../firebase/firestore";
-import { calculateWeatherSeverity, getSeverityConfig, CATEGORY_CONFIG } from "../constants/categorization";
+import { getBatangasWeather, getDetailedHourlyForecast } from "../../services/weatherService";
+import { getReports } from "../../firebase/firestore";
+import { calculateWeatherSeverity, getSeverityConfig, CATEGORY_CONFIG } from "../../constants/categorization";
 
 export function AnalyticsPanel() {
   const [loading, setLoading] = useState(true);

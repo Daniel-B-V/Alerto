@@ -11,13 +11,14 @@ import {
   MapPin,
   Calendar
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { Input } from "./ui/input";
-import { useAuth } from "../contexts/AuthContext";
-import { getUserReports } from "../firebase/firestore";
-import { ReportSubmissionModal } from "./ReportSubmissionModal";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
+import { useAuth } from "../../contexts/AuthContext";
+import { getUserReports } from "../../firebase/firestore";
+import { ReportSubmissionModal } from "../community/ReportSubmissionModal";
+import { CATEGORY_CONFIG } from "../../constants/categorization";
 
 export function UserReportsPage() {
   const { user } = useAuth();
@@ -310,7 +311,7 @@ export function UserReportsPage() {
                   {report.categories && report.categories.length > 0 && (
                     <div className="flex flex-wrap gap-1">
                       {report.categories.map((cat, idx) => {
-                        const categoryLabel = reportTypes.find(rt => rt.value === cat)?.label || cat;
+                        const categoryLabel = CATEGORY_CONFIG[cat]?.label || cat;
                         return (
                           <Badge key={idx} className="bg-blue-100 text-blue-700 text-xs">
                             {categoryLabel}

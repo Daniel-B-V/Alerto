@@ -1,8 +1,6 @@
 import { useState, useEffect } from "react";
 import {
-  Heart,
   MessageCircle,
-  Share2,
   MapPin,
   Clock,
   CheckCircle,
@@ -16,22 +14,20 @@ import {
   ChevronRight,
   ChevronDown,
   ChevronUp,
-  MoreVertical,
-  Bookmark,
   TrendingUp,
   Users,
   Eye
 } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
-import { Button } from "./ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
-import { getReports, toggleLike, subscribeToReports, updateReport } from "../firebase";
-import { useAuth } from "../contexts/AuthContext";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { getReports, toggleLike, subscribeToReports, updateReport } from "../../firebase";
+import { useAuth } from "../../contexts/AuthContext";
 import { ReportSubmissionModal } from "./ReportSubmissionModal";
-import { CATEGORY_CONFIG } from "../constants/categorization";
-import { getCredibilityBadge } from "../services/imageAnalysisService";
+import { CATEGORY_CONFIG } from "../../constants/categorization";
+import { getCredibilityBadge } from "../../services/imageAnalysisService";
 
 // Convert centralized categories to format needed for this component
 const REPORT_CATEGORIES = Object.entries(CATEGORY_CONFIG).map(([value, config]) => ({
@@ -54,7 +50,6 @@ export function CommunityFeed() {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedPost, setSelectedPost] = useState(null);
   const [commentText, setCommentText] = useState({});
   const [showComments, setShowComments] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);

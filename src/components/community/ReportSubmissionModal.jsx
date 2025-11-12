@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { X, Upload, MapPin, AlertTriangle, Loader } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
-import { Badge } from "./ui/badge";
-import { createReport } from "../firebase/firestore";
-import { uploadMultipleImagesToCloudinary } from "../services/cloudinaryService";
-import { analyzeReportImages } from "../services/imageAnalysisService";
-import { useAuth } from "../contexts/AuthContext";
-import { CATEGORY_CONFIG, CATEGORIES } from "../constants/categorization";
-import { BATANGAS_MUNICIPALITIES, getBarangays } from "../constants/batangasLocations";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { createReport } from "../../firebase/firestore";
+import { uploadMultipleImagesToCloudinary } from "../../services/cloudinaryService";
+import { analyzeReportImages } from "../../services/imageAnalysisService";
+import { useAuth } from "../../contexts/AuthContext";
+import { CATEGORY_CONFIG, CATEGORIES } from "../../constants/categorization";
+import { BATANGAS_MUNICIPALITIES, getBarangays } from "../../constants/batangasLocations";
 
 // Hazard types for dropdown
 const HAZARD_TYPES = [

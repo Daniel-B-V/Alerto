@@ -1,9 +1,9 @@
 import { Bell, Cloud, User, X, AlertTriangle } from "lucide-react";
-import { Button } from "./ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Badge } from "./ui/badge";
-import { useSocket } from "../contexts/SocketContext";
-import { useAuth } from "../contexts/AuthContext";
+import { Button } from "../ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Badge } from "../ui/badge";
+import { useSocket } from "../../contexts/SocketContext";
+import { useAuth } from "../../contexts/AuthContext";
 import { useState, useRef, useEffect } from "react";
 
 export function Header() {

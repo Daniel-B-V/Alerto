@@ -1,21 +1,21 @@
 import { useState, useEffect, useRef } from "react";
 import { Cloud, Droplets, Wind, Gauge, MapPin, RefreshCw, Thermometer } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
-import { Badge } from "./ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { Badge } from "../ui/badge";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import {
   getCurrentWeather,
   getHourlyForecast,
   getWeatherAlerts,
   getBatangasWeather
-} from "../services/weatherService";
-import { getReports } from "../firebase/firestore";
-import { useSocket } from "../contexts/SocketContext";
+} from "../../services/weatherService";
+import { getReports } from "../../firebase/firestore";
+import { useSocket } from "../../contexts/SocketContext";
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { db } from '../../firebase/config';
 import { HeatIndexCard, HeatIndexAlert } from "./HeatIndexCard";
-import { calculateHeatIndex, getHeatIndexCategory } from "../utils/heatIndexUtils";
-import { DashboardAnnouncementCard } from "./suspension/DashboardAnnouncementCard";
+import { calculateHeatIndex, getHeatIndexCategory } from "../../utils/heatIndexUtils";
+import { DashboardAnnouncementCard } from "../suspension/DashboardAnnouncementCard";
 
 export function WeatherPanel({ showAnnouncement = false }) {
   const [currentWeather, setCurrentWeather] = useState(null);

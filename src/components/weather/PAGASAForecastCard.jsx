@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
-import { Badge } from './ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
+import { Badge } from '../ui/badge';
 import { CloudRain, AlertTriangle, RefreshCw, TrendingUp, MapPin } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { getCombinedForecast, getRainfallAlerts } from '../services/pagasaService';
+import { getCombinedForecast, getRainfallAlerts } from '../../services/pagasaService';
 
 export function PAGASAForecastCard() {
   const [forecastData, setForecastData] = useState(null);

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Database, Trash2, Upload, Info, CheckCircle, AlertCircle, Cloud, CloudRain } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { resetDatabase, clearAllReports, clearAllWeatherData, seedWeatherData, getScenarioInfo } from '../utils/seedDatabase';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Button } from '../ui/button';
+import { Badge } from '../ui/badge';
+import { resetDatabase, clearAllReports, clearAllWeatherData, seedWeatherData, getScenarioInfo } from '../../utils/seedDatabase';
 
 export const DatabaseSeeder = () => {
   const [loading, setLoading] = useState(false);
