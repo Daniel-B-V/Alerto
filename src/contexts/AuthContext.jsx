@@ -48,7 +48,9 @@ export const AuthProvider = ({ children }) => {
             photoURL: firebaseUser.photoURL,
             emailVerified: firebaseUser.emailVerified,
             role: userData?.role || userProfile?.role || 'user',
-            province: userProfile?.province || 'Batangas'
+            province: userProfile?.province || 'Batangas',
+            assignedCity: userProfile?.assignedCity || null, // For mayors
+            assignedProvince: userProfile?.assignedProvince || 'Batangas' // For all
           });
           setUserRole(userData?.role || userProfile?.role || 'user');
           setIsAuthenticated(true);
@@ -139,7 +141,9 @@ export const AuthProvider = ({ children }) => {
         photoURL: firebaseUser.photoURL,
         emailVerified: firebaseUser.emailVerified,
         role: userDataFromFirestore?.role || userProfile?.role || 'user',
-        province: userProfile?.province || 'Batangas'
+        province: userProfile?.province || 'Batangas',
+        assignedCity: userProfile?.assignedCity || null, // For mayors
+        assignedProvince: userProfile?.assignedProvince || 'Batangas' // For all
       };
 
       // Update user profile in Firestore on login
@@ -188,7 +192,9 @@ export const AuthProvider = ({ children }) => {
         photoURL: firebaseUser.photoURL,
         emailVerified: firebaseUser.emailVerified,
         role: userDataFromFirestore?.role || existingProfile?.role || 'user',
-        province: existingProfile?.province || 'Batangas'
+        province: existingProfile?.province || 'Batangas',
+        assignedCity: existingProfile?.assignedCity || null, // For mayors
+        assignedProvince: existingProfile?.assignedProvince || 'Batangas' // For all
       };
 
       // Save/Update user profile in Firestore for Google login
@@ -236,7 +242,9 @@ export const AuthProvider = ({ children }) => {
         photoURL: firebaseUser.photoURL,
         emailVerified: firebaseUser.emailVerified,
         role: 'user', // Default role for new users
-        province: userData.province || 'Batangas'
+        province: userData.province || 'Batangas',
+        assignedCity: userData.assignedCity || null, // For mayors
+        assignedProvince: userData.assignedProvince || 'Batangas' // For all
       };
 
       // Save user profile to Firestore

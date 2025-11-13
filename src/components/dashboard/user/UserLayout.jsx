@@ -3,69 +3,9 @@ import { UserSidebar } from "../../shared/UserSidebar";
 import { UserDashboard } from "./UserDashboard";
 import { UserSuspensionView } from "./UserSuspensionView";
 import { UserReportsPage } from "../../reports/UserReportsPage";
+import Settings from "../../shared/Settings";
 import { SocketProvider } from "../../../contexts/SocketContext";
 import { useState } from "react";
-import { useAuth } from "../../../contexts/AuthContext";
-import { Card, CardHeader, CardTitle, CardContent } from "../../ui/card";
-import { Button } from "../../ui/button";
-import { User, LogOut } from "lucide-react";
-
-// Settings panel for users (logout, notifications)
-function UserSettings() {
-  const { user, logout } = useAuth();
-  const [loggingOut, setLoggingOut] = useState(false);
-
-  const handleLogout = async () => {
-    setLoggingOut(true);
-    try {
-      await logout();
-    } catch (error) {
-      console.error('Logout error:', error);
-    } finally {
-      setLoggingOut(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6 p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Settings
-        </h1>
-        <p className="text-gray-600">
-          Manage your account and notification preferences
-        </p>
-      </div>
-
-      <Card className="max-w-2xl">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <User className="w-5 h-5 text-blue-500" />
-            Account Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-            <div>
-              <p className="font-medium text-gray-900">{user?.displayName || 'User'}</p>
-              <p className="text-sm text-gray-600">{user?.email}</p>
-              <p className="text-xs text-gray-500 mt-1">Community Member</p>
-            </div>
-            <Button
-              variant="destructive"
-              onClick={handleLogout}
-              disabled={loggingOut}
-              className="flex items-center gap-2"
-            >
-              <LogOut className="w-4 h-4" />
-              {loggingOut ? 'Logging out...' : 'Logout'}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
 
 
 export function UserLayout() {
@@ -78,7 +18,7 @@ export function UserLayout() {
       case 'community':
         return <UserReportsPage />;
       case 'settings':
-        return <UserSettings />;
+        return <Settings />;
       default:
         return <UserDashboard />;
     }

@@ -105,12 +105,26 @@ const Settings = () => {
                 : 'bg-gray-100 text-gray-800'
             }>
               {currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin'
-                ? '👑 Governor'
+                ? '👑 Governor/Admin'
                 : currentRole === 'mayor'
-                ? `🏛️ Mayor${user?.city ? ` of ${user.city}` : ''}`
+                ? `🏛️ Mayor${user?.assignedCity ? ` of ${user.assignedCity}` : ''}`
                 : '👤 User'}
             </Badge>
           </div>
+
+          {user?.assignedCity && currentRole === 'mayor' && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Assigned City:</span>
+              <span className="font-medium text-blue-600">{user.assignedCity}</span>
+            </div>
+          )}
+
+          {user?.assignedProvince && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Province:</span>
+              <span className="font-medium">{user.assignedProvince}</span>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -140,143 +154,132 @@ const Settings = () => {
         <div className="space-y-4">
           {/* Governor Option */}
           <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center mb-2">
-                  <Crown className="w-5 h-5 text-purple-600 mr-2" />
-                  <h3 className="font-bold text-lg">Governor</h3>
-                  {(currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin') && (
-                    <Badge className="ml-2 bg-green-100 text-green-800">
-                      <Check className="w-3 h-3 mr-1" />
-                      Current
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600 mb-3">
-                  Full access to all cities, can issue suspensions directly, approve mayor requests, view analytics.
-                </p>
-                <ul className="text-xs text-gray-500 space-y-1">
-                  <li>✓ View all 34 Batangas cities</li>
-                  <li>✓ Issue and manage suspensions</li>
-                  <li>✓ Approve/reject mayor requests</li>
-                  <li>✓ Access analytics dashboard</li>
-                </ul>
-              </div>
-              <Button
-                onClick={() => handleSwitchRole('governor')}
-                disabled={switching || currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin'}
-                className="ml-4 bg-purple-600 hover:bg-purple-700"
-              >
-                {switching ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Switching...
-                  </>
-                ) : (
-                  'Switch to Governor'
-                )}
-              </Button>
+            <div className="flex items-center mb-2">
+              <Crown className="w-5 h-5 text-purple-600 mr-2" />
+              <h3 className="font-bold text-lg">Governor</h3>
+              {(currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin') && (
+                <Badge className="ml-2 bg-green-100 text-green-800">
+                  <Check className="w-3 h-3 mr-1" />
+                  Current
+                </Badge>
+              )}
             </div>
+            <p className="text-sm text-gray-600 mb-3">
+              Full access to all cities, can issue suspensions directly, approve mayor requests, view analytics.
+            </p>
+            <ul className="text-xs text-gray-500 space-y-1 mb-4">
+              <li>✓ View all 34 Batangas cities</li>
+              <li>✓ Issue and manage suspensions</li>
+              <li>✓ Approve/reject mayor requests</li>
+              <li>✓ Access analytics dashboard</li>
+            </ul>
+            <Button
+              onClick={() => handleSwitchRole('governor')}
+              disabled={switching || currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin'}
+              className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white"
+            >
+              {switching ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Switching...
+                </>
+              ) : (
+                'Switch to Governor'
+              )}
+            </Button>
           </div>
 
           {/* Mayor Option */}
           <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center mb-2">
-                  <Building2 className="w-5 h-5 text-blue-600 mr-2" />
-                  <h3 className="font-bold text-lg">Mayor</h3>
-                  {currentRole === 'mayor' && (
-                    <Badge className="ml-2 bg-green-100 text-green-800">
-                      <Check className="w-3 h-3 mr-1" />
-                      Current
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600 mb-3">
-                  City-specific view, can request suspensions from governor, limited to assigned city only.
-                </p>
-                <ul className="text-xs text-gray-500 space-y-1 mb-3">
-                  <li>✓ View your city's weather only</li>
-                  <li>✓ 12-hour forecast chart</li>
-                  <li>✓ Request suspensions (needs approval)</li>
-                  <li>✓ Track your request status</li>
-                </ul>
-
-                {/* City Selector */}
-                <div className="mt-3">
-                  <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
-                    <MapPin className="w-4 h-4 mr-1" />
-                    Select Your City:
-                  </label>
-                  <select
-                    value={selectedCity}
-                    onChange={(e) => setSelectedCity(e.target.value)}
-                    className="w-full border rounded px-3 py-2 text-sm"
-                    disabled={switching}
-                  >
-                    {BATANGAS_LOCATIONS.map(city => (
-                      <option key={city} value={city}>{city}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <Button
-                onClick={() => handleSwitchRole('mayor', selectedCity)}
-                disabled={switching || (currentRole === 'mayor' && user?.city === selectedCity)}
-                className="ml-4 bg-blue-600 hover:bg-blue-700"
-              >
-                {switching ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Switching...
-                  </>
-                ) : (
-                  'Switch to Mayor'
-                )}
-              </Button>
+            <div className="flex items-center mb-2">
+              <Building2 className="w-5 h-5 text-blue-600 mr-2" />
+              <h3 className="font-bold text-lg">Mayor</h3>
+              {currentRole === 'mayor' && (
+                <Badge className="ml-2 bg-green-100 text-green-800">
+                  <Check className="w-3 h-3 mr-1" />
+                  Current
+                </Badge>
+              )}
             </div>
+            <p className="text-sm text-gray-600 mb-3">
+              City-specific view, can request suspensions from governor, limited to assigned city only.
+            </p>
+            <ul className="text-xs text-gray-500 space-y-1 mb-4">
+              <li>✓ View your city's weather only</li>
+              <li>✓ 12-hour forecast chart</li>
+              <li>✓ Request suspensions (needs approval)</li>
+              <li>✓ Track your request status</li>
+            </ul>
+
+            {/* City Selector */}
+            <div className="mb-4">
+              <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                <MapPin className="w-4 h-4 mr-1" />
+                Select Your City:
+              </label>
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="w-full border rounded px-3 py-2 text-sm"
+                disabled={switching}
+              >
+                {BATANGAS_LOCATIONS.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+            </div>
+
+            <Button
+              onClick={() => handleSwitchRole('mayor', selectedCity)}
+              disabled={switching || (currentRole === 'mayor' && user?.assignedCity === selectedCity)}
+              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white"
+            >
+              {switching ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Switching...
+                </>
+              ) : (
+                'Switch to Mayor'
+              )}
+            </Button>
           </div>
 
           {/* Regular User Option */}
           <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center mb-2">
-                  <User className="w-5 h-5 text-gray-600 mr-2" />
-                  <h3 className="font-bold text-lg">Regular User</h3>
-                  {currentRole === 'user' && (
-                    <Badge className="ml-2 bg-green-100 text-green-800">
-                      <Check className="w-3 h-3 mr-1" />
-                      Current
-                    </Badge>
-                  )}
-                </div>
-                <p className="text-sm text-gray-600 mb-3">
-                  Standard citizen access, can view public information and submit community reports.
-                </p>
-                <ul className="text-xs text-gray-500 space-y-1">
-                  <li>✓ View active suspensions</li>
-                  <li>✓ Submit community reports</li>
-                  <li>✓ View weather information</li>
-                </ul>
-              </div>
-              <Button
-                onClick={() => handleSwitchRole('user')}
-                disabled={switching || currentRole === 'user'}
-                variant="outline"
-                className="ml-4"
-              >
-                {switching ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                    Switching...
-                  </>
-                ) : (
-                  'Switch to User'
-                )}
-              </Button>
+            <div className="flex items-center mb-2">
+              <User className="w-5 h-5 text-gray-600 mr-2" />
+              <h3 className="font-bold text-lg">Regular User</h3>
+              {currentRole === 'user' && (
+                <Badge className="ml-2 bg-green-100 text-green-800">
+                  <Check className="w-3 h-3 mr-1" />
+                  Current
+                </Badge>
+              )}
             </div>
+            <p className="text-sm text-gray-600 mb-3">
+              Standard citizen access, can view public information and submit community reports.
+            </p>
+            <ul className="text-xs text-gray-500 space-y-1 mb-4">
+              <li>✓ View active suspensions</li>
+              <li>✓ Submit community reports</li>
+              <li>✓ View weather information</li>
+            </ul>
+            <Button
+              onClick={() => handleSwitchRole('user')}
+              disabled={switching || currentRole === 'user'}
+              variant="outline"
+              className="w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {switching ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Switching...
+                </>
+              ) : (
+                'Switch to User'
+              )}
+            </Button>
           </div>
         </div>
       </Card>

@@ -62,12 +62,17 @@ export const setUserRole = async (uid, role, city = null) => {
 
     const updateData = {
       role,
-      updatedAt: serverTimestamp()
+      updatedAt: serverTimestamp(),
+      assignedProvince: 'Batangas' // All users are in Batangas Province
     };
 
-    // If role is mayor, store the city
+    // If role is mayor, store the assigned city
     if (role === 'mayor' && city) {
-      updateData.city = city;
+      updateData.assignedCity = city;
+      updateData.city = city; // Keep for backwards compatibility
+    } else {
+      // Clear assignedCity for non-mayors
+      updateData.assignedCity = null;
     }
 
     if (docSnap.exists()) {
@@ -377,22 +382,34 @@ export const getUserReports = async (userId) => {
 export const subscribeToReports = (callback, filters = {}) => {
   try {
     const reportsRef = collection(db, COLLECTIONS.REPORTS);
-    let q;
+    let queryConstraints = [];
 
-    // Build query based on filters
+    // Role-based filtering (NEW)
+    if (filters.city) {
+      // For mayors: filter by city
+      queryConstraints.push(where('location.city', '==', filters.city));
+      console.log(`📊 Firestore query: Filtering reports by city: ${filters.city}`);
+    } else if (filters.province) {
+      // For governors: filter by province
+      queryConstraints.push(where('province', '==', filters.province));
+      console.log(`📊 Firestore query: Filtering reports by province: ${filters.province}`);
+    }
+
+    // Status filter
     if (filters.status) {
-      q = query(
-        reportsRef,
-        where('status', '==', filters.status),
-        orderBy('createdAt', 'desc')
-      );
-    } else {
-      q = query(reportsRef, orderBy('createdAt', 'desc'));
+      queryConstraints.push(where('status', '==', filters.status));
     }
 
+    // Always order by createdAt
+    queryConstraints.push(orderBy('createdAt', 'desc'));
+
+    // Apply limit
     if (filters.limit) {
-      q = query(q, limit(filters.limit));
+      queryConstraints.push(limit(filters.limit));
     }
+
+    // Build final query
+    const q = query(reportsRef, ...queryConstraints);
 
     return onSnapshot(
       q,

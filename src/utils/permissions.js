@@ -38,7 +38,7 @@ export const canViewAllCities = (user) => {
 
 // Get user's assigned city (for mayors)
 export const getUserCity = (user) => {
-  return user?.city || null;
+  return user?.assignedCity || null;
 };
 
 // Filter cities based on role
@@ -60,13 +60,144 @@ export const filterCitiesByRole = (cities, user) => {
   return [];
 };
 
+// Check if user can view a specific city
+export const canViewCity = (user, cityName) => {
+  if (!user || !cityName) return false;
+
+  // Governor can view all cities
+  if (isGovernor(user)) return true;
+
+  // Mayor can only view their assigned city
+  if (isMayor(user)) {
+    return getUserCity(user) === cityName;
+  }
+
+  return false;
+};
+
+// Check if user can request suspension for a specific city
+export const canRequestSuspensionFor = (user, cityName) => {
+  if (!user || !cityName) return false;
+
+  // Governor can request for any city
+  if (isGovernor(user)) return true;
+
+  // Mayor can only request for their assigned city
+  if (isMayor(user)) {
+    return getUserCity(user) === cityName;
+  }
+
+  return false;
+};
+
+// Check if user can approve suspension requests
+export const canApproveSuspension = (user) => {
+  return isGovernor(user);
+};
+
+// Get list of cities visible to user
+export const getVisibleCities = (user, allCities = []) => {
+  if (!user) return [];
+
+  // Governor sees all cities
+  if (isGovernor(user)) {
+    return allCities;
+  }
+
+  // Mayor sees only their assigned city
+  if (isMayor(user)) {
+    const userCity = getUserCity(user);
+    if (!userCity) return [];
+
+    // Return array with just their city
+    if (Array.isArray(allCities)) {
+      return allCities.filter(city => {
+        // Handle both string arrays and object arrays
+        if (typeof city === 'string') return city === userCity;
+        return city.city === userCity || city.name === userCity;
+      });
+    }
+
+    return [userCity];
+  }
+
+  return [];
+};
+
+// Get list of barangays visible to user in a specific city
+export const getVisibleBarangays = (user, cityName, batangasLocations = {}) => {
+  if (!user || !cityName) return [];
+
+  // Check if user can view this city
+  if (!canViewCity(user, cityName)) return [];
+
+  // Return all barangays for the city from batangasLocations
+  return batangasLocations[cityName] || [];
+};
+
+// Get user's assigned province
+export const getUserProvince = (user) => {
+  return user?.assignedProvince || user?.province || 'Batangas';
+};
+
+// Get scope display text (for UI)
+export const getScopeDisplay = (user) => {
+  if (isGovernor(user)) {
+    return {
+      scope: 'provincial',
+      label: `${getUserProvince(user)} Province`,
+      description: 'All cities and municipalities'
+    };
+  }
+
+  if (isMayor(user)) {
+    const city = getUserCity(user);
+    return {
+      scope: 'city',
+      label: city || 'No city assigned',
+      description: city ? `${city} and all barangays` : 'No city assigned'
+    };
+  }
+
+  return {
+    scope: 'none',
+    label: 'No administrative access',
+    description: 'Public user'
+  };
+};
+
 // Get role display badge
 export const getRoleBadge = (user) => {
+  // Admin role (same permissions as governor but with special badge)
+  if (user?.role === 'admin' || user?.role === 'super_admin') {
+    return {
+      label: 'Admin',
+      icon: '🛡️',
+      color: 'red',
+      fullLabel: `Admin • ${getUserProvince(user)}`
+    };
+  }
   if (isGovernor(user)) {
-    return { label: 'Governor', icon: '👑', color: 'purple' };
+    return {
+      label: 'Governor',
+      icon: '👑',
+      color: 'purple',
+      fullLabel: `Governor • ${getUserProvince(user)}`
+    };
   }
   if (isMayor(user)) {
-    return { label: 'Mayor', icon: '🏛️', color: 'blue' };
+    const city = getUserCity(user);
+    return {
+      label: 'Mayor',
+      icon: '🏛️',
+      color: 'blue',
+      fullLabel: `Mayor • ${city || 'Unassigned'}`
+    };
   }
-  return { label: 'User', icon: '👤', color: 'gray' };
+  return {
+    label: 'User',
+    icon: '👤',
+    color: 'gray',
+    fullLabel: 'Community Member'
+  };
 };

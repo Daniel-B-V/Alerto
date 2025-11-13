@@ -28,6 +28,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { ReportSubmissionModal } from "./ReportSubmissionModal";
 import { CATEGORY_CONFIG } from "../../constants/categorization";
 import { getCredibilityBadge } from "../../services/imageAnalysisService";
+import { isGovernor, isMayor, getUserCity, canViewCity } from "../../utils/permissions";
 
 // Convert centralized categories to format needed for this component
 const REPORT_CATEGORIES = Object.entries(CATEGORY_CONFIG).map(([value, config]) => ({
@@ -63,8 +64,10 @@ export function CommunityFeed() {
   });
   const { user, isAuthenticated } = useAuth();
 
-  // Check if user is admin
-  const isAdmin = user?.role === 'admin' || user?.role === 'super_admin';
+  // Check if user is admin/governor or mayor
+  const isAdmin = isGovernor(user);
+  const isMayorUser = isMayor(user);
+  const userCity = getUserCity(user);
 
   // Handle verify report
   const handleVerifyReport = async (reportId) => {
@@ -77,17 +80,39 @@ export function CommunityFeed() {
     }
   };
 
-  // Load reports on component mount
+  // Load reports on component mount with role-based filtering
   useEffect(() => {
     const firebaseFilters = {
       limit: filters.limit || 20
     };
 
+    // Add role-based filtering
+    if (isMayorUser && userCity) {
+      // Mayors only see reports from their assigned city
+      firebaseFilters.city = userCity;
+      console.log(`🏛️ Mayor filtering: Only showing reports from ${userCity}`);
+    } else if (isAdmin) {
+      // Governors see all reports from the province
+      firebaseFilters.province = 'Batangas';
+      console.log('👑 Governor viewing: All reports from Batangas Province');
+    }
+
     try {
       const unsubscribe = subscribeToReports((reportsData) => {
-        console.log('Admin received reports:', reportsData.length, reportsData);
+        console.log(`Role-based reports received: ${reportsData.length} reports`, reportsData);
+
+        // Additional client-side filtering for extra security
+        let filteredData = reportsData;
+        if (isMayorUser && userCity) {
+          // Double-check that mayors only see their city's reports
+          filteredData = reportsData.filter(report =>
+            report.location?.city === userCity || report.city === userCity
+          );
+          console.log(`🔒 Client-side filter: ${filteredData.length} reports from ${userCity}`);
+        }
+
         // Sort by timestamp client-side
-        const sorted = reportsData.sort((a, b) => {
+        const sorted = filteredData.sort((a, b) => {
           const aTime = a.createdAt?.seconds || 0;
           const bTime = b.createdAt?.seconds || 0;
           return bTime - aTime;
@@ -106,7 +131,7 @@ export function CommunityFeed() {
       setError('Failed to load reports. Please refresh the page.');
       setLoading(false);
     }
-  }, [filters.limit]);
+  }, [filters.limit, userCity, isMayorUser, isAdmin]); // Re-subscribe if role changes
 
   // Filter reports based on selected filters
   const filteredReports = reports.filter(report => {
@@ -254,6 +279,48 @@ export function CommunityFeed() {
               </Button>
             )}
           </div>
+
+          {/* Role Scope Indicator */}
+          {(isMayorUser || isAdmin) && (
+            <Card className="mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  {isMayorUser ? (
+                    <>
+                      <div className="p-2 bg-blue-500 rounded-full">
+                        <MapPin className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Viewing reports from</p>
+                        <p className="text-lg font-bold text-gray-900">{userCity || 'Your City'}</p>
+                        <p className="text-xs text-blue-600 mt-0.5">
+                          🏛️ Mayor access - Only reports from your assigned city
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-2 bg-purple-500 rounded-full">
+                        <Users className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-600">Viewing reports from</p>
+                        <p className="text-lg font-bold text-gray-900">Batangas Province</p>
+                        <p className="text-xs text-purple-600 mt-0.5">
+                          👑 Governor access - All cities and municipalities
+                        </p>
+                      </div>
+                    </>
+                  )}
+                  <div className="ml-auto">
+                    <Badge variant="outline" className="text-xs">
+                      {filteredReports.length} reports visible
+                    </Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Filters */}
           <Card className="mb-6">

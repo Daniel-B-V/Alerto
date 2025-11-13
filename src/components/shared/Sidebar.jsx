@@ -7,26 +7,91 @@ import {
   Settings,
   ChevronLeft,
   BarChart3,
-  Database
+  Database,
+  Shield,
+  Crown,
+  Building2
 } from "lucide-react";
 import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
 import { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
+import { isGovernor, isMayor } from "../../utils/permissions";
 
 export function Sidebar({ activeSection, onSectionChange }) {
   const [collapsed, setCollapsed] = useState(false);
   const { user } = useAuth();
 
+  // Get role-specific badge helper
+  const getRoleBadgeIcon = () => {
+    if (user?.role === 'admin' || user?.role === 'super_admin') return <Shield className="w-3 h-3" />;
+    if (isGovernor(user)) return <Crown className="w-3 h-3" />;
+    if (isMayor(user)) return <Building2 className="w-3 h-3" />;
+    return null;
+  };
+
   // Define all navigation items with role requirements
   const allNavItems = [
-    { id: "dashboard", icon: LayoutDashboard, label: "Dashboard", roles: ["user", "admin", "super_admin", "governor", "mayor"] },
-    { id: "community", icon: Users, label: "Community", roles: ["user", "admin", "super_admin", "governor", "mayor"] },
-    { id: "user-suspension", icon: GraduationCap, label: "Suspensions", roles: ["user"] },
-    { id: "suspension", icon: GraduationCap, label: "Suspension", roles: ["admin", "super_admin", "governor", "mayor"] },
-    { id: "analytics", icon: BarChart3, label: "Analytics", roles: ["admin", "super_admin", "governor"] },
-    { id: "admin", icon: FileText, label: "Reports", roles: ["admin", "super_admin", "governor"] },
-    { id: "seeder", icon: Database, label: "Test Data", roles: ["admin", "super_admin", "governor"] },
-    { id: "settings", icon: Settings, label: "Settings", roles: ["user", "admin", "super_admin", "governor", "mayor"] },
+    {
+      id: "dashboard",
+      icon: LayoutDashboard,
+      label: "Dashboard",
+      roles: ["user", "admin", "super_admin", "governor", "mayor"],
+      description: isGovernor(user) ? "Provincial Overview" : isMayor(user) ? "City Dashboard" : "Weather Monitor"
+    },
+    {
+      id: "community",
+      icon: Users,
+      label: "Community",
+      roles: ["user", "admin", "super_admin", "governor", "mayor"],
+      description: "Reports & Feed"
+    },
+    {
+      id: "user-suspension",
+      icon: GraduationCap,
+      label: "Suspensions",
+      roles: ["user"],
+      description: "Active suspensions"
+    },
+    {
+      id: "suspension",
+      icon: GraduationCap,
+      label: "Suspension",
+      roles: ["admin", "super_admin", "governor", "mayor"],
+      description: isMayor(user) ? "Request Suspension" : "Manage Suspensions",
+      roleIcon: true
+    },
+    {
+      id: "analytics",
+      icon: BarChart3,
+      label: "Analytics",
+      roles: ["admin", "super_admin", "governor"],
+      description: "Statistics",
+      roleIcon: true
+    },
+    {
+      id: "admin",
+      icon: FileText,
+      label: "Reports",
+      roles: ["admin", "super_admin", "governor"],
+      description: "Management",
+      roleIcon: true
+    },
+    {
+      id: "seeder",
+      icon: Database,
+      label: "Test Data",
+      roles: ["admin", "super_admin", "governor"],
+      description: "Seeding Tools",
+      roleIcon: true
+    },
+    {
+      id: "settings",
+      icon: Settings,
+      label: "Settings",
+      roles: ["user", "admin", "super_admin", "governor", "mayor"],
+      description: "Preferences"
+    },
   ];
 
   // Filter nav items based on user role
@@ -59,30 +124,44 @@ export function Sidebar({ activeSection, onSectionChange }) {
       </div>
 
       {/* Navigation */}
-      <nav className="p-4 space-y-1">
+      <nav className="p-4 space-y-2">
         {navItems.map((item) => (
-          <Button
-            key={item.id}
-            variant="ghost"
-            className={`w-full justify-start rounded-xl transition-all duration-200 relative ${
-              activeSection === item.id
-                ? 'bg-blue-500 text-white shadow-lg hover:bg-blue-600 hover:shadow-xl'
-                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
-            }`}
-            onClick={() => onSectionChange(item.id)}
-          >
-            <item.icon className="w-5 h-5" />
-            {!collapsed && (
-              <>
-                <span className="ml-3">{item.label}</span>
-                {item.badge && (
-                  <span className="ml-auto text-xs px-2 py-0.5 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full font-semibold">
-                    {item.badge}
-                  </span>
-                )}
-              </>
-            )}
-          </Button>
+          <div key={item.id}>
+            <Button
+              variant="ghost"
+              className={`w-full justify-start rounded-xl transition-all duration-200 relative ${
+                activeSection === item.id
+                  ? 'bg-blue-500 text-white shadow-lg hover:bg-blue-600 hover:shadow-xl'
+                  : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+              }`}
+              onClick={() => onSectionChange(item.id)}
+            >
+              <item.icon className="w-5 h-5" />
+              {!collapsed && (
+                <>
+                  <div className="ml-3 flex-1 text-left">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-medium">{item.label}</span>
+                      {item.roleIcon && (
+                        <span className={`${
+                          activeSection === item.id ? 'text-white/70' : 'text-gray-400'
+                        }`}>
+                          {getRoleBadgeIcon()}
+                        </span>
+                      )}
+                    </div>
+                    {item.description && (
+                      <span className={`text-xs block ${
+                        activeSection === item.id ? 'text-white/70' : 'text-gray-500'
+                      }`}>
+                        {item.description}
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+            </Button>
+          </div>
         ))}
       </nav>
 

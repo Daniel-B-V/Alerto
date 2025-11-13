@@ -23,6 +23,8 @@ import { getBatangasWeatherWithSuspensionCriteria } from '../../services/weather
 import { submitSuspensionRequest, getRequestsByCity } from '../../services/suspensionRequestService';
 import { SUSPENSION_LEVELS } from '../../constants/suspensionCriteria';
 import WeatherForecastChart from './WeatherForecastChart';
+import BarangayInsightsPanel from '../dashboard/mayor/BarangayInsightsPanel';
+import { DashboardAnnouncementCard } from './DashboardAnnouncementCard';
 
 const MayorDashboard = () => {
   const { user } = useAuth();
@@ -164,6 +166,9 @@ const MayorDashboard = () => {
         </Badge>
       </div>
 
+      {/* Class Suspension Announcement */}
+      <DashboardAnnouncementCard />
+
       {/* Active Suspension Alert */}
       {activeSuspension && (
         <Alert className="bg-red-50 border-red-200">
@@ -241,6 +246,9 @@ const MayorDashboard = () => {
         <WeatherForecastChart city={userCity} />
       )}
 
+      {/* Barangay Insights Panel */}
+      <BarangayInsightsPanel />
+
       {/* AI Recommendation */}
       {cityWeather && (
         <Card className="p-6">
@@ -287,8 +295,8 @@ const MayorDashboard = () => {
         ) : (
           <div>
             <p className="text-sm text-gray-600 mb-4">
-              As a Mayor, you can submit a suspension request to the Provincial Governor for approval.
-              The Governor will review weather conditions and community reports before making a decision.
+              As a Mayor, you can submit a <strong>city-wide suspension request</strong> to the Provincial Governor for approval.
+              The suspension will affect all barangays in {userCity}. The Governor will review weather conditions and community reports before making a decision.
             </p>
 
             <Button
@@ -297,7 +305,7 @@ const MayorDashboard = () => {
               disabled={!cityWeather}
             >
               <Send className="w-4 h-4 mr-2" />
-              Request Suspension from Governor
+              Request City-Wide Suspension
             </Button>
           </div>
         )}
@@ -358,7 +366,8 @@ const MayorDashboard = () => {
       {showRequestModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <Card className="p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-bold mb-4">Request Class Suspension</h3>
+            <h3 className="text-xl font-bold mb-2">Request City-Wide Class Suspension</h3>
+            <p className="text-sm text-gray-600 mb-4">This will affect all barangays in {userCity}</p>
 
             {/* Suspension Levels */}
             <div className="mb-4">

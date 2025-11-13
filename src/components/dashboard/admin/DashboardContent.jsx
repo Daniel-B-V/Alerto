@@ -7,10 +7,27 @@ import { AnalyticsPanel } from "../../analytics/AnalyticsPanel";
 import { EnhancedReportsPage } from "../../reports/EnhancedReportsPage";
 import { DatabaseSeeder } from "../../shared/DatabaseSeeder";
 import Settings from "../../shared/Settings";
+import CityGridView from "./CityGridView";
+import MayorDashboard from "../../suspension/MayorDashboard";
+import { useAuth } from "../../../contexts/AuthContext";
+import { isGovernor, isMayor } from "../../../utils/permissions";
 
-// Dashboard now shows weather overview as main content
+// Dashboard now shows different views based on role
 function DashboardOverview() {
-  return <WeatherPanel />;
+  const { user } = useAuth();
+
+  // Mayors see their city-specific dashboard
+  if (isMayor(user)) {
+    return <MayorDashboard />;
+  }
+
+  // Governors see weather panel without announcements (they issue suspensions)
+  if (isGovernor(user)) {
+    return <WeatherPanel showAnnouncement={false} />;
+  }
+
+  // Regular users see weather panel with announcements
+  return <WeatherPanel showAnnouncement={true} />;
 }
 
 export function DashboardContent({ activeSection }) {

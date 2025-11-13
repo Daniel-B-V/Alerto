@@ -54,16 +54,16 @@ const PendingRequestsTable = () => {
   }, []);
 
   const handleApprove = async (request) => {
-    if (!confirm(`Approve suspension request for ${request.city}?`)) return;
+    if (!confirm(`Approve CITY-WIDE suspension for ${request.city}?\n\nThis will suspend classes at ${request.requestedLevels.join(', ').toUpperCase()} levels across the entire city for ${request.requestedDuration} hours.`)) return;
 
     setProcessing(prev => ({ ...prev, [request.id]: 'approving' }));
     try {
-      // Issue the suspension
+      // Issue the city-wide suspension
       const suspensionId = await issueSuspension({
         city: request.city,
         levels: request.requestedLevels,
         durationHours: request.requestedDuration,
-        customMessage: `Approved based on mayor's request: ${request.reason}`,
+        customMessage: `City-wide suspension approved by Provincial Governor.\n\nMayor's justification: ${request.reason}`,
         criteria: request.weatherData || {},
         requestId: request.id // Link to request
       });
@@ -73,10 +73,10 @@ const PendingRequestsTable = () => {
         request.id,
         user,
         suspensionId,
-        'Request approved and suspension issued'
+        'Request approved and city-wide suspension issued'
       );
 
-      alert(`✅ Request approved! Suspension issued for ${request.city}`);
+      alert(`✅ Request Approved!\n\nCity-wide suspension has been issued for ${request.city}.\n\nLevels: ${request.requestedLevels.join(', ').toUpperCase()}\nDuration: ${request.requestedDuration} hours\n\nAll residents will be notified.`);
       loadRequests(); // Refresh list
     } catch (error) {
       alert(`❌ Failed to approve: ${error.message}`);
@@ -266,7 +266,7 @@ const PendingRequestsTable = () => {
         <Alert className="mt-4 bg-blue-50 border-blue-200">
           <Info className="h-4 w-4 text-blue-600" />
           <AlertDescription className="text-blue-800 text-sm">
-            <strong>Note:</strong> Approving a request will immediately issue the suspension and notify the public.
+            <strong>City-Wide Suspension System:</strong> Approving a request will immediately issue a city-wide class suspension affecting all barangays in the city and notify the public.
             Rejecting will send a notification to the mayor with your reason.
           </AlertDescription>
         </Alert>

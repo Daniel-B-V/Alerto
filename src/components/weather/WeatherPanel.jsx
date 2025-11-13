@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { Cloud, Droplets, Wind, Gauge, MapPin, RefreshCw, Thermometer } from "lucide-react";
+import { Cloud, Droplets, Wind, Gauge, MapPin, RefreshCw, Thermometer, Navigation } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import {
   getCurrentWeather,
@@ -16,6 +17,7 @@ import { db } from '../../firebase/config';
 import { HeatIndexCard, HeatIndexAlert } from "./HeatIndexCard";
 import { calculateHeatIndex, getHeatIndexCategory } from "../../utils/heatIndexUtils";
 import { DashboardAnnouncementCard } from "../suspension/DashboardAnnouncementCard";
+import { useUserLocation } from "../../hooks/useUserLocation";
 
 export function WeatherPanel({ showAnnouncement = false }) {
   const [currentWeather, setCurrentWeather] = useState(null);
@@ -29,16 +31,24 @@ export function WeatherPanel({ showAnnouncement = false }) {
   const { addNotification } = useSocket();
   const notifiedConditions = useRef(new Set());
 
+  // Auto-detect user location for weather display
+  const { detectedCity, isLoading: locationLoading, isAutoDetected, requestLocation } = useUserLocation();
+
   // Fetch all weather data
   const fetchWeatherData = async () => {
+    // Don't fetch if location hasn't been detected yet
+    if (!detectedCity) return;
+
     setLoading(true);
     try {
-      // Fetch current weather for Batangas
-      const current = await getCurrentWeather('Batangas');
+      console.log(`🌤️ Fetching weather for: ${detectedCity}`);
+
+      // Fetch current weather for detected city
+      const current = await getCurrentWeather(detectedCity);
       setCurrentWeather(current);
 
       // Fetch hourly forecast for charts
-      const hourly = await getHourlyForecast('Batangas');
+      const hourly = await getHourlyForecast(detectedCity);
       setHourlyData(hourly);
 
       // Fetch weather alerts for all areas
@@ -173,7 +183,7 @@ export function WeatherPanel({ showAnnouncement = false }) {
       clearInterval(interval);
       window.removeEventListener('dataRefresh', handleDataRefresh);
     };
-  }, []);
+  }, [detectedCity]); // Re-fetch when detected city changes
 
   // Calculate stats from Batangas cities data
   const stats = batangasStats ? {
@@ -222,6 +232,43 @@ export function WeatherPanel({ showAnnouncement = false }) {
           Refresh
         </button>
       </div>
+
+      {/* Location Indicator */}
+      {detectedCity && (
+        <Card className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-500 rounded-full">
+                  <MapPin className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-sm text-gray-600">Currently viewing weather for</p>
+                  <p className="text-lg font-bold text-gray-900">{detectedCity}</p>
+                  {isAutoDetected && (
+                    <div className="flex items-center gap-1 text-xs text-green-600 mt-0.5">
+                      <Navigation className="w-3 h-3" />
+                      <span>Auto-detected from your location</span>
+                    </div>
+                  )}
+                  {!isAutoDetected && !locationLoading && (
+                    <p className="text-xs text-gray-500 mt-0.5">Default location</p>
+                  )}
+                </div>
+              </div>
+              <Button
+                onClick={requestLocation}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+              >
+                <Navigation className="w-4 h-4" />
+                Detect Location
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Heat Index Alert Banner */}
       {currentWeather?.current && (

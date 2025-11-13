@@ -78,8 +78,8 @@ function AppContent() {
   }
 
   // Route based on user role
-  if (userRole === 'admin') {
-    // Admin Interface (existing)
+  if (userRole === 'admin' || userRole === 'governor' || userRole === 'mayor') {
+    // Admin/Governor/Mayor Interface (with role-based dashboards inside)
     return (
       <SocketProvider>
         <SuspensionProvider>
@@ -99,7 +99,7 @@ function AppContent() {
       </SocketProvider>
     );
   } else {
-    // User Interface (new)
+    // Regular User Interface
     return (
       <SuspensionProvider>
         <UserLayout />

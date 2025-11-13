@@ -1,9 +1,10 @@
-import { Bell, Cloud, User, X, AlertTriangle } from "lucide-react";
+import { Bell, Cloud, User, X, AlertTriangle, Shield, Building2, Crown } from "lucide-react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "../../contexts/AuthContext";
+import { getRoleBadge } from "../../utils/permissions";
 import { useState, useRef, useEffect } from "react";
 
 export function Header() {
@@ -12,6 +13,9 @@ export function Header() {
   const notificationCount = notifications.length;
   const [showNotifications, setShowNotifications] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Get role badge data
+  const roleBadge = getRoleBadge(user);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -117,25 +121,46 @@ export function Header() {
           </div>
 
           {/* Profile */}
-          <div className="flex items-center gap-2">
-            <Avatar className="w-8 h-8">
+          <div className="flex items-center gap-3">
+            {/* Role Badge */}
+            <Badge
+              className={`hidden sm:flex items-center gap-1.5 px-3 py-1.5 ${
+                roleBadge.color === 'red'
+                  ? 'bg-red-100 text-red-700 border-red-200'
+                  : roleBadge.color === 'purple'
+                  ? 'bg-purple-100 text-purple-700 border-purple-200'
+                  : roleBadge.color === 'blue'
+                  ? 'bg-blue-100 text-blue-700 border-blue-200'
+                  : 'bg-gray-100 text-gray-700 border-gray-200'
+              }`}
+            >
+              {roleBadge.color === 'red' && <Shield className="w-3.5 h-3.5" />}
+              {roleBadge.color === 'purple' && <Crown className="w-3.5 h-3.5" />}
+              {roleBadge.color === 'blue' && <Building2 className="w-3.5 h-3.5" />}
+              {roleBadge.color === 'gray' && <User className="w-3.5 h-3.5" />}
+              <span className="text-xs font-semibold">{roleBadge.fullLabel}</span>
+            </Badge>
+
+            <Avatar className="w-8 h-8 ring-2 ring-offset-2 ring-gray-100">
               <AvatarImage src={user?.photoURL || ""} />
-              <AvatarFallback className="bg-blue-100 text-blue-600">
-                {user?.role === 'admin' || user?.role === 'super_admin'
-                  ? 'A'
-                  : user?.displayName?.charAt(0)?.toUpperCase() || <User className="w-4 h-4" />}
+              <AvatarFallback className={`${
+                roleBadge.color === 'red'
+                  ? 'bg-red-100 text-red-600'
+                  : roleBadge.color === 'purple'
+                  ? 'bg-purple-100 text-purple-600'
+                  : roleBadge.color === 'blue'
+                  ? 'bg-blue-100 text-blue-600'
+                  : 'bg-gray-100 text-gray-600'
+              }`}>
+                {user?.displayName?.charAt(0)?.toUpperCase() || <User className="w-4 h-4" />}
               </AvatarFallback>
             </Avatar>
             <div className="hidden md:block">
               <p className="text-sm font-medium">
-                {user?.role === 'admin' || user?.role === 'super_admin'
-                  ? 'Admin User'
-                  : user?.displayName || user?.email || 'User'}
+                {user?.displayName || user?.email || 'User'}
               </p>
               <p className="text-xs text-gray-500">
-                {user?.role === 'admin' || user?.role === 'super_admin'
-                  ? 'Batangas Province'
-                  : user?.province || 'Batangas'}
+                {user?.assignedProvince || user?.province || 'Batangas'}
               </p>
             </div>
           </div>

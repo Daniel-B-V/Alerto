@@ -9,6 +9,7 @@ import { analyzeReportImages } from "../../services/imageAnalysisService";
 import { useAuth } from "../../contexts/AuthContext";
 import { CATEGORY_CONFIG, CATEGORIES } from "../../constants/categorization";
 import { BATANGAS_MUNICIPALITIES, getBarangays } from "../../constants/batangasLocations";
+import { getUserProvince } from "../../utils/permissions";
 
 // Hazard types for dropdown
 const HAZARD_TYPES = [
@@ -167,7 +168,26 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         }
       }
 
-      // Create report in Firestore with AI analysis
+      // Get user's province for routing
+      const userProvince = getUserProvince(user);
+
+      // Create routing metadata
+      // Reports are routed to:
+      // 1. Mayor of the city (mayor_{city})
+      // 2. Governor of the province (governor_{province})
+      // 3. Public (if verified later)
+      const routedTo = [
+        `mayor_${formData.city.toLowerCase().replace(/\s+/g, '_')}`,
+        `governor_${userProvince.toLowerCase()}`
+      ];
+
+      const visibleTo = [
+        `mayor_${formData.city.toLowerCase().replace(/\s+/g, '_')}`,
+        `governor_${userProvince.toLowerCase()}`,
+        'public' // Public can see after verification
+      ];
+
+      // Create report in Firestore with AI analysis and routing
       const reportData = {
         reporterName: formData.reporterName || 'Anonymous',
         title: formData.title || `${formData.hazardType} in ${formData.city}`,
@@ -177,14 +197,22 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         location: {
           city: formData.city,
           barangay: formData.barangay || '',
-          specificLocation: formData.specificLocation || ''
+          specificLocation: formData.specificLocation || '',
+          province: userProvince // Add province to location
         },
         images: imageUrls || [],
         userName: user?.displayName || 'Anonymous',
         userEmail: user?.email || '',
         userPhotoURL: user?.photoURL || '',
         userVerified: user?.emailVerified || false,
-        tags: [formData.hazardType, formData.city],
+        userId: user?.uid || '', // Add user ID for tracking
+        tags: [formData.hazardType, formData.city, formData.barangay].filter(Boolean),
+
+        // Routing metadata (NEW)
+        routedTo: routedTo,
+        visibleTo: visibleTo,
+        province: userProvince, // Top-level for easier querying
+
         // AI Image Analysis Results (simplified)
         aiCredibility: imageAnalysis ? imageAnalysis.confidence : null,
         aiReason: imageAnalysis ? imageAnalysis.reason : null,
