@@ -740,15 +740,15 @@ export function MayorReportsPage() {
                           <div className="flex items-center gap-2">
                             <div className="w-16 bg-gray-200 rounded-full h-2">
                               <div
-                                className={`h-2 rounded-full ${
+                                className={`h-2 rounded-full transition-all ${
                                   location.aiConfidence >= 85 ? 'bg-green-500' :
                                   location.aiConfidence >= 60 ? 'bg-yellow-500' :
                                   'bg-red-500'
                                 }`}
-                                style={{ width: `${location.aiConfidence}%` }}
+                                style={{ width: `${Math.max(location.aiConfidence || 0, 5)}%` }}
                               ></div>
                             </div>
-                            <span className="text-sm font-semibold">{location.aiConfidence}%</span>
+                            <span className="text-sm font-semibold text-gray-900">{location.aiConfidence || 0}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">

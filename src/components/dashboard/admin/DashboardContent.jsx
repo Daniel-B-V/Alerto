@@ -5,6 +5,7 @@ import { CommunityFeed } from "../../community/CommunityFeed";
 import { AdminPanel } from "./AdminPanel";
 import { AnalyticsPanel } from "../../analytics/AnalyticsPanel";
 import { EnhancedReportsPage } from "../../reports/EnhancedReportsPage";
+import { MayorReportsPage } from "../../reports/MayorReportsPage";
 import { DatabaseSeeder } from "../../shared/DatabaseSeeder";
 import Settings from "../../shared/Settings";
 import CityGridView from "./CityGridView";
@@ -16,9 +17,9 @@ import { isGovernor, isMayor } from "../../../utils/permissions";
 function DashboardOverview() {
   const { user } = useAuth();
 
-  // Mayors see their city-specific dashboard
+  // Mayors see weather panel with announcements (same as users, but they can access Reports section)
   if (isMayor(user)) {
-    return <MayorDashboard />;
+    return <WeatherPanel showAnnouncement={true} />;
   }
 
   // Governors see weather panel without announcements (they issue suspensions)
@@ -39,6 +40,8 @@ export function DashboardContent({ activeSection }) {
         return <SuspensionPanel />;
       case 'user-suspension':
         return <UserSuspensionView />;
+      case 'mayor-reports':
+        return <MayorReportsPage />;
       case 'analytics':
         return <AnalyticsPanel />;
       case 'admin':

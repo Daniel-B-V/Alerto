@@ -62,6 +62,14 @@ export function Sidebar({ activeSection, onSectionChange }) {
       roleIcon: true
     },
     {
+      id: "mayor-reports",
+      icon: FileText,
+      label: "Reports",
+      roles: ["mayor"],
+      description: "Barangay Reports",
+      roleIcon: true
+    },
+    {
       id: "analytics",
       icon: BarChart3,
       label: "Analytics",
@@ -150,13 +158,6 @@ export function Sidebar({ activeSection, onSectionChange }) {
                         </span>
                       )}
                     </div>
-                    {item.description && (
-                      <span className={`text-xs block ${
-                        activeSection === item.id ? 'text-white/70' : 'text-gray-500'
-                      }`}>
-                        {item.description}
-                      </span>
-                    )}
                   </div>
                 </>
               )}

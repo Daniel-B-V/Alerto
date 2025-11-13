@@ -201,6 +201,7 @@ Analyze the ${base64Images.length} image(s) and determine:
 
 /**
  * Generate credibility badge based on image analysis
+ * 3-category system: Verified / Under Review / Flagged
  * @param {Object} analysis - Analysis result from analyzeReportImages
  * @returns {Object} Badge info with color, text, and icon
  */
@@ -208,7 +209,7 @@ export const getCredibilityBadge = (analysis) => {
   if (!analysis) {
     return {
       color: 'bg-gray-500',
-      text: 'Not Verified',
+      text: 'Under Review',
       icon: '⚠️',
       confidence: 0
     };
@@ -216,35 +217,32 @@ export const getCredibilityBadge = (analysis) => {
 
   const confidence = analysis.confidence;
 
-  if (confidence >= 80) {
+  // Verified: AI confidence ≥70%
+  if (confidence >= 70) {
     return {
       color: 'bg-green-500',
-      text: `✓ Highly Credible`,
+      text: `✓ Verified`,
       icon: '✓',
       confidence: confidence,
       detail: analysis.reason
     };
-  } else if (confidence >= 60) {
+  }
+  // Under Review: AI confidence 40-69%
+  else if (confidence >= 40) {
     return {
       color: 'bg-yellow-500',
-      text: `⚠ Likely Credible`,
+      text: `⚠ Under Review`,
       icon: '⚠',
       confidence: confidence,
       detail: analysis.reason
     };
-  } else if (confidence >= 40) {
-    return {
-      color: 'bg-orange-500',
-      text: `⚠ Questionable`,
-      icon: '⚠',
-      confidence: confidence,
-      detail: analysis.reason
-    };
-  } else {
+  }
+  // Flagged: AI confidence <40%
+  else {
     return {
       color: 'bg-red-500',
-      text: `✗ Low Credibility`,
-      icon: '✗',
+      text: `⚠ Flagged`,
+      icon: '⚠',
       confidence: confidence,
       detail: analysis.reason
     };

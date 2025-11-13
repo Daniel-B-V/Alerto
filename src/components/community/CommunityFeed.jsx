@@ -54,7 +54,6 @@ export function CommunityFeed() {
   const [commentText, setCommentText] = useState({});
   const [showComments, setShowComments] = useState({});
   const [selectedImage, setSelectedImage] = useState(null);
-  const [expandedReports, setExpandedReports] = useState({});
   const [showSubmitModal, setShowSubmitModal] = useState(false);
   const [displayLimit, setDisplayLimit] = useState(10); // Show 10 reports initially
   const [filters, setFilters] = useState({
@@ -202,14 +201,6 @@ export function CommunityFeed() {
   // Toggle comments section
   const toggleComments = (reportId) => {
     setShowComments(prev => ({
-      ...prev,
-      [reportId]: !prev[reportId]
-    }));
-  };
-
-  // Toggle report expansion
-  const toggleReportExpansion = (reportId) => {
-    setExpandedReports(prev => ({
       ...prev,
       [reportId]: !prev[reportId]
     }));
@@ -403,7 +394,6 @@ export function CommunityFeed() {
             {filteredReports.slice(0, displayLimit).map((report) => {
               const isLiked = report.likes?.includes(user?.uid);
               const likesCount = report.likes?.length || 0;
-              const isExpanded = expandedReports[report.id];
 
               return (
                 <Card key={report.id} className="overflow-hidden hover:shadow-lg transition-all duration-200">
@@ -459,7 +449,7 @@ export function CommunityFeed() {
                           <span className="text-xs text-gray-500">•</span>
                           <span className="flex items-center gap-0.5 text-xs text-gray-500">
                             <MapPin className="w-3 h-3" />
-                            {report.location?.city || 'Unknown'}
+                            {report.location?.barangay ? `${report.location.barangay}, ${report.location.city}` : (report.location?.city || 'Unknown')}
                           </span>
                         </div>
                       </div>
@@ -474,14 +464,14 @@ export function CommunityFeed() {
 
                     {/* Report Description */}
                     <p className="text-sm text-gray-700 mb-2 leading-snug whitespace-pre-wrap">
-                      {isExpanded ? report.description : (report.description?.length > 100 ? report.description.substring(0, 100) + '...' : report.description)}
+                      {report.description}
                     </p>
 
                     {/* Report Images */}
                     {report.images && report.images.length > 0 && (
                       <div className="mb-2">
                         <div className="flex flex-wrap gap-1.5">
-                          {report.images.slice(0, isExpanded ? report.images.length : 5).map((image, idx) => (
+                          {report.images.slice(0, 5).map((image, idx) => (
                             <div
                               key={idx}
                               className="relative cursor-pointer group overflow-hidden rounded-md"
@@ -498,7 +488,7 @@ export function CommunityFeed() {
                                 }}
                                 className="transition-transform group-hover:scale-105"
                               />
-                              {!isExpanded && idx === 4 && report.images.length > 5 && (
+                              {idx === 4 && report.images.length > 5 && (
                                 <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
                                   <span className="text-white text-sm font-bold">
                                     +{report.images.length - 5}
@@ -550,20 +540,6 @@ export function CommunityFeed() {
                           Verify
                         </Button>
                       )}
-                    </div>
-
-                    {/* View Full Report Button */}
-                    <div className="mt-2 pt-2 border-t border-gray-100">
-                      <Button
-                        onClick={() => toggleReportExpansion(report.id)}
-                        variant="ghost"
-                        size="sm"
-                        className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 text-[11px] h-6 gap-1"
-                      >
-                        <Eye className="w-3 h-3" />
-                        {isExpanded ? 'Show Less' : 'View Full Report'}
-                        {isExpanded ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                      </Button>
                     </div>
 
                   </CardContent>
