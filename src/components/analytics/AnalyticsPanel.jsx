@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { BarChart3, RefreshCw, Cloud, AlertTriangle, CloudRain, Wind, Droplets, PieChart as PieChartIcon, TrendingUp, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
+import { TyphoonTracker } from "../typhoon/TyphoonTracker";
 import {
   PieChart,
   Pie,
@@ -173,6 +174,11 @@ export function AnalyticsPanel() {
             {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
           </button>
         </div>
+      </div>
+
+      {/* Typhoon Tracker Section */}
+      <div className="max-w-7xl mx-auto mb-8">
+        <TyphoonTracker />
       </div>
 
       {/* Loading State */}
