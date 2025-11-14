@@ -62,6 +62,65 @@ export const SAMPLE_USERS = [
   { name: 'Carmen Lopez', email: 'carmen@example.com', role: 'user' }
 ];
 
+export const SAMPLE_TITLES = {
+  flooding: [
+    'Severe Flooding on Main Road',
+    'Flash Flood in Residential Area',
+    'Market Area Flooding - Roads Impassable',
+    'Highway Flooding - Vehicles Stranded',
+    'Emergency: Severe Waterlogging'
+  ],
+  heavy_rain: [
+    'Non-Stop Heavy Rain for 3 Hours',
+    'Intense Rainfall - Poor Visibility',
+    'Continuous Heavy Rain Since Morning',
+    'Extreme Rainfall with Thunder',
+    'Heavy Downpour - Streets Flooding'
+  ],
+  strong_wind: [
+    'Strong Winds Damaging Roofs',
+    'Storm-Force Winds - Property Damage',
+    'Trees Uprooted - Road Blocked',
+    'Severe Wind Damage to Infrastructure',
+    'Dangerous Wind Conditions - Flying Debris'
+  ],
+  typhoon: [
+    'Typhoon Alert - Strong Winds and Rain',
+    'Severe Typhoon Impact',
+    'Typhoon Emergency Situation',
+    'Typhoon Causing Massive Destruction',
+    'Direct Typhoon Hit - Severe Damage'
+  ],
+  road_blockage: [
+    'Fallen Tree Blocking Highway',
+    'Landslide Debris - Road Impassable',
+    'Large Rocks on Road',
+    'Road Blocked by Flood Debris',
+    'Major Road Obstruction'
+  ],
+  power_outage: [
+    'Complete Power Outage',
+    'Widespread Blackout - Storm Damage',
+    'Power Lines Down',
+    'Total Power Failure',
+    'Extensive Power Outage'
+  ],
+  infrastructure_damage: [
+    'Bridge Severely Damaged',
+    'Building Wall Collapsed',
+    'Major Road Damage',
+    'School Building Damaged',
+    'Community Center Structural Damage'
+  ],
+  landslide: [
+    'Active Landslide on Mountain Road',
+    'Mudslide Blocking Route',
+    'Massive Landslide Near Homes',
+    'Hillside Collapse',
+    'Critical Landslide - Evacuations Needed'
+  ]
+};
+
 export const SAMPLE_DESCRIPTIONS = {
   flooding: [
     'Severe flooding on main road, knee-deep water. Unable to pass through.',
@@ -121,15 +180,39 @@ export const SAMPLE_DESCRIPTIONS = {
   ]
 };
 
+// Number of available images per category
+const CATEGORY_IMAGE_COUNTS = {
+  flooding: 8,
+  heavy_rain: 8,
+  strong_wind: 7,
+  landslide: 6,
+  power_outage: 7,
+  road_blockage: 6,
+  infrastructure_damage: 6,
+  typhoon: 8,
+  other: 3
+};
+
 // Generate category-based image URLs for reports
 const generateCategoryImages = (category, count = 2) => {
   const images = [];
-  const maxImages = Math.min(count, 3); // Max 3 images per category
+  const maxAvailable = CATEGORY_IMAGE_COUNTS[category] || 3;
+  const numImages = Math.min(count, maxAvailable);
 
-  for (let i = 1; i <= maxImages; i++) {
-    // Reference images from public/assets/reports/{category}/{category}-{i}.jpg
-    images.push(`/assets/reports/${category}/${category}-${i}.jpg`);
+  // Generate random image indices without repetition
+  const availableIndices = Array.from({ length: maxAvailable }, (_, i) => i + 1);
+  const selectedIndices = [];
+
+  for (let i = 0; i < numImages; i++) {
+    const randomIndex = Math.floor(Math.random() * availableIndices.length);
+    selectedIndices.push(availableIndices[randomIndex]);
+    availableIndices.splice(randomIndex, 1);
   }
+
+  // Add image URLs
+  selectedIndices.forEach(idx => {
+    images.push(`/assets/reports/${category}/${category}-${idx}.jpg`);
+  });
 
   return images;
 };
@@ -158,6 +241,10 @@ export const generateHighDensityReports = (city, count = 45) => {
       const descriptions = SAMPLE_DESCRIPTIONS[type] || SAMPLE_DESCRIPTIONS.flooding;
       const description = descriptions[Math.floor(Math.random() * descriptions.length)];
 
+      // Select a random title from SAMPLE_TITLES
+      const titles = SAMPLE_TITLES[type] || ['Untitled Report'];
+      const title = titles[Math.floor(Math.random() * titles.length)];
+
       // Random barangay from city
       const barangay = cityBarangays[Math.floor(Math.random() * cityBarangays.length)];
 
@@ -172,6 +259,7 @@ export const generateHighDensityReports = (city, count = 45) => {
         id: `report_${city.replace(/\s/g, '_').toLowerCase()}_${reportId++}`,
         category: type,
         severity: severity,
+        title: title,
         description: description,
         location: {
           city: city,
@@ -189,7 +277,7 @@ export const generateHighDensityReports = (city, count = 45) => {
         status: 'verified', // All reports auto-verified by AI
         verifiedBy: 'AI (Gemini)',
         verifiedAt: { seconds: Math.floor((createdAt.getTime() + 1000) / 1000), nanoseconds: 0 }, // Verified shortly after creation
-        images: generateCategoryImages(type, Math.floor(Math.random() * 3) + 1) // 1-3 images per report
+        images: generateCategoryImages(type, Math.floor(Math.random() * 5) + 1) // 1-5 images per report
       });
     }
   });
@@ -217,6 +305,10 @@ export const generateScatteredReports = (cities, totalCount = 30) => {
     const descriptions = SAMPLE_DESCRIPTIONS[category.value] || SAMPLE_DESCRIPTIONS.flooding;
     const description = descriptions[Math.floor(Math.random() * descriptions.length)];
 
+    // Select a random title from SAMPLE_TITLES
+    const titles = SAMPLE_TITLES[category.value] || ['Untitled Report'];
+    const title = titles[Math.floor(Math.random() * titles.length)];
+
     // Random severity
     const severity = severityLevels[Math.floor(Math.random() * severityLevels.length)];
 
@@ -231,6 +323,7 @@ export const generateScatteredReports = (cities, totalCount = 30) => {
       id: `report_${city.replace(/\s/g, '_').toLowerCase()}_${i + 1}`,
       category: category.value,
       severity: severity,
+      title: title,
       description: description,
       location: {
         city: city,
@@ -248,7 +341,7 @@ export const generateScatteredReports = (cities, totalCount = 30) => {
       status: 'verified', // All reports auto-verified by AI
       verifiedBy: 'AI (Gemini)',
       verifiedAt: { seconds: Math.floor((createdAt.getTime() + 1000) / 1000), nanoseconds: 0 }, // Verified shortly after creation
-      images: generateCategoryImages(category.value, Math.floor(Math.random() * 3) + 1) // 1-3 images per report
+      images: generateCategoryImages(category.value, Math.floor(Math.random() * 5) + 1) // 1-5 images per report
     });
   }
 

@@ -190,12 +190,34 @@ export const getReport = async (reportId) => {
 // Create new report
 export const createReport = async (reportData, userId) => {
   try {
+    // Determine status based on AI credibility score
+    let status = 'pending';
+    let verifiedBy = null;
+    let verifiedAt = null;
+
+    if (reportData.aiCredibility !== null && reportData.aiCredibility !== undefined) {
+      const confidence = reportData.aiCredibility;
+
+      // Auto-verify based on AI confidence
+      if (confidence >= 70) {
+        status = 'verified';
+        verifiedBy = 'AI (Gemini Vision)';
+        verifiedAt = serverTimestamp();
+      } else if (confidence >= 40) {
+        status = 'under_review';
+      } else {
+        status = 'flagged';
+      }
+    }
+
     const report = {
       ...reportData,
       userId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      status: 'pending',
+      status: status,
+      verifiedBy: verifiedBy,
+      verifiedAt: verifiedAt,
       likes: [],
       commentsCount: 0,
       viewsCount: 0

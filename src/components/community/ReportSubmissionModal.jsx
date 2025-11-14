@@ -6,6 +6,7 @@ import { Badge } from "../ui/badge";
 import { createReport } from "../../firebase/firestore";
 import { uploadMultipleImagesToCloudinary } from "../../services/cloudinaryService";
 import { analyzeReportImages } from "../../services/imageAnalysisService";
+import { detectSpamInText, analyzeReportText } from "../../services/textSpamDetection";
 import { useAuth } from "../../contexts/AuthContext";
 import { CATEGORY_CONFIG, CATEGORIES } from "../../constants/categorization";
 import { BATANGAS_MUNICIPALITIES, getBarangays } from "../../constants/batangasLocations";
@@ -141,7 +142,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         try {
           setUploadProgress(0);
           imageAnalysis = await analyzeReportImages(
-            imageUrls, 
+            imageUrls,
             {
               hazardType: formData.hazardType,
               title: formData.title,
@@ -153,8 +154,16 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
             },
             weatherData // Pass actual weather conditions
           );
-          console.log('Image Analysis Result:', imageAnalysis);
-          console.log('Weather Data Used:', weatherData);
+          console.log('📸 Image Analysis Complete:', {
+            confidence: imageAnalysis.confidence,
+            matchesReport: imageAnalysis.matchesReport,
+            reportedHazard: formData.hazardType,
+            detectedHazards: imageAnalysis.detectedHazards,
+            redFlags: imageAnalysis.redFlags,
+            weatherMatch: imageAnalysis.weatherMatch,
+            reason: imageAnalysis.reason
+          });
+          console.log('🌦️ Weather Data Used:', weatherData);
         } catch (analysisError) {
           console.error('Image analysis error:', analysisError);
           // Continue without image analysis
@@ -162,6 +171,46 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
             credible: true,
             confidence: 50,
             reason: 'Image analysis unavailable',
+            matchesReport: 'unknown',
+            detectedHazards: []
+          };
+        }
+      } else {
+        // No images - Run Gemini protocol-based spam detection
+        console.log('No images provided - running Gemini protocol spam detection');
+        try {
+          const aiProtocolAnalysis = await analyzeReportText({
+            title: formData.title,
+            description: formData.description,
+            hazardType: formData.hazardType,
+            location: {
+              city: formData.city,
+              barangay: formData.barangay
+            }
+          });
+
+          imageAnalysis = {
+            confidence: aiProtocolAnalysis.confidence,
+            reason: aiProtocolAnalysis.reason,
+            matchesReport: aiProtocolAnalysis.isSpam ? 'unrelated' : 'unknown',
+            detectedHazards: [],
+            protocolScores: aiProtocolAnalysis.protocolScores,
+            redFlags: aiProtocolAnalysis.redFlags
+          };
+
+          console.log('✅ Gemini Protocol Analysis Complete:', {
+            confidence: aiProtocolAnalysis.confidence,
+            isSpam: aiProtocolAnalysis.isSpam,
+            protocols: aiProtocolAnalysis.protocolScores,
+            redFlags: aiProtocolAnalysis.redFlags
+          });
+
+        } catch (textAnalysisError) {
+          console.error('Text spam detection error:', textAnalysisError);
+          // Fallback - flag as under review
+          imageAnalysis = {
+            confidence: 45,
+            reason: 'No images provided - requires manual review',
             matchesReport: 'unknown',
             detectedHazards: []
           };
@@ -221,6 +270,13 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
       };
 
       console.log('Attempting to create report with data:', reportData);
+      console.log('AI Credibility Score:', imageAnalysis?.confidence);
+      console.log('Expected Status:',
+        imageAnalysis?.confidence >= 70 ? 'verified' :
+        imageAnalysis?.confidence >= 40 ? 'under_review' :
+        imageAnalysis?.confidence < 40 ? 'flagged' : 'pending'
+      );
+
       await createReport(reportData, user.uid);
       console.log('Report created successfully!');
 

@@ -34,6 +34,16 @@ if (import.meta.env.DEV) {
     console.log('   window.makeCurrentUserMayor("Batangas City") - Become Mayor of a city');
     console.log('   window.makeCurrentUserAdmin() - Become Admin (same as Governor)\n');
   });
+
+  // Import cleanup utilities (for spam/test report cleanup)
+  import('./utils/cleanupSpamReports').then(module => {
+    window.cleanupSpamReports = module.cleanupSpamReports;
+    window.deleteAllReports = module.deleteAllReports;
+    console.log('🧹 Cleanup Utilities Loaded:');
+    console.log('   window.cleanupSpamReports() - Delete spam/gibberish reports');
+    console.log('   window.cleanupSpamReports({ dryRun: true }) - Preview deletions');
+    console.log('   window.deleteAllReports() - Delete ALL reports (⚠️ dangerous!)\n');
+  });
 }
 
 function AppContent() {

@@ -73,52 +73,72 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
 - If images show flooding but humidity is low and no rain: Questionable timing
 ` : '';
 
-    // Prepare the prompt for Gemini
-    const prompt = `You are an AI assistant analyzing images from a weather/hazard report to verify its credibility.
+    // Prepare the prompt for Gemini with strict protocol
+    const prompt = `You are an AI verifying disaster reports using IMAGE ANALYSIS. Follow STRICT PROTOCOL.
 
-**REPORT DETAILS:**
-- Hazard Type: ${reportData.hazardType || 'Unknown'}
-- Title: ${reportData.title || 'No title'}
-- Description: ${reportData.description || 'No description'}
-- Location: ${reportData.location?.city || 'Unknown'}, ${reportData.location?.barangay || 'Unknown'}
+**REPORTED HAZARD TYPE: ${reportData.hazardType || 'Unknown'}**
+**Report Title:** "${reportData.title || 'No title'}"
+**Report Description:** "${reportData.description || 'No description'}"
+**Location:** ${reportData.location?.city || 'Unknown'}, ${reportData.location?.barangay || 'Unknown'}
 ${weatherContext}
 
-**YOUR TASK:**
-Analyze the ${base64Images.length} image(s) and determine:
+**VERIFICATION PROTOCOL - Analyze ${base64Images.length} image(s):**
 
-1. **What do you see in the images?** (Describe the main content)
-2. **Do the images match the reported hazard type?** (Yes/No/Partially)
-3. **Weather Data Cross-Check:** ${weatherData ? 'Compare images with actual weather conditions above' : 'No weather data available'}
-4. **Credibility Assessment:**
-   - If images show the reported hazard AND match weather data: HIGH credibility (85-100%)
-   - If images show hazard but weather data contradicts: MEDIUM-LOW credibility (40-60%)
-   - If images show different hazard but weather-related: MEDIUM credibility (50-70%)
-   - If images are unrelated (signatures, people, random objects): LOW credibility (0-30%)
-   - If weather shows clear/sunny but images show flooding: RED FLAG (10-25%)
-5. **Detected Hazards:** List any weather/disaster hazards visible in the images
-6. **Red Flags:** Any signs of fake/misleading report?
-   - Mismatched weather conditions
-   - Unrelated images (signatures, selfies)
-   - Inconsistent timing (dry weather but flood images)
-   - Stock photos or old images
+**STEP 1: IDENTIFY WHAT'S ACTUALLY IN THE IMAGES**
+- What disaster/hazard is visible? (flooding, road damage, landslide, power outage, etc.)
+- Describe specific visual evidence
+
+**STEP 2: COMPARE WITH REPORTED HAZARD TYPE**
+Reported: ${reportData.hazardType || 'Unknown'}
+Actual in images: ____
+
+**CRITICAL MISMATCH CHECK:**
+- Report says "flooding" but image shows dry road damage → MAJOR MISMATCH (confidence ≤ 20%)
+- Report says "flooding" but image shows clear skies/dry roads → MAJOR MISMATCH (confidence ≤ 15%)
+- Report says "heavy_rain" but image shows sunshine → MAJOR MISMATCH (confidence ≤ 20%)
+- Report says "landslide" but image shows flooding → MISMATCH (confidence ≤ 30%)
+- Image shows completely different hazard → FLAG AS FAKE (confidence ≤ 25%)
+
+**STEP 3: WEATHER DATA CROSS-CHECK**
+${weatherData ? `
+Current Weather:
+- Condition: ${weatherData.weather_description}
+- Rain (1h): ${weatherData.rain_1h || 0}mm
+- Humidity: ${weatherData.humidity}%
+- Clouds: ${weatherData.clouds}%
+
+CRITICAL FLAGS:
+- Report claims flooding BUT weather shows no rain + low humidity → FAKE (confidence ≤ 15%)
+- Image shows wet roads BUT weather is clear/dry → OLD PHOTO or FAKE (confidence ≤ 25%)
+- Visual evidence contradicts real-time weather → SUSPICIOUS (confidence ≤ 35%)
+` : 'No weather data to cross-check'}
+
+**STEP 4: FINAL CONFIDENCE SCORING**
+- **85-100%:** Image perfectly matches reported hazard + weather data supports it
+- **70-84%:** Image matches hazard, minor inconsistencies
+- **40-69%:** Partial match OR unclear evidence
+- **25-39%:** Image shows different hazard than reported
+- **0-24%:** Complete mismatch, fake, or unrelated images
 
 **RESPOND IN THIS EXACT JSON FORMAT:**
 {
   "credible": true/false,
   "confidence": 0-100,
-  "matchesReport": "yes/no/partially/unrelated",
-  "visualDescription": "Brief description of what's in the images",
-  "detectedHazards": ["hazard1", "hazard2"],
+  "matchesReport": "yes/no/mismatch",
+  "visualDescription": "What's actually in the image",
+  "detectedHazards": ["actual hazard in image"],
+  "reportedHazard": "${reportData.hazardType || 'Unknown'}",
   "weatherMatch": "matches/contradicts/unknown",
-  "reason": "Explanation including weather data comparison if available",
-  "redFlags": ["flag1", "flag2"] or []
+  "reason": "Specific explanation of match/mismatch",
+  "redFlags": ["list specific mismatches"] or []
 }
 
-**IMPORTANT:** 
-- Be VERY strict: Cross-reference images with actual weather data
-- If weather data contradicts visual evidence, SIGNIFICANTLY reduce credibility
-- If images show signatures, selfies, or unrelated content, mark as LOW credibility
-- Consider humidity, rainfall, and cloud cover when assessing flood/rain reports`;
+**BE EXTREMELY STRICT:**
+- If image shows DIFFERENT hazard than reported → confidence ≤ 30%
+- If weather contradicts visual evidence → confidence ≤ 25%
+- If obvious mismatch (flooding report + dry road image) → confidence ≤ 20%
+
+NO MERCY for mismatches. Report exactly what you see.`;
 
     // Prepare the request body with images
     const parts = [
@@ -167,12 +187,22 @@ Analyze the ${base64Images.length} image(s) and determine:
     const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const analysis = JSON.parse(jsonMatch[0]);
+
+      console.log('🔍 Image Analysis Result:', {
+        confidence: analysis.confidence,
+        matchesReport: analysis.matchesReport,
+        reportedHazard: analysis.reportedHazard,
+        detectedHazards: analysis.detectedHazards,
+        redFlags: analysis.redFlags
+      });
+
       return {
         credible: analysis.credible,
         confidence: analysis.confidence,
         matchesReport: analysis.matchesReport,
         visualDescription: analysis.visualDescription,
         detectedHazards: analysis.detectedHazards || [],
+        reportedHazard: analysis.reportedHazard,
         reason: analysis.reason,
         redFlags: analysis.redFlags || []
       };

@@ -71,8 +71,13 @@ export function CommunityFeed() {
   // Handle verify report
   const handleVerifyReport = async (reportId) => {
     try {
-      await updateReport(reportId, { status: 'verified' });
-      console.log('Report verified successfully');
+      const verifierRole = isAdmin ? 'Governor' : isMayorUser ? `Mayor of ${userCity}` : 'Admin';
+      await updateReport(reportId, {
+        status: 'verified',
+        verifiedBy: `${verifierRole} (${user?.displayName || user?.email})`,
+        verifiedAt: new Date()
+      });
+      console.log('Report verified successfully by', verifierRole);
     } catch (error) {
       console.error('Error verifying report:', error);
       alert('Failed to verify report');
@@ -452,14 +457,23 @@ export function CommunityFeed() {
                         </div>
                       </div>
 
-                      {/* Right side: Verified Badge */}
+                      {/* Right side: Status Badge */}
                       <div className="flex-shrink-0">
                         <Badge
-                          variant={report.status === 'verified' ? 'default' : 'secondary'}
-                          className="text-xs px-2 py-1"
+                          className={`text-xs px-2 py-1 ${
+                            report.status === 'verified'
+                              ? 'bg-green-500 text-white hover:bg-green-600'
+                              : report.status === 'under_review'
+                              ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                              : report.status === 'flagged'
+                              ? 'bg-red-500 text-white hover:bg-red-600'
+                              : 'bg-gray-500 text-white hover:bg-gray-600'
+                          }`}
                         >
-                          {report.status === 'verified' && '✓ '}
-                          {report.status}
+                          {report.status === 'verified' && '✓ Verified'}
+                          {report.status === 'under_review' && '⚠ Under Review'}
+                          {report.status === 'flagged' && '⚠ Flagged'}
+                          {report.status === 'pending' && 'Pending'}
                         </Badge>
                       </div>
                     </div>
@@ -526,8 +540,8 @@ export function CommunityFeed() {
                         <span className="text-xs text-gray-500">{formatTimestamp(report.createdAt)}</span>
                       </div>
 
-                      {/* Verify Button (Admin Only) */}
-                      {isAdmin && report.status !== 'verified' && (
+                      {/* Verify Button (Admin/Mayor Only for non-verified reports) */}
+                      {(isAdmin || isMayorUser) && report.status !== 'verified' && (
                         <Button
                           onClick={() => handleVerifyReport(report.id)}
                           size="sm"

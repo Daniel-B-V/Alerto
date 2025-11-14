@@ -1,0 +1,59 @@
+rules_version = '2';
+
+// Firebase Storage Security Rules for Alerto
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if file is an image
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    // Helper function to check file size (max 10MB)
+    function isValidSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // Reports folder - authenticated users can upload images
+    match /reports/{imageId} {
+      // Allow read for all authenticated users
+      allow read: if isAuthenticated();
+
+      // Allow write (create) for authenticated users with valid images
+      allow create: if isAuthenticated()
+                    && isImage()
+                    && isValidSize();
+
+      // Allow delete only by the owner or admins
+      allow delete: if isAuthenticated();
+    }
+
+    // Users folder - profile pictures
+    match /users/{userId}/{allPaths=**} {
+      // Allow read for all authenticated users
+      allow read: if isAuthenticated();
+
+      // Allow write only by the owner
+      allow write: if isAuthenticated()
+                   && request.auth.uid == userId
+                   && isImage()
+                   && isValidSize();
+    }
+
+    // Public folder - accessible to all
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if false; // Only admins via backend
+    }
+
+    // Deny access to all other paths
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

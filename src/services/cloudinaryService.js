@@ -14,10 +14,26 @@ const CLOUDINARY_API_KEY = import.meta.env.VITE_CLOUDINARY_API_KEY;
  */
 export const uploadImageToCloudinary = async (file) => {
   try {
+    // Validate environment variables
+    if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+      console.error('Missing Cloudinary credentials:', {
+        cloudName: CLOUDINARY_CLOUD_NAME,
+        uploadPreset: CLOUDINARY_UPLOAD_PRESET
+      });
+      throw new Error('Cloudinary is not properly configured. Please check your .env file.');
+    }
+
+    console.log('Uploading to Cloudinary:', {
+      cloudName: CLOUDINARY_CLOUD_NAME,
+      uploadPreset: CLOUDINARY_UPLOAD_PRESET,
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
+    });
+
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('cloud_name', CLOUDINARY_CLOUD_NAME);
     formData.append('folder', 'alerto/reports');
 
     const response = await fetch(
@@ -30,10 +46,13 @@ export const uploadImageToCloudinary = async (file) => {
 
     if (!response.ok) {
       const error = await response.json();
-      throw new Error(error.error?.message || 'Failed to upload image');
+      console.error('Cloudinary upload error:', error);
+      throw new Error(error.error?.message || `Upload failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('Cloudinary upload success:', data.secure_url);
+
     return {
       url: data.secure_url,
       publicId: data.public_id,
