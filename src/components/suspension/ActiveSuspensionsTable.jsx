@@ -6,7 +6,6 @@
 import React, { useState } from 'react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
-import { Card } from '../ui/card';
 import {
   Table,
   TableBody,
@@ -176,29 +175,25 @@ const ActiveSuspensionsTable = () => {
 
   if (loading) {
     return (
-      <Card className="p-6">
-        <div className="flex items-center justify-center h-32">
-          <span className="text-gray-500">Loading active suspensions...</span>
-        </div>
-      </Card>
+      <div className="flex items-center justify-center h-32">
+        <span className="text-gray-500">Loading active suspensions...</span>
+      </div>
     );
   }
 
   if (activeSuspensions.length === 0) {
     return (
-      <Card className="p-6">
-        <div className="text-center py-12 text-gray-500">
-          <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-green-500" />
-          <p className="text-lg font-medium text-gray-700">No Active Suspensions</p>
-          <p className="text-sm mt-1">All cities have normal class operations</p>
-        </div>
-      </Card>
+      <div className="text-center py-12 text-gray-500">
+        <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-green-500" />
+        <p className="text-lg font-medium text-gray-700">No Active Suspensions</p>
+        <p className="text-sm mt-1 mb-32">All cities have normal class operations</p>
+      </div>
     );
   }
 
   return (
     <>
-      <Card className="p-6">
+      <div className="p-6">
         <div className="mb-4">
           <h2 className="text-xl font-bold text-gray-900">Active Suspensions ({activeSuspensions.length})</h2>
           <p className="text-sm text-gray-500 mt-1">
@@ -317,7 +312,7 @@ const ActiveSuspensionsTable = () => {
             </TableBody>
           </Table>
         </div>
-      </Card>
+      </div>
 
       {/* Lift Suspension Dialog */}
       <Dialog open={liftDialogOpen} onOpenChange={setLiftDialogOpen}>

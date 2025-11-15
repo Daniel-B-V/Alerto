@@ -61,9 +61,22 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
     });
 
     if (!hfResponse.ok) {
-      const errorText = await hfResponse.text();
-      console.error('❌ Backend API error:', hfResponse.status, errorText);
-      throw new Error(`Backend API error: ${hfResponse.status} - ${errorText}`);
+      const errorData = await hfResponse.json().catch(() => ({}));
+
+      // Handle model loading (503)
+      if (hfResponse.status === 503 && errorData.isLoading) {
+        console.warn('⚠️ CLIP model is loading, returning neutral confidence');
+        return {
+          credible: true,
+          confidence: 50,
+          reason: 'Image analysis temporarily unavailable (model loading)',
+          matchesReport: 'unknown',
+          detectedHazards: []
+        };
+      }
+
+      console.error('❌ Backend API error:', hfResponse.status, errorData);
+      throw new Error(`Backend API error: ${hfResponse.status}`);
     }
 
     const hfData = await hfResponse.json();

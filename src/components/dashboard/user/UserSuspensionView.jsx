@@ -18,6 +18,7 @@ import { Button } from "../../ui/button";
 import { Input } from "../../ui/input";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { db } from "../../../firebase/config";
+import { getBatangasWeather } from "../../../services/weatherService";
 
 export function UserSuspensionView() {
   const [cities, setCities] = useState([]);
@@ -58,11 +59,10 @@ export function UserSuspensionView() {
       });
       const suspendedCityNames = new Set(Object.keys(suspensionsMap));
 
-      // Fetch weather data
-      const weatherSnapshot = await getDocs(collection(db, 'weather'));
+      // Fetch weather data using weatherService (with OpenWeather API fallback)
+      const weatherDataArray = await getBatangasWeather();
       const weatherMap = {};
-      weatherSnapshot.docs.forEach(doc => {
-        const data = doc.data();
+      weatherDataArray.forEach(data => {
         if (data.location?.city) {
           weatherMap[data.location.city] = data;
         }
@@ -87,11 +87,9 @@ export function UserSuspensionView() {
               rainfall: null,
               pressure: null
             },
-            lastUpdate: weatherData?.lastUpdate || null
+            lastUpdate: weatherData?.lastUpdate || weatherData?.current?.timestamp || null
           };
-        })
-        // Filter out cities without weather data
-        .filter(city => city.weather.temperature !== null);
+        });
 
       // Sort: suspended cities first, then alphabetically
       citiesData.sort((a, b) => {
@@ -302,144 +300,132 @@ export function UserSuspensionView() {
                 }`}
               >
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
+                  <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <CardTitle className="text-lg font-bold text-gray-900 flex items-center gap-2">
                         <MapPin className="w-5 h-5 text-gray-600" />
                         {city.name}
                       </CardTitle>
                     </div>
-                    <Badge
-                      className="flex items-center gap-1 px-3 py-1 font-bold"
-                      style={{
-                        backgroundColor: city.suspended ? '#DC2626' : '#16A34A',
-                        color: '#FFFFFF'
-                      }}
-                    >
+                    <div className="flex items-center gap-2">
+                      {/* Time Span (for suspended cities) */}
+                      {city.suspended && city.suspensionInfo?.effectiveUntil && (
+                        <div className="text-xs text-gray-600 text-right">
+                          <p className="font-medium">Until</p>
+                          <p>{new Date(city.suspensionInfo.effectiveUntil.seconds * 1000).toLocaleDateString()}</p>
+                        </div>
+                      )}
                       {city.suspended ? (
-                        <>
+                        <Badge
+                          className="flex items-center gap-1 px-3 py-1 font-bold"
+                          style={{
+                            backgroundColor: '#DC2626',
+                            color: '#FFFFFF'
+                          }}
+                        >
                           <Ban className="w-4 h-4" />
                           Suspended
-                        </>
+                        </Badge>
                       ) : (
-                        <>
+                        <Badge
+                          className="flex items-center gap-1 px-3 py-1.5 font-medium border"
+                          style={{
+                            backgroundColor: '#F0FDF4',
+                            borderColor: '#86EFAC',
+                            color: '#16A34A'
+                          }}
+                        >
                           <CheckCircle className="w-4 h-4" />
                           Active
-                        </>
+                        </Badge>
                       )}
-                    </Badge>
+                    </div>
                   </div>
                 </CardHeader>
 
                 <CardContent className="pt-0">
-                  {/* Suspension Reason (if suspended) */}
-                  {city.suspended && city.suspensionInfo && (
-                    <div className="mb-4 p-4 bg-gradient-to-r from-red-50 to-orange-50 border-l-4 border-red-500 rounded-lg">
-                      <div className="flex items-start gap-2 mb-2">
-                        <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="font-semibold text-red-900 text-sm mb-1">Suspension Reason:</p>
-                          <p className="text-sm text-red-800">{city.suspensionInfo.reason}</p>
-                        </div>
-                      </div>
-                      {city.suspensionInfo.effectiveUntil && (
-                        <div className="mt-2 pt-2 border-t border-red-200">
-                          <p className="text-xs text-red-700">
-                            <span className="font-medium">Effective until:</span>{' '}
-                            {new Date(city.suspensionInfo.effectiveUntil.seconds * 1000).toLocaleString()}
+                  {city.suspended ? (
+                    /* Suspended City - Show Details */
+                    <div className="space-y-4">
+                      {/* Time Span */}
+                      {city.suspensionInfo?.effectiveFrom && city.suspensionInfo?.effectiveUntil && (
+                        <div className="p-3 bg-gray-50 rounded-lg">
+                          <p className="text-xs font-semibold text-gray-700 mb-1">Suspension Period</p>
+                          <p className="text-sm text-gray-900">
+                            {new Date(city.suspensionInfo.effectiveFrom.seconds * 1000).toLocaleDateString()} - {new Date(city.suspensionInfo.effectiveUntil.seconds * 1000).toLocaleDateString()}
                           </p>
                         </div>
                       )}
-                      <div className="mt-3 p-2 bg-red-100 rounded text-xs text-red-800">
-                        <strong>⚠️ Safety Advisory:</strong> Stay indoors and avoid unnecessary travel.
-                        Monitor official announcements for updates.
+
+                      {/* Cause/Reason */}
+                      {city.suspensionInfo?.reason && (
+                        <div className="p-3 bg-red-50 rounded-lg border-l-4 border-red-500">
+                          <p className="text-xs font-semibold text-red-900 mb-1">Cause</p>
+                          <p className="text-sm text-red-800">{city.suspensionInfo.reason}</p>
+                        </div>
+                      )}
+
+                      {/* Affected Levels */}
+                      <div className="p-3 bg-orange-50 rounded-lg">
+                        <p className="text-xs font-semibold text-orange-900 mb-2">Affected Levels</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {city.suspensionInfo?.affectedLevels ? (
+                            city.suspensionInfo.affectedLevels.map((level, idx) => (
+                              <Badge key={idx} className="bg-orange-100 text-orange-800 text-xs">
+                                {level}
+                              </Badge>
+                            ))
+                          ) : (
+                            <>
+                              <Badge className="bg-orange-100 text-orange-800 text-xs">All Levels</Badge>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Safety Advisory */}
+                      <div className="p-3 bg-red-100 rounded-lg">
+                        <p className="text-xs text-red-900">
+                          <strong>⚠️ Safety Advisory:</strong> Stay indoors and avoid unnecessary travel. Monitor official announcements for updates.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Active City - Professional Horizontal Layout */
+                    <div className="py-6 px-4">
+                      <div className="flex items-start gap-4">
+                        {/* Icon Container */}
+                        <div className="flex-shrink-0">
+                          <div className="w-14 h-14 rounded-full bg-green-50 border-2 border-green-500 flex items-center justify-center transition-all duration-200">
+                            <CheckCircle
+                              className="w-8 h-8 text-green-600"
+                              strokeWidth={2.5}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 space-y-1">
+                          <h3 className="text-base font-semibold text-gray-900 leading-tight">
+                            No Suspensions Active
+                          </h3>
+                          <p className="text-sm text-gray-600 leading-relaxed">
+                            All education levels proceeding as scheduled
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Status Footer */}
+                      <div className="mt-3 pt-3 border-t border-gray-100">
+                        <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                          <span className="inline-block w-2 h-2 rounded-full bg-green-600"></span>
+                          <span>Status verified</span>
+                          <span className="text-gray-400">•</span>
+                          <span>Updated recently</span>
+                        </p>
                       </div>
                     </div>
                   )}
-
-                  {/* Weather Information */}
-                  <div className="space-y-3">
-                    {/* Temperature */}
-                    {city.weather.temperature !== null ? (
-                      <div className="flex items-center justify-between p-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
-                        <div className="flex items-center gap-2">
-                          <Thermometer className="w-4 h-4 text-red-500" />
-                          <span className="text-xs font-medium text-gray-700">Temperature</span>
-                        </div>
-                        <span className="text-base font-bold text-gray-900">
-                          {city.weather.temperature}°C
-                        </span>
-                      </div>
-                    ) : (
-                      <div className="p-2 bg-gray-50 rounded-lg text-center text-xs text-gray-500">
-                        No weather data available
-                      </div>
-                    )}
-
-                    {/* Critical Weather Metrics - Top 3 */}
-                    <div className="space-y-2">
-                      {/* Wind Speed */}
-                      {city.weather.windSpeed !== null && (
-                        <div className="flex items-center justify-between p-2 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <Wind className="w-4 h-4 text-green-600" />
-                            <span className="text-xs font-medium text-gray-700">Wind</span>
-                          </div>
-                          <span className="text-base font-bold text-gray-900">
-                            {city.weather.windSpeed} km/h
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Rainfall */}
-                      {city.weather.rainfall !== null && (
-                        <div className="flex items-center justify-between p-2 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <Droplets className="w-4 h-4 text-blue-600" />
-                            <span className="text-xs font-medium text-gray-700">Rainfall</span>
-                          </div>
-                          <span className="text-base font-bold text-gray-900">
-                            {city.weather.rainfall} mm/h
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Pressure */}
-                      {city.weather.pressure !== null && (
-                        <div className="flex items-center justify-between p-2 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg">
-                          <div className="flex items-center gap-2">
-                            <Gauge className="w-4 h-4 text-purple-600" />
-                            <span className="text-xs font-medium text-gray-700">Pressure</span>
-                          </div>
-                          <span className="text-base font-bold text-gray-900">
-                            {city.weather.pressure} hPa
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Last Update */}
-                    {city.lastUpdate && (
-                      <div className="text-xs text-gray-500 text-center pt-2 border-t">
-                        Last updated: {new Date(city.lastUpdate).toLocaleString()}
-                      </div>
-                    )}
-
-                    {/* Active Status Message */}
-                    {!city.suspended && (
-                      <div className="mt-3 p-3 bg-gradient-to-r from-green-50 to-emerald-50 border-l-4 border-green-500 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-xs text-green-800">
-                              <strong>Normal Operations:</strong> Classes are ongoing. Stay updated on weather conditions
-                              and follow school announcements.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
               ))}

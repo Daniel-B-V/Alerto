@@ -4,6 +4,7 @@ import { UserDashboard } from "./UserDashboard";
 import { UserSuspensionView } from "./UserSuspensionView";
 import { UserReportsPage } from "../../reports/UserReportsPage";
 import { CommunityViewUser } from "../../community/CommunityViewUser";
+import { TyphoonTracker } from "../../typhoon/TyphoonTracker";
 import Settings from "../../shared/Settings";
 import { SocketProvider } from "../../../contexts/SocketContext";
 import { useState } from "react";
@@ -20,6 +21,8 @@ export function UserLayout() {
         return <UserReportsPage />;
       case 'community':
         return <CommunityViewUser />;
+      case 'typhoon-tracker':
+        return <TyphoonTracker />;
       case 'settings':
         return <Settings />;
       default:

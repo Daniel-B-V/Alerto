@@ -70,7 +70,8 @@ router.post('/image-classification', async (req, res) => {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    const response = await fetch('https://router.huggingface.co/hf-inference/models/openai/clip-vit-large-patch14', {
+    // Use the direct Inference API endpoint instead of router
+    const response = await fetch('https://api-inference.huggingface.co/models/openai/clip-vit-large-patch14', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_API_KEY}`,
@@ -87,6 +88,15 @@ router.post('/image-classification', async (req, res) => {
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Hugging Face CLIP API error:', response.status, errorText);
+
+      // If model is loading, return a temporary response
+      if (response.status === 503) {
+        return res.status(503).json({
+          error: 'Model is loading, please try again in a moment',
+          isLoading: true
+        });
+      }
+
       return res.status(response.status).json({ error: `Hugging Face API error: ${response.status}` });
     }
 

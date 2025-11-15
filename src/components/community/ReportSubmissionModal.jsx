@@ -1,40 +1,32 @@
 import { useState } from "react";
 import { X, Upload, MapPin, AlertTriangle, Loader, Plus } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
 import { createReport } from "../../firebase/firestore";
 import { uploadMultipleImagesToCloudinary } from "../../services/cloudinaryService";
 import { analyzeReportImages } from "../../services/imageAnalysisService";
 import { detectSpamInText, analyzeReportText } from "../../services/textSpamDetection";
 import { useAuth } from "../../contexts/AuthContext";
-import { CATEGORY_CONFIG, CATEGORIES } from "../../constants/categorization";
 import { BATANGAS_MUNICIPALITIES, getBarangays } from "../../constants/batangasLocations";
-import { getUserProvince } from "../../utils/permissions";
 
 // Hazard types for dropdown
 const HAZARD_TYPES = [
-  { value: 'rain', label: '🌧️ Heavy Rain' },
-  { value: 'flood', label: '🌊 Flooding' },
-  { value: 'landslide', label: '⛰️ Landslide' },
-  { value: 'strong_winds', label: '💨 Strong Winds' },
-  { value: 'power_outage', label: '⚡ Power Outage' },
-  { value: 'road_damage', label: '🚧 Road Damage' },
-  { value: 'other', label: '📋 Other' }
+  { value: 'rain', label: 'Heavy Rain' },
+  { value: 'flood', label: 'Flooding' },
+  { value: 'landslide', label: 'Landslide' },
+  { value: 'strong_winds', label: 'Strong Winds' },
+  { value: 'power_outage', label: 'Power Outage' },
+  { value: 'road_damage', label: 'Road Damage' },
+  { value: 'other', label: 'Other' }
 ];
-
 
 export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     city: '',
     barangay: '',
-    specificLocation: '',
     hazardType: '',
     images: []
   });
@@ -43,12 +35,11 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
-    
-    // Update barangays when city changes
+
     if (field === 'city') {
       const barangays = getBarangays(value);
       setAvailableBarangays(barangays);
-      setFormData(prev => ({ ...prev, barangay: '' })); // Reset barangay
+      setFormData(prev => ({ ...prev, barangay: '' }));
     }
   };
 
@@ -61,7 +52,6 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
     setFormData(prev => ({ ...prev, images: [...prev.images, ...files] }));
 
-    // Create previews
     files.forEach(file => {
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -83,229 +73,64 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
     e.preventDefault();
 
     if (!formData.hazardType || !formData.description || !formData.city || !formData.barangay) {
-      alert('Please fill in all required fields (Hazard Type, Municipality, Barangay, and Description)');
+      alert('Please fill in all required fields');
       return;
     }
 
     setLoading(true);
 
     try {
-      // Upload images to Cloudinary
       let imageUrls = [];
       if (formData.images.length > 0) {
-        try {
-          const uploadResults = await uploadMultipleImagesToCloudinary(
-            formData.images,
-            (current, total) => {
-              setUploadProgress(Math.round((current / total) * 100));
-            }
-          );
-          imageUrls = uploadResults.map(result => result.url);
-        } catch (uploadError) {
-          console.error('Image upload error:', uploadError);
-          alert('Failed to upload images. Submitting report without images.');
-        }
-      }
-
-      // Fetch current weather data for the location
-      let weatherData = null;
-      if (formData.city) {
-        try {
-          const weatherResponse = await fetch(
-            `https://api.openweathermap.org/data/2.5/weather?q=${formData.city},PH&appid=895284fb2d2c50a520ea537456963d9c&units=metric`
-          );
-          if (weatherResponse.ok) {
-            const weather = await weatherResponse.json();
-            weatherData = {
-              temp: weather.main.temp,
-              feels_like: weather.main.feels_like,
-              humidity: weather.main.humidity,
-              pressure: weather.main.pressure,
-              weather_main: weather.weather[0].main,
-              weather_description: weather.weather[0].description,
-              wind_speed: weather.wind.speed,
-              clouds: weather.clouds.all,
-              visibility: weather.visibility,
-              rain_1h: weather.rain?.['1h'] || 0
-            };
+        const uploadResults = await uploadMultipleImagesToCloudinary(
+          formData.images,
+          (current, total) => {
+            setUploadProgress(Math.round((current / total) * 100));
           }
-        } catch (error) {
-          console.error('Error fetching weather data:', error);
-          // Continue without weather data
-        }
+        );
+        imageUrls = uploadResults.map(result => result.secure_url);
       }
 
-      // ALWAYS run text spam detection first (even if images exist)
-      let textSpamAnalysis = null;
-      try {
-        console.log('🔍 Running text spam detection...');
-        textSpamAnalysis = await analyzeReportText({
-          title: formData.title,
-          description: formData.description,
-          hazardType: formData.hazardType,
-          location: {
-            city: formData.city,
-            barangay: formData.barangay
-          }
-        });
-        console.log('✅ Text Spam Analysis:', {
-          confidence: textSpamAnalysis.confidence,
-          isSpam: textSpamAnalysis.isSpam,
-          redFlags: textSpamAnalysis.redFlags
-        });
-      } catch (textError) {
-        console.error('Text analysis error:', textError);
-        // TESTING: Use 60% fallback to ensure monitoring status
-        textSpamAnalysis = { confidence: 60, isSpam: false, redFlags: [] };
-      }
-
-      // Then analyze images if present
-      let imageAnalysis = null;
+      let aiAnalysis = null;
       if (imageUrls.length > 0) {
-        try {
-          setUploadProgress(0);
-          const imageResult = await analyzeReportImages(
-            imageUrls,
-            {
-              hazardType: formData.hazardType,
-              title: formData.title,
-              description: formData.description,
-              location: {
-                city: formData.city,
-                barangay: formData.barangay
-              }
-            },
-            weatherData // Pass actual weather conditions
-          );
-          console.log('📸 Image Analysis Complete:', {
-            confidence: imageResult.confidence,
-            matchesReport: imageResult.matchesReport,
-            reportedHazard: formData.hazardType,
-            detectedHazards: imageResult.detectedHazards,
-            redFlags: imageResult.redFlags,
-            weatherMatch: imageResult.weatherMatch,
-            reason: imageResult.reason
-          });
-
-          // Combine text spam detection with image analysis
-          // Use the LOWER confidence score to be strict on spam
-          const combinedConfidence = Math.min(textSpamAnalysis.confidence, imageResult.confidence);
-          const combinedRedFlags = [...(textSpamAnalysis.redFlags || []), ...(imageResult.redFlags || [])];
-
-          imageAnalysis = {
-            ...imageResult,
-            confidence: combinedConfidence,
-            redFlags: combinedRedFlags,
-            reason: textSpamAnalysis.isSpam
-              ? `Text spam detected: ${textSpamAnalysis.reason}. ${imageResult.reason}`
-              : imageResult.reason
-          };
-
-          console.log('🎯 Combined Analysis (Text + Image):', {
-            textConfidence: textSpamAnalysis.confidence,
-            imageConfidence: imageResult.confidence,
-            finalConfidence: combinedConfidence,
-            isSpam: textSpamAnalysis.isSpam
-          });
-
-        } catch (analysisError) {
-          console.error('Image analysis error:', analysisError);
-          // Use text analysis result if image analysis fails
-          imageAnalysis = {
-            confidence: textSpamAnalysis.confidence,
-            reason: textSpamAnalysis.reason,
-            matchesReport: textSpamAnalysis.isSpam ? 'unrelated' : 'unknown',
-            detectedHazards: [],
-            redFlags: textSpamAnalysis.redFlags
-          };
-        }
-      } else {
-        // No images - use text analysis only
-        console.log('No images provided - using text analysis only');
-        imageAnalysis = {
-          confidence: textSpamAnalysis.confidence,
-          reason: textSpamAnalysis.reason,
-          matchesReport: textSpamAnalysis.isSpam ? 'unrelated' : 'unknown',
-          detectedHazards: [],
-          protocolScores: textSpamAnalysis.protocolScores,
-          redFlags: textSpamAnalysis.redFlags
-        };
+        aiAnalysis = await analyzeReportImages(imageUrls);
       }
 
-      // Get user's province for routing
-      const userProvince = getUserProvince(user);
+      const textSpamResult = await detectSpamInText(formData.description);
+      const textAnalysis = await analyzeReportText(formData.description);
 
-      // Create routing metadata
-      // Reports are routed to:
-      // 1. Mayor of the city (mayor_{city})
-      // 2. Governor of the province (governor_{province})
-      // 3. Public (if verified later)
-      const routedTo = [
-        `mayor_${formData.city.toLowerCase().replace(/\s+/g, '_')}`,
-        `governor_${userProvince.toLowerCase()}`
-      ];
-
-      const visibleTo = [
-        `mayor_${formData.city.toLowerCase().replace(/\s+/g, '_')}`,
-        `governor_${userProvince.toLowerCase()}`,
-        'public' // Public can see after verification
-      ];
-
-      // Create report in Firestore with AI analysis and routing
       const reportData = {
-        reporterName: user?.displayName || user?.email || 'Anonymous',
-        title: formData.title || `${formData.hazardType} in ${formData.city}`,
+        title: formData.title || `${formData.hazardType} Report`,
         description: formData.description,
-        category: formData.hazardType, // Use hazardType as category
-        hazardType: formData.hazardType,
+        category: formData.hazardType,
         location: {
           city: formData.city,
-          barangay: formData.barangay || '',
-          specificLocation: formData.specificLocation || '',
-          province: userProvince // Add province to location
+          barangay: formData.barangay,
+          province: 'Batangas'
         },
-        images: imageUrls || [],
+        images: imageUrls,
+        aiAnalysis,
+        textAnalysis,
+        spamScore: textSpamResult.spamScore,
+        isSpam: textSpamResult.isSpam,
+        status: textSpamResult.isSpam ? 'rejected' : 'pending',
+        userId: user?.uid,
         userName: user?.displayName || 'Anonymous',
-        userEmail: user?.email || '',
-        userPhotoURL: user?.photoURL || '',
-        userVerified: user?.emailVerified || false,
-        userId: user?.uid || '', // Add user ID for tracking
-        tags: [formData.hazardType, formData.city, formData.barangay].filter(Boolean),
-
-        // Routing metadata (NEW)
-        routedTo: routedTo,
-        visibleTo: visibleTo,
-        province: userProvince, // Top-level for easier querying
-
-        // AI Image Analysis Results (simplified)
-        aiCredibility: imageAnalysis ? imageAnalysis.confidence : null,
-        aiReason: imageAnalysis ? imageAnalysis.reason : null,
-        aiMatchesReport: imageAnalysis ? imageAnalysis.matchesReport : null,
-        imageAnalysis: imageAnalysis || null
+        userEmail: user?.email,
+        userPhotoURL: user?.photoURL || null,
+        createdAt: new Date()
       };
 
-      console.log('Attempting to create report with data:', reportData);
-      console.log('AI Credibility Score:', imageAnalysis?.confidence);
-      console.log('Expected Status:',
-        imageAnalysis?.confidence >= 70 ? 'verified' :
-        imageAnalysis?.confidence >= 40 ? 'under_review' :
-        imageAnalysis?.confidence < 40 ? 'flagged' : 'pending'
-      );
+      await createReport(reportData);
 
-      await createReport(reportData, user.uid);
-      console.log('Report created successfully!');
-
-      // Reset form
       setFormData({
         title: '',
         description: '',
         city: '',
         barangay: '',
-        specificLocation: '',
         hazardType: '',
         images: []
       });
-      setAvailableBarangays([]);
       setImagePreview([]);
       setUploadProgress(0);
 
@@ -313,179 +138,126 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         onSubmitSuccess();
       }
 
-      // Show success modal
       onClose();
-      setShowSuccessModal(true);
-
-      // Auto-hide success modal after 3 seconds
-      setTimeout(() => {
-        setShowSuccessModal(false);
-      }, 3000);
-
+      alert('Report submitted successfully!');
     } catch (error) {
       console.error('Error submitting report:', error);
-      console.error('Error details:', error.message, error.stack);
-      alert(`Failed to submit report: ${error.message || 'Unknown error'}. Please try again.`);
+      alert('Failed to submit report. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen && !showSuccessModal) return null;
+  if (!isOpen) return null;
 
   return (
-    <>
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
-          <Card className="max-w-md w-full mx-4 bg-white shadow-2xl animate-in fade-in zoom-in duration-300">
-            <CardContent className="p-8 text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-                  <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Report Submitted!</h3>
-              <p className="text-gray-600 mb-4">
-                Your report has been successfully submitted and is now being reviewed.
-              </p>
-              <Badge className="bg-green-500 text-white px-4 py-1">
-                Status: Pending Review
-              </Badge>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
-      {/* Report Submission Modal */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div 
-            className="bg-white rounded-lg shadow-2xl"
-            style={{ 
-              width: '800px', 
-              height: '85vh',
-              maxWidth: '95vw', 
-              maxHeight: '90vh', 
-              display: 'grid',
-              gridTemplateRows: 'auto 1fr auto'
-            }}
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="bg-blue-600 px-6 py-4 rounded-t-xl flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="w-6 h-6 text-white" />
+            <div>
+              <h2 className="text-xl font-bold text-white">Submit Report</h2>
+              <p className="text-sm text-blue-100">Help your community by reporting incidents</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-white hover:bg-white/20 p-2 rounded-full transition-colors"
           >
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 rounded-t-lg">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 text-white">
-                    <AlertTriangle className="w-6 h-6" />
-                    <h2 className="text-xl font-bold">Submit Report</h2>
-                  </div>
-                  <p className="text-sm text-blue-100 mt-1">
-                    Help your community by reporting incidents
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-            {/* Scrollable Content */}
-            <div className="overflow-y-auto px-6 py-4">
+        {/* Form Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-6">
           <form id="report-form" onSubmit={handleSubmit} className="space-y-4">
-            {/* Two Column Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              {/* Type of Hazard */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Type of Hazard <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.hazardType}
-                  onChange={(e) => handleInputChange('hazardType', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Select hazard type...</option>
-                  {HAZARD_TYPES.map(hazard => (
-                    <option key={hazard.value} value={hazard.value}>{hazard.label}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* City/Municipality */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Municipality <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  required
-                >
-                  <option value="">Select municipality...</option>
-                  {BATANGAS_MUNICIPALITIES.map(city => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Barangay */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Barangay <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.barangay}
-                  onChange={(e) => handleInputChange('barangay', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
-                  required
-                  disabled={!formData.city}
-                >
-                  <option value="">Select barangay...</option>
-                  {availableBarangays.map(barangay => (
-                    <option key={barangay} value={barangay}>{barangay}</option>
-                  ))}
-                </select>
-              </div>
+            {/* Type of Hazard */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Type of Hazard <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.hazardType}
+                onChange={(e) => handleInputChange('hazardType', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Select hazard type...</option>
+                {HAZARD_TYPES.map(hazard => (
+                  <option key={hazard.value} value={hazard.value}>{hazard.label}</option>
+                ))}
+              </select>
             </div>
 
-            {/* Title - Full Width */}
+            {/* Municipality */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Municipality <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="">Select municipality...</option>
+                {BATANGAS_MUNICIPALITIES.map(city => (
+                  <option key={city} value={city}>{city}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Barangay */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Barangay <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={formData.barangay}
+                onChange={(e) => handleInputChange('barangay', e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
+                required
+                disabled={!formData.city}
+              >
+                <option value="">Select barangay...</option>
+                {availableBarangays.map(barangay => (
+                  <option key={barangay} value={barangay}>{barangay}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Title (Optional) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Title <span className="text-gray-400">(Optional)</span>
               </label>
               <input
                 type="text"
-                placeholder="Brief title for your report"
                 value={formData.title}
                 onChange={(e) => handleInputChange('title', e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Brief title for your report"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
 
-            {/* Description - Full Width */}
+            {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Description <span className="text-red-500">*</span>
               </label>
               <textarea
-                placeholder="Describe the incident in detail (e.g., 'Flood rising near school', 'Roof damage', etc.)..."
                 value={formData.description}
                 onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Describe the incident in detail (e.g., 'Flood rising near school', 'Roof damage', etc.)..."
                 rows={4}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                 required
               />
             </div>
 
-            {/* Image Upload */}
+            {/* Add Images */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Add Images <span className="text-gray-400">(Optional, up to 5)</span>
@@ -501,62 +273,42 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
                 disabled={imagePreview.length >= 5}
               />
 
-              {/* Show upload box if no images, otherwise show image grid */}
               {imagePreview.length === 0 ? (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
-                  <label
-                    htmlFor="image-upload"
-                    className="cursor-pointer flex flex-col items-center"
-                  >
-                    <Upload className="w-10 h-10 text-blue-500 mb-3" />
-                    <p className="text-sm font-medium text-gray-700 mb-1">
-                      Click to upload images
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      PNG, JPG up to 10MB
-                    </p>
-                  </label>
-                </div>
+                <label
+                  htmlFor="image-upload"
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
+                >
+                  <Upload className="w-12 h-12 text-blue-500 mb-3" />
+                  <p className="text-sm font-medium text-gray-700">Click to upload images</p>
+                  <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB</p>
+                </label>
               ) : (
                 <div className="flex flex-wrap gap-3">
-                  {/* Show uploaded images */}
                   {imagePreview.map((img, idx) => (
-                    <div key={idx} className="relative group" style={{ width: '120px', height: '120px' }}>
+                    <div key={idx} className="relative w-28 h-28">
                       <img
                         src={img.url}
                         alt={`Preview ${idx + 1}`}
-                        style={{
-                          width: '120px',
-                          height: '120px',
-                          objectFit: 'cover',
-                          borderRadius: '0.5rem',
-                          border: '2px solid #e5e7eb'
-                        }}
+                        className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-all"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
 
-                  {/* Add more button */}
                   {imagePreview.length < 5 && (
                     <label
                       htmlFor="image-upload"
-                      className="flex items-center justify-center cursor-pointer border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all"
-                      style={{ width: '120px', height: '120px' }}
+                      className="w-28 h-28 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
                     >
-                      <div className="text-center">
-                        <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-blue-100 flex items-center justify-center">
-                          <Plus className="w-6 h-6 text-blue-500" />
-                        </div>
-                        <p className="text-xs text-gray-600 font-medium">Add More</p>
-                        <p className="text-xs text-gray-400">{imagePreview.length}/5</p>
-                      </div>
+                      <Plus className="w-6 h-6 text-blue-500 mb-1" />
+                      <p className="text-xs text-gray-600 font-medium">Add More</p>
+                      <p className="text-xs text-gray-400">{imagePreview.length}/5</p>
                     </label>
                   )}
                 </div>
@@ -568,7 +320,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-center gap-2 text-blue-700 mb-2">
                   <Loader className="w-5 h-5 animate-spin" />
-                  <span className="font-medium">Uploading images... {uploadProgress}%</span>
+                  <span className="text-sm font-medium">Uploading images... {uploadProgress}%</span>
                 </div>
                 <div className="w-full bg-blue-200 rounded-full h-2">
                   <div
@@ -578,76 +330,43 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
                 </div>
               </div>
             )}
-
           </form>
-            </div>
+        </div>
 
-            {/* Footer - ALWAYS VISIBLE */}
-            <div style={{ 
-              borderTop: '1px solid #e5e7eb',
-              padding: '1rem 1.5rem',
-              backgroundColor: '#f9fafb',
-              borderBottomLeftRadius: '0.5rem',
-              borderBottomRightRadius: '0.5rem'
-            }}>
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  disabled={loading}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem 1.5rem',
-                    backgroundColor: '#6b7280',
-                    color: 'white',
-                    fontWeight: '600',
-                    borderRadius: '0.375rem',
-                    border: 'none',
-                    cursor: 'pointer'
-                  }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#4b5563'}
-                  onMouseOut={(e) => e.target.style.backgroundColor = '#6b7280'}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  form="report-form"
-                  disabled={loading || !formData.description || !formData.city || !formData.barangay || !formData.hazardType}
-                  style={{
-                    flex: 1,
-                    padding: '0.75rem 1.5rem',
-                    backgroundColor: '#2563eb',
-                    color: 'white',
-                    fontWeight: '600',
-                    borderRadius: '0.375rem',
-                    border: 'none',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem'
-                  }}
-                  onMouseOver={(e) => e.target.style.backgroundColor = '#1d4ed8'}
-                  onMouseOut={(e) => e.target.style.backgroundColor = '#2563eb'}
-                >
-                  {loading ? (
-                    <>
-                      <Loader className="w-5 h-5 animate-spin" />
-                      <span>Submitting...</span>
-                    </>
-                  ) : (
-                    <>
-                      <MapPin className="w-5 h-5" />
-                      <span>Submit Report</span>
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
+        {/* Footer */}
+        <div className="border-t border-gray-200 p-6 bg-white">
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              style={{ backgroundColor: '#6B7280', color: '#FFFFFF' }}
+              className="flex-1 px-6 py-3 hover:bg-gray-600 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="report-form"
+              disabled={loading || !formData.description || !formData.city || !formData.barangay || !formData.hazardType}
+              style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
+              className="flex-1 px-6 py-3 hover:bg-blue-700 font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <>
+                  <Loader className="w-5 h-5 animate-spin" />
+                  <span>Submitting...</span>
+                </>
+              ) : (
+                <>
+                  <MapPin className="w-5 h-5" />
+                  <span>Submit Report</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
-      )}
-    </>
+      </div>
+    </div>
   );
 }

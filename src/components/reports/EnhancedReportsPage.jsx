@@ -523,9 +523,9 @@ export function EnhancedReportsPage() {
 
       {/* Top 3 Cities */}
       {compiledReports.length > 0 && (
-        <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+        <Card className="bg-white border-gray-200">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-indigo-900">
+            <CardTitle className="flex items-center gap-2 text-gray-900">
               <TrendingUp className="w-5 h-5" />
               Top 3 Cities with Most Reports
             </CardTitle>
@@ -535,23 +535,20 @@ export function EnhancedReportsPage() {
               {compiledReports.slice(0, 3).map((city, index) => {
                 const attentionLevel = getAttentionLevel(city);
                 return (
-                <div key={index} className="bg-white/70 backdrop-blur-sm rounded-xl p-4 border border-indigo-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-3xl font-bold text-indigo-600">#{index + 1}</span>
-                    <Badge className={city.credibilityStatus.color + ' text-white'}>
-                      {city.aiConfidence}% confident
-                    </Badge>
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">{city.city}</h3>
-                  <p className="text-2xl font-bold text-indigo-600 mb-2">{city.totalReports} reports</p>
-                  <div className="text-sm text-gray-600 space-y-1">
+                <div key={index} className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex items-start justify-between mb-4">
+                    <span className="text-4xl font-bold text-indigo-600">#{index + 1}</span>
                     <Badge
-                      className="text-white text-xs"
+                      className="text-white text-xs font-semibold"
                       style={{ backgroundColor: attentionLevel.bgColor }}
                     >
                       {attentionLevel.level}
                     </Badge>
-                    <div>✓ {city.verifiedReports} Verified{city.investigatingReports > 0 ? ` / ${city.investigatingReports} Under Investigation` : ''}</div>
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{city.city}</h3>
+                  <p className="text-3xl font-bold text-indigo-600 mb-4">{city.totalReports} reports</p>
+                  <div className="text-sm text-gray-600">
+                    <div>✓ {city.verifiedReports} Verified</div>
                   </div>
                 </div>
                 );
@@ -652,11 +649,9 @@ export function EnhancedReportsPage() {
             )}
           </div>
         </CardContent>
-      </Card>
 
-      {/* Compiled Reports Table */}
-      <Card>
-        <CardHeader>
+        {/* Compiled Reports Table */}
+        <CardHeader className="border-t">
           <CardTitle>Compiled Reports by Location ({filteredCompiledReports.length})</CardTitle>
         </CardHeader>
         <CardContent>

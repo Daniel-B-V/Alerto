@@ -9,14 +9,6 @@ import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { Card } from '../ui/card';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../ui/table';
-import {
   AlertTriangle,
   Eye,
   CheckCircle2,
@@ -171,68 +163,88 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            🛑 Suspension Candidates
-          </h2>
-          <p className="text-sm text-gray-600 mt-2 font-medium">
-            AI-assessed cities based on weather conditions and community reports
-            {suspensionCandidates.length > 0 && (
-              <span className="ml-2 text-gray-500">
-                • Last updated: {new Date(suspensionCandidates[0]?.lastUpdated).toLocaleTimeString()}
-              </span>
-            )}
-          </p>
+    <>
+      {/* Header Section */}
+      <div className="p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">
+            Suspension Candidates ({suspensionCandidates.length})
+          </h3>
+          <Button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            variant="outline"
+            size="sm"
+            className="border-blue-400 text-blue-700 hover:bg-blue-50 hover:border-blue-500 font-medium shadow-sm"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
-        <Button
-          onClick={handleRefresh}
-          disabled={refreshing}
-          variant="outline"
-          size="sm"
-          className="border-blue-400 text-blue-700 hover:bg-blue-50 hover:border-blue-500 font-medium shadow-sm"
-        >
-          <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
       </div>
 
-      {suspensionCandidates.length === 0 ? (
-        <div className="text-center py-16 text-gray-500 bg-gray-50 rounded-lg">
-          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-          <p className="text-lg font-semibold text-gray-700">No candidates available</p>
-          <p className="text-sm mt-2 text-gray-600">Weather conditions are safe across all cities</p>
-        </div>
-      ) : (
-        <div className="overflow-x-auto rounded-lg border border-gray-200">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-100 hover:bg-gray-100">
-                <TableHead className="font-bold text-gray-900">City</TableHead>
-                <TableHead className="font-bold text-gray-900">PAGASA Warning</TableHead>
-                <TableHead className="font-bold text-gray-900 text-right">Rainfall</TableHead>
-                <TableHead className="font-bold text-gray-900 text-right">Wind</TableHead>
-                <TableHead className="font-bold text-gray-900 text-center">Reports</TableHead>
-                <TableHead className="font-bold text-gray-900">AI Action</TableHead>
-                <TableHead className="font-bold text-gray-900">Suspension Levels</TableHead>
-                <TableHead className="font-bold text-gray-900 text-center">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
+      {/* Table Section */}
+      <div className="p-6">
+        {suspensionCandidates.length === 0 ? (
+          <div className="text-center py-12">
+            <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+            <p className="text-gray-500">No candidates available</p>
+          </div>
+        ) : (
+          <div
+            className="overflow-auto scrollbar-thin"
+            style={{
+              maxHeight: '600px',
+              scrollbarWidth: 'thin',
+              scrollbarColor: '#CBD5E1 #F1F5F9'
+            }}
+          >
+            <style jsx>{`
+              div::-webkit-scrollbar {
+                width: 6px;
+              }
+              div::-webkit-scrollbar-track {
+                background: #F1F5F9;
+                border-radius: 10px;
+              }
+              div::-webkit-scrollbar-thumb {
+                background: #CBD5E1;
+                border-radius: 10px;
+              }
+              div::-webkit-scrollbar-thumb:hover {
+                background: #94A3B8;
+              }
+              div::-webkit-scrollbar-button {
+                display: none;
+              }
+            `}</style>
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b-2 border-gray-200" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">City</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">PAGASA Warning</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Rainfall</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Wind</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Reports</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">AI Action</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Suspension Levels</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Action</th>
+                </tr>
+              </thead>
+            <tbody className="divide-y-2 divide-gray-300">
               {suspensionCandidates.map((candidate) => (
-                <TableRow
+                <tr
                   key={candidate.city}
-                  className={
+                  className={`border-b border-gray-200 ${
                     candidate.hasActiveSuspension
                       ? 'bg-red-50 hover:bg-red-100'
                       : candidate.autoSuspend.shouldAutoSuspend
                       ? 'bg-orange-50 hover:bg-orange-100'
                       : 'hover:bg-gray-50'
-                  }
+                  }`}
                 >
                   {/* City */}
-                  <TableCell className="font-semibold text-gray-900">
+                  <td className="px-4 py-3 font-semibold text-gray-900">
                     <div className="flex items-center gap-2">
                       <span>{candidate.city}</span>
                       {candidate.hasActiveSuspension && (
@@ -241,10 +253,10 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                         </Badge>
                       )}
                     </div>
-                  </TableCell>
+                  </td>
 
                   {/* PAGASA Warning */}
-                  <TableCell>
+                  <td className="px-4 py-3">
                     <div className="flex flex-col gap-1">
                       {getPAGASABadge(candidate.pagasaWarning)}
                       {candidate.tcws && (
@@ -253,10 +265,10 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                         </Badge>
                       )}
                     </div>
-                  </TableCell>
+                  </td>
 
                   {/* Rainfall */}
-                  <TableCell className="text-right">
+                  <td className="px-4 py-3 text-right">
                     <div className="flex flex-col items-end">
                       <span className="font-bold text-gray-900">{candidate.criteria.rainfall} mm/h</span>
                       {candidate.criteria.rainfall >= 30 && (
@@ -266,20 +278,20 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                         <span className="text-xs text-orange-600 font-bold">Moderate</span>
                       )}
                     </div>
-                  </TableCell>
+                  </td>
 
                   {/* Wind Speed */}
-                  <TableCell className="text-right">
+                  <td className="px-4 py-3 text-right">
                     <div className="flex flex-col items-end">
                       <span className="font-bold text-gray-900">{candidate.criteria.windSpeed} km/h</span>
                       {candidate.criteria.windSpeed >= 55 && (
                         <span className="text-xs text-red-600 font-bold">Strong</span>
                       )}
                     </div>
-                  </TableCell>
+                  </td>
 
                   {/* Reports */}
-                  <TableCell className="text-center">
+                  <td className="px-4 py-3 text-center">
                     <div className="flex flex-col items-center">
                       <span className="font-bold text-gray-900">{candidate.reportCount}</span>
                       {candidate.criticalReports > 0 && (
@@ -288,15 +300,15 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                         </span>
                       )}
                     </div>
-                  </TableCell>
+                  </td>
 
                   {/* AI Action */}
-                  <TableCell>
+                  <td className="px-4 py-3">
                     {getAIActionBadge(candidate.aiRecommendation)}
-                  </TableCell>
+                  </td>
 
                   {/* Suspension Levels */}
-                  <TableCell>
+                  <td className="px-4 py-3">
                     <div className="flex flex-col space-y-1.5">
                       {SUSPENSION_LEVELS.slice(0, 5).map((level) => (
                         <label
@@ -313,10 +325,10 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                         </label>
                       ))}
                     </div>
-                  </TableCell>
+                  </td>
 
                   {/* Action Buttons */}
-                  <TableCell className="text-center">
+                  <td className="px-4 py-3 text-center">
                     {candidate.hasActiveSuspension ? (
                       <Badge variant="outline" className="bg-gray-100 text-gray-600 font-medium">
                         ✅ Already Active
@@ -339,33 +351,36 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                         )}
                       </div>
                     )}
-                  </TableCell>
-                </TableRow>
+                  </td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
+            </tbody>
+          </table>
         </div>
-      )}
+        )}
 
-      {/* Legend */}
-      <div className="mt-6 pt-4 border-t border-gray-200 bg-gray-50 -mx-6 -mb-6 px-6 py-4 rounded-b-lg">
-        <p className="text-xs font-bold text-gray-700 mb-3">Legend:</p>
-        <div className="flex flex-wrap gap-6 text-xs text-gray-700">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-red-50 border-2 border-red-300 rounded"></div>
-            <span className="font-medium">Active suspension</span>
+        {/* Legend */}
+        {suspensionCandidates.length > 0 && (
+          <div className="mt-6">
+            <p className="text-xs font-bold text-gray-700 mb-3">Legend:</p>
+            <div className="flex flex-wrap gap-6 text-xs text-gray-700">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 bg-red-50 border-2 border-red-300 rounded"></div>
+                <span className="font-medium">Active suspension</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 bg-orange-50 border-2 border-orange-300 rounded"></div>
+                <span className="font-medium">Auto-suspend criteria met</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-red-600" />
+                <span className="font-medium">Critical reports present</span>
+              </div>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-orange-50 border-2 border-orange-300 rounded"></div>
-            <span className="font-medium">Auto-suspend criteria met</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-red-600" />
-            <span className="font-medium">Critical reports present</span>
-          </div>
-        </div>
+        )}
       </div>
-    </div>
+    </>
   );
 };
 

@@ -31,7 +31,7 @@ export function StormDetailsPanel({ typhoons = [], selectedTyphoon, onSelectTyph
   }
 
   return (
-    <div className="space-y-4">
+    <div className="h-full">
       {typhoons.map((typhoon) => (
         <StormCard
           key={typhoon.id}
@@ -58,9 +58,9 @@ function StormCard({ typhoon, isSelected, onClick }) {
 
   return (
     <Card
-      className={`cursor-pointer transition-all hover:shadow-lg ${
+      className={`cursor-pointer transition-all hover:shadow-lg bg-white h-full ${
         isSelected ? 'ring-2 ring-blue-500 shadow-lg' : ''
-      } ${isNearPhilippines ? 'border-red-400 bg-red-50' : 'bg-white'}`}
+      } ${isNearPhilippines ? 'border-red-400' : 'border-gray-200'}`}
       onClick={onClick}
     >
       <CardHeader className="pb-3">

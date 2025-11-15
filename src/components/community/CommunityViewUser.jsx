@@ -9,7 +9,9 @@ import {
   Clock,
   AlertCircle,
   ChevronRight,
-  Calendar
+  Calendar,
+  ChevronLeft,
+  X
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -26,7 +28,9 @@ export function CommunityViewUser() {
   const [mayorAnnouncements, setMayorAnnouncements] = useState([]);
   const [governorAnnouncements, setGovernorAnnouncements] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Fetch community reports
   const fetchCommunityReports = async () => {
@@ -125,6 +129,27 @@ export function CommunityViewUser() {
     return colors[hash % colors.length];
   };
 
+  // Lightbox functions
+  const openLightbox = (images, index = 0) => {
+    setLightboxImages(images);
+    setCurrentImageIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+    setLightboxImages([]);
+    setCurrentImageIndex(0);
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % lightboxImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -152,7 +177,7 @@ export function CommunityViewUser() {
       {/* Tabs and Content Container */}
       <Card>
         {/* Filter Tabs */}
-        <div className="p-4 border-b border-gray-200">
+        <CardContent className="p-4">
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab("community")}
@@ -185,10 +210,10 @@ export function CommunityViewUser() {
               Governor Announcements
             </button>
           </div>
-        </div>
+        </CardContent>
 
         {/* Tab Content */}
-        <div>
+        <div className="border-t border-gray-200">
         {/* Community Reports Tab */}
         {activeTab === "community" && (
           <>
@@ -204,23 +229,77 @@ export function CommunityViewUser() {
               </CardContent>
             ) : (
               <CardContent className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 gap-4">
                 {communityReports.map((report) => (
-                  <Card key={report.id} className="hover:shadow-lg transition-all duration-200">
+                  <Card key={report.id} className="hover:shadow-lg transition-all duration-200 overflow-hidden">
                     <CardContent className="p-5">
                       {/* Title */}
-                      <h3 className="text-lg font-bold text-gray-900 mb-3">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">
                         {report.title || report.category || 'Community Report'}
                       </h3>
 
+                      {/* Image Thumbnails */}
+                      {report.images && report.images.length > 0 && (
+                        <div
+                          className="mb-3"
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            gap: '8px',
+                            alignItems: 'flex-start',
+                            flexWrap: 'nowrap'
+                          }}
+                        >
+                          {report.images.slice(0, 5).map((image, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => openLightbox(report.images, idx)}
+                              className="cursor-pointer hover:opacity-90 transition-opacity"
+                              style={{
+                                position: 'relative',
+                                width: '100px',
+                                height: '100px',
+                                backgroundColor: '#f3f4f6',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                flexShrink: 0,
+                                transform: 'none',
+                                rotate: 'none',
+                                scale: 'none',
+                                translate: 'none'
+                              }}
+                            >
+                              <img
+                                src={typeof image === 'string' ? image : image.url}
+                                alt={`${report.title || 'Report image'} ${idx + 1}`}
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  transform: 'none',
+                                  rotate: 'none',
+                                  scale: 'none',
+                                  translate: 'none'
+                                }}
+                              />
+                              {idx === 4 && report.images.length > 5 && (
+                                <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white text-lg font-bold">
+                                  +{report.images.length - 5}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Date */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <Calendar className="w-4 h-4" />
                         {formatTimestamp(report.createdAt)}
                       </div>
 
                       {/* Location */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
                         <MapPin className="w-4 h-4" />
                         {report.location?.barangay
                           ? `${report.location.barangay}, ${report.location.city}`
@@ -228,7 +307,7 @@ export function CommunityViewUser() {
                       </div>
 
                       {/* Description */}
-                      <p className="text-sm text-gray-700 leading-relaxed mb-4 line-clamp-3">
+                      <p className="text-sm text-gray-700 leading-relaxed mb-3 line-clamp-3">
                         {report.description}
                       </p>
 
@@ -266,24 +345,24 @@ export function CommunityViewUser() {
                   <Card key={announcement.id} className="hover:shadow-lg transition-all duration-200">
                     <CardContent className="p-5">
                       {/* Title */}
-                      <h3 className="text-lg font-bold text-gray-900 mb-3">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">
                         {announcement.title}
                       </h3>
 
                       {/* Date */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <Calendar className="w-4 h-4" />
                         {formatTimestamp(announcement.createdAt)}
                       </div>
 
                       {/* Location/City */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
                         <MapPin className="w-4 h-4" />
                         {announcement.city || 'City'}
                       </div>
 
                       {/* Description */}
-                      <p className="text-sm text-gray-700 leading-relaxed mb-4 line-clamp-3">
+                      <p className="text-sm text-gray-700 leading-relaxed mb-3 line-clamp-3">
                         {announcement.message || announcement.description}
                       </p>
 
@@ -321,24 +400,24 @@ export function CommunityViewUser() {
                   <Card key={announcement.id} className="hover:shadow-lg transition-all duration-200">
                     <CardContent className="p-5">
                       {/* Title */}
-                      <h3 className="text-lg font-bold text-gray-900 mb-3">
+                      <h3 className="text-lg font-bold text-gray-900 mb-2">
                         {announcement.title}
                       </h3>
 
                       {/* Date */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
                         <Calendar className="w-4 h-4" />
                         {formatTimestamp(announcement.createdAt)}
                       </div>
 
                       {/* Location */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-4">
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
                         <MapPin className="w-4 h-4" />
                         Batangas Province
                       </div>
 
                       {/* Description */}
-                      <p className="text-sm text-gray-700 leading-relaxed mb-4 line-clamp-3">
+                      <p className="text-sm text-gray-700 leading-relaxed mb-3 line-clamp-3">
                         {announcement.message || announcement.description}
                       </p>
 
@@ -357,6 +436,55 @@ export function CommunityViewUser() {
         )}
         </div>
       </Card>
+
+      {/* Image Lightbox Modal */}
+      {lightboxOpen && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
+          {/* Close Button */}
+          <button
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+          >
+            <X className="w-8 h-8" />
+          </button>
+
+          {/* Image Counter */}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
+            {currentImageIndex + 1} / {lightboxImages.length}
+          </div>
+
+          {/* Previous Button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={prevImage}
+              className="absolute left-4 text-white hover:text-gray-300 transition-colors bg-black/50 hover:bg-black/70 rounded-full p-3"
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </button>
+          )}
+
+          {/* Image Display */}
+          <div className="max-w-[90vw] max-h-[90vh] flex items-center justify-center">
+            <img
+              src={typeof lightboxImages[currentImageIndex] === 'string'
+                ? lightboxImages[currentImageIndex]
+                : lightboxImages[currentImageIndex]?.url}
+              alt={`Image ${currentImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+          </div>
+
+          {/* Next Button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={nextImage}
+              className="absolute right-4 text-white hover:text-gray-300 transition-colors bg-black/50 hover:bg-black/70 rounded-full p-3"
+            >
+              <ChevronRight className="w-8 h-8" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -129,7 +129,19 @@ function FitBounds({ typhoons }) {
  * TyphoonMap Component
  * Displays interactive map with typhoon tracks and forecasts
  */
-export function TyphoonMap({ typhoons = [], onTyphoonClick, selectedDate = null }) {
+export function TyphoonMap({
+  typhoons = [],
+  onTyphoonClick,
+  selectedDate = null,
+  title,
+  subtitle,
+  isTestMode,
+  lastUpdate,
+  onToggleTestData,
+  onRefresh,
+  isRefreshing,
+  useTestData
+}) {
   const mapRef = useRef(null);
 
   return (
@@ -159,6 +171,70 @@ export function TyphoonMap({ typhoons = [], onTyphoonClick, selectedDate = null 
           />
         ))}
       </MapContainer>
+
+      {/* Header Overlay - positioned absolutely over the map */}
+      {title && (
+        <div className="absolute top-0 left-0 right-0 z-[1000] bg-white/95 backdrop-blur-sm border-b border-gray-200 pointer-events-auto">
+          <div className="flex items-center justify-between px-4 py-3">
+            {/* Left - Title */}
+            <div className="flex items-center gap-3">
+              <div className="text-red-500">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2-1-2 1M4 7l2-1M4 7l2 1M4 7v2.5M12 21l-2-1m2 1l2-1m-2 1v-2.5M6 18l-2-1v-2.5M18 18l2-1v-2.5" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">{title}</h3>
+                {subtitle && <p className="text-xs text-gray-600 mt-0.5">{subtitle}</p>}
+              </div>
+              {isTestMode && (
+                <div className="ml-2 bg-yellow-500 text-white text-xs font-semibold px-2 py-1 rounded flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                  </svg>
+                  TEST MODE
+                </div>
+              )}
+            </div>
+
+            {/* Right - Controls */}
+            <div className="flex items-center gap-3">
+              {lastUpdate && (
+                <div className="text-xs text-gray-600">
+                  Last updated: {lastUpdate.toLocaleTimeString()}
+                </div>
+              )}
+              {onToggleTestData && (
+                <button
+                  onClick={onToggleTestData}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors ${
+                    useTestData
+                      ? 'bg-yellow-500 text-white hover:bg-yellow-600'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                  </svg>
+                  Use Test Data
+                </button>
+              )}
+              {onRefresh && (
+                <button
+                  onClick={onRefresh}
+                  disabled={isRefreshing}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-lg text-xs hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className={`w-3 h-3 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Refresh
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
