@@ -24,7 +24,7 @@ const reportSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['verified', 'investigating', 'resolved', 'false_report'],
+    enum: ['verified', 'investigating', 'resolved', 'false_report', 'rejected'],
     default: 'verified'
   },
   location: {
@@ -53,6 +53,22 @@ const reportSchema = new mongoose.Schema({
     ref: 'User'
   },
   verifiedAt: Date,
+  isSpam: {
+    type: Boolean,
+    default: false
+  },
+  spamDetails: {
+    flaggedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    flaggedAt: Date,
+    reason: String,
+    aiConfidence: Number
+  },
+  rejectedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+  rejectedAt: Date,
+  rejectionReason: String,
   resolution: {
     description: String,
     resolvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

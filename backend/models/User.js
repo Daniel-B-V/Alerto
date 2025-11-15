@@ -21,8 +21,8 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['user', 'reporter', 'admin', 'super_admin'],
-    default: 'user'
+    enum: ['user', 'reporter', 'admin', 'super_admin', 'community_member', 'mayor', 'governor'],
+    default: 'community_member'
   },
   location: {
     barangay: String,

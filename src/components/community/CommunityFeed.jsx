@@ -265,7 +265,7 @@ export function CommunityFeed() {
               </h1>
               <p className="text-gray-600">Real-time weather reports from the community</p>
             </div>
-            {isAuthenticated && user?.role !== 'admin' && user?.role !== 'super_admin' && (
+            {isAuthenticated && user?.role !== 'admin' && user?.role !== 'super_admin' && user?.role !== 'mayor' && user?.role !== 'governor' && (
               <Button
                 onClick={() => setShowSubmitModal(true)}
                 className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white"

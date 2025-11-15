@@ -141,13 +141,15 @@ export function UserReportsPage() {
               Submit and track your incident reports
             </p>
           </div>
-          <Button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2"
-          >
-            <Plus className="w-5 h-5" />
-            Submit Report
-          </Button>
+          {user?.role !== 'mayor' && user?.role !== 'governor' && (
+            <Button
+              onClick={() => setShowModal(true)}
+              className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2"
+            >
+              <Plus className="w-5 h-5" />
+              Submit Report
+            </Button>
+          )}
         </div>
 
         {/* Stats */}
@@ -273,7 +275,7 @@ export function UserReportsPage() {
                   ? 'Try adjusting your search or filter criteria'
                   : 'Submit your first report to get started'}
               </p>
-              {!searchQuery && statusFilter === 'all' && (
+              {!searchQuery && statusFilter === 'all' && user?.role !== 'mayor' && user?.role !== 'governor' && (
                 <Button onClick={() => setShowModal(true)} className="bg-blue-500 hover:bg-blue-600 text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Submit Report

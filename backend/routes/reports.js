@@ -48,7 +48,7 @@ const upload = multer({
 router.get('/', [
   query('page').optional().isInt({ min: 1 }),
   query('limit').optional().isInt({ min: 1, max: 100 }),
-  query('status').optional().isIn(['pending', 'verified', 'investigating', 'resolved', 'false_report']),
+  query('status').optional().isIn(['pending', 'verified', 'investigating', 'resolved', 'false_report', 'rejected']),
   query('severity').optional().isIn(['low', 'medium', 'high', 'critical']),
   query('category').optional().isIn(['flooding', 'traffic', 'power', 'infrastructure', 'weather', 'emergency', 'other']),
   query('city').optional().isString(),
@@ -139,6 +139,13 @@ router.post('/', authMiddleware, upload.array('images', 5), [
       return res.status(400).json({ errors: errors.array() });
     }
 
+    // Role-based submission check: Only community_member can submit reports
+    if (req.user.role === 'mayor' || req.user.role === 'governor') {
+      return res.status(403).json({
+        message: 'Mayors and governors cannot submit reports. Only community members can submit reports.'
+      });
+    }
+
     const reportData = {
       ...req.body,
       reporter: req.user.id,
@@ -174,7 +181,7 @@ router.post('/', authMiddleware, upload.array('images', 5), [
 router.put('/:id', authMiddleware, [
   body('title').optional().trim().isLength({ min: 5, max: 200 }),
   body('description').optional().trim().isLength({ min: 10, max: 2000 }),
-  body('status').optional().isIn(['pending', 'verified', 'investigating', 'resolved', 'false_report'])
+  body('status').optional().isIn(['pending', 'verified', 'investigating', 'resolved', 'false_report', 'rejected'])
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -311,6 +318,141 @@ router.post('/:id/comment', authMiddleware, [
     res.json(updatedReport.interactions.comments[updatedReport.interactions.comments.length - 1]);
   } catch (error) {
     console.error('Error adding comment:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/reports/:id/verify
+// @desc    Verify a report (Mayor/Governor only)
+// @access  Private (Mayor/Governor)
+router.post('/:id/verify', authMiddleware, async (req, res) => {
+  try {
+    // Check if user is mayor or governor
+    if (req.user.role !== 'mayor' && req.user.role !== 'governor') {
+      return res.status(403).json({
+        message: 'Only mayors and governors can verify reports'
+      });
+    }
+
+    const report = await Report.findById(req.params.id);
+    if (!report) {
+      return res.status(404).json({ message: 'Report not found' });
+    }
+
+    // Check jurisdiction
+    const userCity = req.user.location?.city?.toLowerCase().replace(/\s+/g, '_');
+    const userProvince = req.user.location?.province?.toLowerCase().replace(/\s+/g, '_');
+    const reportCity = report.location.city.toLowerCase().replace(/\s+/g, '_');
+    const reportProvince = report.location.province.toLowerCase().replace(/\s+/g, '_');
+
+    if (req.user.role === 'mayor' && userCity !== reportCity) {
+      return res.status(403).json({
+        message: 'You can only verify reports in your city'
+      });
+    }
+
+    if (req.user.role === 'governor' && userProvince !== reportProvince) {
+      return res.status(403).json({
+        message: 'You can only verify reports in your province'
+      });
+    }
+
+    // Update report status to verified
+    report.status = 'verified';
+    report.verifiedBy = req.user.id;
+    report.verifiedAt = new Date();
+    report.isSpam = false; // Clear spam flag if verified
+
+    await report.save();
+
+    // Update user stats
+    await User.findByIdAndUpdate(req.user.id, {
+      $inc: { 'stats.reportsVerified': 1 }
+    });
+
+    const updatedReport = await Report.findById(req.params.id)
+      .populate('reporter', 'name avatar location')
+      .populate('verifiedBy', 'name');
+
+    // Emit real-time update
+    req.io.emit('report-verified', { report: updatedReport });
+
+    res.json(updatedReport);
+  } catch (error) {
+    console.error('Error verifying report:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/reports/:id/reject
+// @desc    Reject a report as spam (Mayor/Governor only)
+// @access  Private (Mayor/Governor)
+router.post('/:id/reject', authMiddleware, [
+  body('reason').optional().trim().isLength({ min: 5, max: 500 }).withMessage('Reason must be 5-500 characters')
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    // Check if user is mayor or governor
+    if (req.user.role !== 'mayor' && req.user.role !== 'governor') {
+      return res.status(403).json({
+        message: 'Only mayors and governors can reject reports'
+      });
+    }
+
+    const report = await Report.findById(req.params.id);
+    if (!report) {
+      return res.status(404).json({ message: 'Report not found' });
+    }
+
+    // Check jurisdiction
+    const userCity = req.user.location?.city?.toLowerCase().replace(/\s+/g, '_');
+    const userProvince = req.user.location?.province?.toLowerCase().replace(/\s+/g, '_');
+    const reportCity = report.location.city.toLowerCase().replace(/\s+/g, '_');
+    const reportProvince = report.location.province.toLowerCase().replace(/\s+/g, '_');
+
+    if (req.user.role === 'mayor' && userCity !== reportCity) {
+      return res.status(403).json({
+        message: 'You can only reject reports in your city'
+      });
+    }
+
+    if (req.user.role === 'governor' && userProvince !== reportProvince) {
+      return res.status(403).json({
+        message: 'You can only reject reports in your province'
+      });
+    }
+
+    // Update report status to rejected
+    report.status = 'rejected';
+    report.rejectedBy = req.user.id;
+    report.rejectedAt = new Date();
+    report.rejectionReason = req.body.reason || 'Report rejected as spam or invalid';
+    report.isSpam = true;
+
+    // Update spam details
+    report.spamDetails = {
+      flaggedBy: req.user.id,
+      flaggedAt: new Date(),
+      reason: req.body.reason || 'Rejected by official',
+      aiConfidence: report.aiAnalysis?.confidence || 0
+    };
+
+    await report.save();
+
+    const updatedReport = await Report.findById(req.params.id)
+      .populate('reporter', 'name avatar location')
+      .populate('rejectedBy', 'name');
+
+    // Emit real-time update
+    req.io.emit('report-rejected', { report: updatedReport });
+
+    res.json(updatedReport);
+  } catch (error) {
+    console.error('Error rejecting report:', error);
     res.status(500).json({ message: 'Server error' });
   }
 });

@@ -201,7 +201,7 @@ export const createReport = async (reportData, userId) => {
       // Auto-verify based on AI confidence
       if (confidence >= 70) {
         status = 'verified';
-        verifiedBy = 'AI (Gemini Vision)';
+        verifiedBy = 'AI (Hugging Face CLIP)';
         verifiedAt = serverTimestamp();
       } else if (confidence >= 40) {
         status = 'under_review';
@@ -413,7 +413,7 @@ export const subscribeToReports = (callback, filters = {}) => {
       console.log(`📊 Firestore query: Filtering reports by city: ${filters.city}`);
     } else if (filters.province) {
       // For governors: filter by province
-      queryConstraints.push(where('province', '==', filters.province));
+      queryConstraints.push(where('location.province', '==', filters.province));
       console.log(`📊 Firestore query: Filtering reports by province: ${filters.province}`);
     }
 
