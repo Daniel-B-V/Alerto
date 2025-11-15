@@ -10,20 +10,22 @@ import {
   Image as ImageIcon,
   Send,
   X,
+  XCircle,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   ChevronUp,
   TrendingUp,
   Users,
-  Eye
+  Eye,
+  Shield
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { getReports, toggleLike, subscribeToReports, updateReport } from "../../firebase";
+import { getReports, toggleLike, subscribeToReports, updateReport, rejectReport } from "../../firebase";
 import { useAuth } from "../../contexts/AuthContext";
 import { ReportSubmissionModal } from "./ReportSubmissionModal";
 import { CATEGORY_CONFIG } from "../../constants/categorization";
@@ -81,6 +83,22 @@ export function CommunityFeed() {
     } catch (error) {
       console.error('Error verifying report:', error);
       alert('Failed to verify report');
+    }
+  };
+
+  // Handle reject report
+  const handleRejectReport = async (reportId) => {
+    try {
+      const rejectorRole = isAdmin ? 'Governor' : isMayorUser ? `Mayor of ${userCity}` : 'Admin';
+      await rejectReport(
+        reportId,
+        `${rejectorRole} (${user?.displayName || user?.email})`,
+        'Marked as spam/inappropriate content'
+      );
+      console.log('Report rejected successfully by', rejectorRole);
+    } catch (error) {
+      console.error('Error rejecting report:', error);
+      alert('Failed to reject report');
     }
   };
 
@@ -527,29 +545,74 @@ export function CommunityFeed() {
                     {/* AI Credibility Badge & Admin Actions */}
                     <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-gray-100">
                       <div className="flex items-center gap-2 flex-wrap">
-                        {/* AI Credibility Badge */}
-                        {report.imageAnalysis && (
+                        {/* AI Credibility Badge (Hugging Face) */}
+                        {(report.imageAnalysis || report.aiCredibility !== null) && (
                           <Badge
-                            className={`text-xs px-2 py-1 ${getCredibilityBadge(report.imageAnalysis).color} text-white`}
-                            title={report.imageAnalysis.reason}
+                            className={`text-xs px-2 py-1 flex items-center gap-1 font-semibold ${
+                              report.aiCredibility >= 70 || (report.imageAnalysis && report.imageAnalysis.confidence >= 70)
+                                ? 'bg-green-600 text-white'
+                                : report.aiCredibility >= 40 || (report.imageAnalysis && report.imageAnalysis.confidence >= 40)
+                                ? 'bg-orange-500 text-white'
+                                : 'bg-red-600 text-white'
+                            }`}
+                            title={report.imageAnalysis?.reason || report.aiReason || 'AI-analyzed report'}
                           >
-                            {getCredibilityBadge(report.imageAnalysis).text}
+                            <Shield className="w-3 h-3" />
+                            {report.aiCredibility >= 70 || (report.imageAnalysis && report.imageAnalysis.confidence >= 70)
+                              ? `✓ Credible`
+                              : report.aiCredibility >= 40 || (report.imageAnalysis && report.imageAnalysis.confidence >= 40)
+                              ? `⚠ Suspicious`
+                              : `🚫 SPAM`
+                            }
                           </Badge>
                         )}
 
-                        <span className="text-xs text-gray-500">{formatTimestamp(report.createdAt)}</span>
+                        {/* Status Badges */}
+                        {report.status === 'flagged' && (
+                          <Badge className="bg-red-100 text-red-800 text-xs px-2 py-1 font-semibold border border-red-300">
+                            Flagged
+                          </Badge>
+                        )}
+
+                        {report.status === 'monitoring' && (
+                          <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-1 font-semibold border border-blue-300 flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            Monitoring
+                            {report.monitoringExpiresAt && (() => {
+                              const expiresAt = report.monitoringExpiresAt?.toDate ? report.monitoringExpiresAt.toDate() : new Date(report.monitoringExpiresAt);
+                              const now = new Date();
+                              const hoursLeft = Math.max(0, Math.ceil((expiresAt - now) / (1000 * 60 * 60)));
+                              return hoursLeft > 0 ? ` (${hoursLeft}h left)` : ' (expired)';
+                            })()}
+                          </Badge>
+                        )}
+
+                        <span className="text-xs text-gray-600 font-medium">{formatTimestamp(report.createdAt)}</span>
                       </div>
 
-                      {/* Verify Button (Admin/Mayor Only for non-verified reports) */}
-                      {(isAdmin || isMayorUser) && report.status !== 'verified' && (
-                        <Button
-                          onClick={() => handleVerifyReport(report.id)}
-                          size="sm"
-                          className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 h-7"
-                        >
-                          <CheckCircle className="w-3 h-3 mr-1" />
-                          Verify
-                        </Button>
+                      {/* Admin Actions: Verify & Reject Buttons (hide for flagged spam and verified reports) */}
+                      {(isAdmin || isMayorUser) &&
+                       report.status !== 'verified' &&
+                       report.status !== 'rejected' &&
+                       report.status !== 'flagged' && (
+                        <div className="flex items-center gap-2">
+                          <Button
+                            onClick={() => handleVerifyReport(report.id)}
+                            size="sm"
+                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 h-7"
+                          >
+                            <CheckCircle className="w-3 h-3 mr-1" />
+                            Verify
+                          </Button>
+                          <Button
+                            onClick={() => handleRejectReport(report.id)}
+                            size="sm"
+                            className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 h-7"
+                          >
+                            <XCircle className="w-3 h-3 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
                       )}
                     </div>
 

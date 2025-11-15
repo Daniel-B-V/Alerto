@@ -136,12 +136,36 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         }
       }
 
-      // Analyze images with Hugging Face CLIP (with weather data cross-reference)
+      // ALWAYS run text spam detection first (even if images exist)
+      let textSpamAnalysis = null;
+      try {
+        console.log('🔍 Running text spam detection...');
+        textSpamAnalysis = await analyzeReportText({
+          title: formData.title,
+          description: formData.description,
+          hazardType: formData.hazardType,
+          location: {
+            city: formData.city,
+            barangay: formData.barangay
+          }
+        });
+        console.log('✅ Text Spam Analysis:', {
+          confidence: textSpamAnalysis.confidence,
+          isSpam: textSpamAnalysis.isSpam,
+          redFlags: textSpamAnalysis.redFlags
+        });
+      } catch (textError) {
+        console.error('Text analysis error:', textError);
+        // TESTING: Use 60% fallback to ensure monitoring status
+        textSpamAnalysis = { confidence: 60, isSpam: false, redFlags: [] };
+      }
+
+      // Then analyze images if present
       let imageAnalysis = null;
       if (imageUrls.length > 0) {
         try {
           setUploadProgress(0);
-          imageAnalysis = await analyzeReportImages(
+          const imageResult = await analyzeReportImages(
             imageUrls,
             {
               hazardType: formData.hazardType,
@@ -155,66 +179,58 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
             weatherData // Pass actual weather conditions
           );
           console.log('📸 Image Analysis Complete:', {
-            confidence: imageAnalysis.confidence,
-            matchesReport: imageAnalysis.matchesReport,
+            confidence: imageResult.confidence,
+            matchesReport: imageResult.matchesReport,
             reportedHazard: formData.hazardType,
-            detectedHazards: imageAnalysis.detectedHazards,
-            redFlags: imageAnalysis.redFlags,
-            weatherMatch: imageAnalysis.weatherMatch,
-            reason: imageAnalysis.reason
+            detectedHazards: imageResult.detectedHazards,
+            redFlags: imageResult.redFlags,
+            weatherMatch: imageResult.weatherMatch,
+            reason: imageResult.reason
           });
-          console.log('🌦️ Weather Data Used:', weatherData);
+
+          // Combine text spam detection with image analysis
+          // Use the LOWER confidence score to be strict on spam
+          const combinedConfidence = Math.min(textSpamAnalysis.confidence, imageResult.confidence);
+          const combinedRedFlags = [...(textSpamAnalysis.redFlags || []), ...(imageResult.redFlags || [])];
+
+          imageAnalysis = {
+            ...imageResult,
+            confidence: combinedConfidence,
+            redFlags: combinedRedFlags,
+            reason: textSpamAnalysis.isSpam
+              ? `Text spam detected: ${textSpamAnalysis.reason}. ${imageResult.reason}`
+              : imageResult.reason
+          };
+
+          console.log('🎯 Combined Analysis (Text + Image):', {
+            textConfidence: textSpamAnalysis.confidence,
+            imageConfidence: imageResult.confidence,
+            finalConfidence: combinedConfidence,
+            isSpam: textSpamAnalysis.isSpam
+          });
+
         } catch (analysisError) {
           console.error('Image analysis error:', analysisError);
-          // Continue without image analysis
+          // Use text analysis result if image analysis fails
           imageAnalysis = {
-            credible: true,
-            confidence: 50,
-            reason: 'Image analysis unavailable',
-            matchesReport: 'unknown',
-            detectedHazards: []
+            confidence: textSpamAnalysis.confidence,
+            reason: textSpamAnalysis.reason,
+            matchesReport: textSpamAnalysis.isSpam ? 'unrelated' : 'unknown',
+            detectedHazards: [],
+            redFlags: textSpamAnalysis.redFlags
           };
         }
       } else {
-        // No images - Run Hugging Face NLI-based spam detection
-        console.log('No images provided - running Hugging Face text analysis');
-        try {
-          const aiProtocolAnalysis = await analyzeReportText({
-            title: formData.title,
-            description: formData.description,
-            hazardType: formData.hazardType,
-            location: {
-              city: formData.city,
-              barangay: formData.barangay
-            }
-          });
-
-          imageAnalysis = {
-            confidence: aiProtocolAnalysis.confidence,
-            reason: aiProtocolAnalysis.reason,
-            matchesReport: aiProtocolAnalysis.isSpam ? 'unrelated' : 'unknown',
-            detectedHazards: [],
-            protocolScores: aiProtocolAnalysis.protocolScores,
-            redFlags: aiProtocolAnalysis.redFlags
-          };
-
-          console.log('✅ Hugging Face NLI Analysis Complete:', {
-            confidence: aiProtocolAnalysis.confidence,
-            isSpam: aiProtocolAnalysis.isSpam,
-            protocols: aiProtocolAnalysis.protocolScores,
-            redFlags: aiProtocolAnalysis.redFlags
-          });
-
-        } catch (textAnalysisError) {
-          console.error('Text spam detection error:', textAnalysisError);
-          // Fallback - flag as under review
-          imageAnalysis = {
-            confidence: 45,
-            reason: 'No images provided - requires manual review',
-            matchesReport: 'unknown',
-            detectedHazards: []
-          };
-        }
+        // No images - use text analysis only
+        console.log('No images provided - using text analysis only');
+        imageAnalysis = {
+          confidence: textSpamAnalysis.confidence,
+          reason: textSpamAnalysis.reason,
+          matchesReport: textSpamAnalysis.isSpam ? 'unrelated' : 'unknown',
+          detectedHazards: [],
+          protocolScores: textSpamAnalysis.protocolScores,
+          redFlags: textSpamAnalysis.redFlags
+        };
       }
 
       // Get user's province for routing

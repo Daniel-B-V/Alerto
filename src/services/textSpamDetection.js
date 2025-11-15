@@ -3,8 +3,8 @@
  * Detects spam reports based on text content analysis
  */
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 const HF_API_KEY = import.meta.env.VITE_HUGGING_FACE_API_KEY;
-const HF_TEXT_CLASSIFICATION_URL = 'https://api-inference.huggingface.co/models/facebook/bart-large-mnli';
 
 /**
  * Detect spam patterns in report text (Rule-based)
@@ -19,58 +19,67 @@ export const detectSpamInText = (reportData) => {
   const reasons = [];
 
   // 1. Check for repetitive characters (e.g., "asdadada", "asdasdasd")
-  const repetitivePattern = /(.)\1{3,}|(.{2,})\2{2,}/g;
-  if (repetitivePattern.test(fullText)) {
-    spamScore += 40;
+  // STRICTER: Lower threshold and higher penalty
+  const repetitivePattern = /(.)\1{2,}|(.{2,})\2{2,}/g;
+  const repetitiveMatches = fullText.match(repetitivePattern);
+  if (repetitiveMatches && repetitiveMatches.length > 0) {
+    spamScore += 50; // Increased from 40
     reasons.push('Repetitive character patterns detected');
   }
 
   // 2. Check for keyboard mashing (random keys)
-  const keyboardMashing = /^[qwertasdfzxcv]{5,}$|^[uiophjklbnm]{5,}$/i;
+  const keyboardMashing = /^[qwertasdfzxcv]{4,}$|^[uiophjklbnm]{4,}$|asdasd|sdasd|qweqwe|asdas/i;
   if (keyboardMashing.test(fullText.replace(/\s/g, ''))) {
-    spamScore += 35;
+    spamScore += 45; // Increased from 35
     reasons.push('Random keyboard mashing detected');
   }
 
   // 3. Check for very short descriptions (less than 10 characters)
   if (description.trim().length < 10) {
-    spamScore += 20;
+    spamScore += 25; // Increased from 20
     reasons.push('Description too short (less than 10 characters)');
   }
 
   // 4. Check for missing meaningful words (mostly consonants or gibberish)
   const vowelRatio = (fullText.match(/[aeiou]/g) || []).length / fullText.length;
-  if (vowelRatio < 0.15 && fullText.length > 5) {
-    spamScore += 25;
+  if (vowelRatio < 0.2 && fullText.length > 5) { // Increased threshold from 0.15 to 0.2
+    spamScore += 30; // Increased from 25
     reasons.push('Gibberish text - very few vowels');
   }
 
   // 5. Check for all caps spam
   const capsRatio = (fullText.match(/[A-Z]/g) || []).length / fullText.replace(/\s/g, '').length;
   if (capsRatio > 0.7 && fullText.length > 10) {
-    spamScore += 15;
+    spamScore += 20; // Increased from 15
     reasons.push('Excessive use of capital letters');
   }
 
   // 6. Check for single word descriptions
   const wordCount = description.trim().split(/\s+/).length;
   if (wordCount < 3) {
-    spamScore += 15;
+    spamScore += 20; // Increased from 15
     reasons.push('Too few words in description');
   }
 
   // 7. Check for complete lack of spaces (e.g., "asdasdasdasd")
-  if (description.length > 15 && !description.includes(' ')) {
-    spamScore += 20;
+  if (description.length > 10 && !description.includes(' ')) { // Lowered threshold from 15 to 10
+    spamScore += 30; // Increased from 20
     reasons.push('No spaces in description');
   }
 
   // 8. Check for common spam phrases
-  const spamPhrases = ['test', 'testing', 'asdf', 'qwerty', 'zzz', 'xxx'];
+  const spamPhrases = ['test', 'testing', 'asdf', 'qwerty', 'zzz', 'xxx', 'aaa', 'bbb'];
   const hasSpamPhrase = spamPhrases.some(phrase => fullText.includes(phrase));
-  if (hasSpamPhrase && description.length < 20) {
-    spamScore += 15;
+  if (hasSpamPhrase && description.length < 30) { // Increased threshold from 20 to 30
+    spamScore += 20; // Increased from 15
     reasons.push('Common spam/test phrase detected');
+  }
+
+  // 9. NEW: Check for same character/pattern more than 50% of text
+  const uniqueChars = new Set(fullText.replace(/\s/g, '').toLowerCase()).size;
+  if (uniqueChars < 5 && fullText.length > 10) {
+    spamScore += 35;
+    reasons.push('Very limited character variety - likely spam');
   }
 
   // Calculate confidence (inverse of spam score)
@@ -78,7 +87,7 @@ export const detectSpamInText = (reportData) => {
   const confidence = Math.max(0, Math.min(100, 100 - spamScore));
 
   return {
-    isSpam: spamScore >= 60,
+    isSpam: spamScore >= 50, // Lowered from 60 to be stricter
     confidence: confidence,
     spamScore: spamScore,
     reasons: reasons,
@@ -149,13 +158,13 @@ export const analyzeReportTextWithProtocol = async (reportData) => {
       (coherenceScore + legitimacyScore + (100 - spamScore) + hazardMatchScore) / 4
     );
 
-    // Determine if spam
-    const isSpam = spamScore > 60 || overallConfidence < 40;
+    // Determine if spam - STRICTER thresholds
+    const isSpam = spamScore > 50 || overallConfidence < 40; // Lowered spam threshold from 60 to 50
 
     const redFlags = [];
     if (coherenceScore < 40) redFlags.push('Incoherent text structure');
     if (legitimacyScore < 40) redFlags.push('Does not appear to describe real emergency');
-    if (spamScore > 60) redFlags.push('High spam indicators');
+    if (spamScore > 50) redFlags.push('High spam indicators'); // Lowered from 60 to 50
     if (hazardMatchScore < 30) redFlags.push('Does not match reported hazard type');
 
     const failedProtocols = [];
@@ -216,25 +225,19 @@ export const analyzeReportTextWithProtocol = async (reportData) => {
  */
 async function classifyText(text, hypothesis) {
   try {
-    // Check if API key is configured
-    if (!HF_API_KEY) {
-      console.error('Hugging Face API key not configured');
-      throw new Error('API key not configured');
-    }
-
-    const response = await fetch(HF_TEXT_CLASSIFICATION_URL, {
+    // Use backend proxy to avoid CORS issues
+    const response = await fetch(`${BACKEND_URL}/api/huggingface/text-sentiment`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${HF_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: `${text} [SEP] ${hypothesis}`
+        text: `${text} [SEP] ${hypothesis}`
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Hugging Face API error: ${response.status}`);
+      throw new Error(`Backend API error: ${response.status}`);
     }
 
     const data = await response.json();

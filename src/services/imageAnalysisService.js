@@ -1,6 +1,6 @@
 // Hugging Face Image Analysis Service using CLIP
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 const HF_API_KEY = import.meta.env.VITE_HUGGING_FACE_API_KEY;
-const HF_CLIP_API_URL = 'https://api-inference.huggingface.co/models/openai/clip-vit-large-patch14';
 
 /**
  * Analyze report images to verify they match the reported hazard using Hugging Face CLIP
@@ -58,23 +58,20 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
     // Prepare CLIP parameters
     const candidateLabels = `${expectedLabel}, ${spamLabels}`;
 
-    // Call Hugging Face CLIP API for zero-shot image classification
-    const hfResponse = await fetch(HF_CLIP_API_URL, {
+    // Call backend proxy for Hugging Face CLIP API (avoids CORS)
+    const hfResponse = await fetch(`${BACKEND_URL}/api/huggingface/image-classification`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${HF_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        parameters: {
-          candidate_labels: candidateLabels.split(', ')
-        },
-        inputs: await blobToBase64(blob)
+        image: await blobToBase64(blob),
+        candidateLabels: candidateLabels.split(', ')
       })
     });
 
     if (!hfResponse.ok) {
-      throw new Error(`Hugging Face API error: ${hfResponse.status}`);
+      throw new Error(`Backend API error: ${hfResponse.status}`);
     }
 
     const hfData = await hfResponse.json();

@@ -26,7 +26,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { subscribeToReports } from "../../firebase/firestore";
+import { subscribeToReports, updateReport, rejectReport } from "../../firebase/firestore";
 import { analyzeCompiledLocationReports, analyzeIndividualReportCredibility } from "../../services/geminiService";
 import { useSuspensions } from "../../hooks/useSuspensions";
 import { getWeatherAssessmentForSuspension } from "../../services/weatherService";
@@ -351,6 +351,36 @@ export function MayorReportsPage() {
       ...prev,
       [reportId]: !prev[reportId]
     }));
+  };
+
+  // Handle verify report
+  const handleVerifyReport = async (reportId) => {
+    try {
+      await updateReport(reportId, {
+        status: 'verified',
+        verifiedBy: `Mayor of ${userCity} (${user?.displayName || user?.email})`,
+        verifiedAt: new Date()
+      });
+      console.log('Report verified successfully by Mayor of', userCity);
+    } catch (error) {
+      console.error('Error verifying report:', error);
+      alert('Failed to verify report');
+    }
+  };
+
+  // Handle reject report
+  const handleRejectReport = async (reportId) => {
+    try {
+      await rejectReport(
+        reportId,
+        `Mayor of ${userCity} (${user?.displayName || user?.email})`,
+        'Marked as spam/inappropriate content'
+      );
+      console.log('Report rejected successfully by Mayor of', userCity);
+    } catch (error) {
+      console.error('Error rejecting report:', error);
+      alert('Failed to reject report');
+    }
   };
 
   // Handle view compiled reports
@@ -944,6 +974,28 @@ export function MayorReportsPage() {
                               <p className="text-xs text-gray-600 mt-1 italic">
                                 {credibility.spamReason}
                               </p>
+                            </div>
+                          )}
+
+                          {/* Verify and Reject Buttons */}
+                          {report.status !== 'verified' && report.status !== 'rejected' && (
+                            <div className="flex items-center gap-2 mt-2 mb-2">
+                              <Button
+                                onClick={() => handleVerifyReport(report.id)}
+                                size="sm"
+                                className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 h-7 flex-1"
+                              >
+                                <CheckCircle className="w-3 h-3 mr-1" />
+                                Verify
+                              </Button>
+                              <Button
+                                onClick={() => handleRejectReport(report.id)}
+                                size="sm"
+                                className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 h-7 flex-1"
+                              >
+                                <XCircle className="w-3 h-3 mr-1" />
+                                Reject
+                              </Button>
                             </div>
                           )}
 
