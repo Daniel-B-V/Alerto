@@ -154,183 +154,162 @@ export function UserReportsPage() {
 
         {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+          <Card className="bg-white !border-4 !border-blue-500 shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-blue-600 mb-1">Total Reports</p>
-                  <p className="text-3xl font-bold text-blue-900">{reports.length}</p>
-                </div>
-                <FileText className="w-10 h-10 text-blue-500 opacity-50" />
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">{reports.length}</div>
+                <div className="text-sm text-gray-600">Total Reports</div>
+                <div className="text-xs text-gray-500">Submitted</div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-yellow-50 to-yellow-100 border-yellow-200">
+          <Card className="bg-white !border-4 !border-yellow-500 shadow-lg shadow-yellow-200 hover:shadow-xl hover:shadow-yellow-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-yellow-600 mb-1">Pending</p>
-                  <p className="text-3xl font-bold text-yellow-900">
-                    {reports.filter(r => r.status === 'pending').length}
-                  </p>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {reports.filter(r => r.status === 'pending').length}
                 </div>
-                <Clock className="w-10 h-10 text-yellow-500 opacity-50" />
+                <div className="text-sm text-gray-600">Pending</div>
+                <div className="text-xs text-gray-500">Awaiting Review</div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border-blue-200">
+          <Card className="bg-white !border-4 !border-blue-500 shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-blue-600 mb-1">Under Review</p>
-                  <p className="text-3xl font-bold text-blue-900">
-                    {reports.filter(r => r.status === 'reviewing').length}
-                  </p>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {reports.filter(r => r.status === 'reviewing' || r.status === 'under_review').length}
                 </div>
-                <AlertCircle className="w-10 h-10 text-blue-500 opacity-50" />
+                <div className="text-sm text-gray-600">Under Review</div>
+                <div className="text-xs text-gray-500">Being Verified</div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+          <Card className="bg-white !border-4 !border-green-500 shadow-lg shadow-green-200 hover:shadow-xl hover:shadow-green-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-green-600 mb-1">Resolved</p>
-                  <p className="text-3xl font-bold text-green-900">
-                    {reports.filter(r => r.status === 'resolved').length}
-                  </p>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-gray-900">
+                  {reports.filter(r => r.status === 'resolved' || r.status === 'verified').length}
                 </div>
-                <CheckCircle className="w-10 h-10 text-green-500 opacity-50" />
+                <div className="text-sm text-gray-600">Resolved</div>
+                <div className="text-xs text-gray-500">Completed</div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Search and Filter */}
+        {/* Search, Filter and Reports List */}
         <Card className="mb-6">
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              {/* Search Bar */}
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search reports..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-10 text-sm"
-                />
-              </div>
-
-              {/* Filter Buttons */}
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => setStatusFilter("all")}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    statusFilter === "all"
-                      ? 'bg-gray-100 text-gray-900 border border-gray-300'
-                      : 'text-gray-600 border border-transparent hover:bg-gray-50'
-                  }`}
-                >
-                  All
-                </button>
-                <button
-                  onClick={() => setStatusFilter("pending")}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    statusFilter === "pending"
-                      ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                      : 'text-gray-600 border border-transparent hover:bg-gray-50'
-                  }`}
-                >
-                  Pending
-                </button>
-                <button
-                  onClick={() => setStatusFilter("resolved")}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                    statusFilter === "resolved"
-                      ? 'bg-green-50 text-green-700 border border-green-200'
-                      : 'text-gray-600 border border-transparent hover:bg-gray-50'
-                  }`}
-                >
-                  Resolved
-                </button>
-              </div>
+          {/* Filter Header */}
+          <CardContent className="p-4 border-b border-gray-100">
+            {/* Filter Buttons */}
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setStatusFilter("all")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  statusFilter === "all"
+                    ? 'bg-gray-100 text-gray-900 border border-gray-300'
+                    : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                }`}
+              >
+                All
+              </button>
+              <button
+                onClick={() => setStatusFilter("pending")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  statusFilter === "pending"
+                    ? 'bg-yellow-50 text-yellow-700 border border-yellow-200'
+                    : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                }`}
+              >
+                Pending
+              </button>
+              <button
+                onClick={() => setStatusFilter("resolved")}
+                className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                  statusFilter === "resolved"
+                    ? 'bg-green-50 text-green-700 border border-green-200'
+                    : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                }`}
+              >
+                Resolved
+              </button>
             </div>
           </CardContent>
-        </Card>
 
-        {/* Reports List */}
-        {filteredReports.length === 0 ? (
-          <Card>
+          {/* Reports Content */}
+          {filteredReports.length === 0 ? (
             <CardContent className="p-12 text-center">
               <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-700 mb-2">
-                {searchQuery || statusFilter !== 'all' ? 'No reports found' : 'No reports yet'}
+                {statusFilter !== 'all' ? 'No reports found' : 'No reports yet'}
               </h3>
               <p className="text-gray-500 mb-4">
-                {searchQuery || statusFilter !== 'all'
-                  ? 'Try adjusting your search or filter criteria'
+                {statusFilter !== 'all'
+                  ? 'Try adjusting your filter criteria'
                   : 'Submit your first report to get started'}
               </p>
-              {!searchQuery && statusFilter === 'all' && user?.role !== 'mayor' && user?.role !== 'governor' && (
+              {statusFilter === 'all' && user?.role !== 'mayor' && user?.role !== 'governor' && (
                 <Button onClick={() => setShowModal(true)} className="bg-blue-500 hover:bg-blue-600 text-white">
                   <Plus className="w-4 h-4 mr-2" />
                   Submit Report
                 </Button>
               )}
             </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredReports.map((report) => (
-              <Card key={report.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <CardTitle className="text-lg font-bold text-gray-900">
-                      {report.title || report.category}
-                    </CardTitle>
-                    {getStatusBadge(report.status)}
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Calendar className="w-3 h-3" />
-                      {formatDate(report.createdAt)}
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  {report.location && (
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      {getLocationString(report.location)}
-                    </div>
-                  )}
+          ) : (
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredReports.map((report) => (
+                  <Card key={report.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between mb-2">
+                        <CardTitle className="text-lg font-bold text-gray-900">
+                          {report.title || report.category}
+                        </CardTitle>
+                        {getStatusBadge(report.status)}
+                      </div>
+                      <div className="flex items-center gap-4 text-xs text-gray-500">
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(report.createdAt)}
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {report.location && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          {getLocationString(report.location)}
+                        </div>
+                      )}
 
-                  {/* Display categories */}
-                  {report.categories && report.categories.length > 0 && (
-                    <div className="flex flex-wrap gap-1">
-                      {report.categories.map((cat, idx) => {
-                        const categoryLabel = CATEGORY_CONFIG[cat]?.label || cat;
-                        return (
-                          <Badge key={idx} className="bg-blue-100 text-blue-700 text-xs">
-                            {categoryLabel}
-                          </Badge>
-                        );
-                      })}
-                    </div>
-                  )}
+                      {/* Display categories */}
+                      {report.categories && report.categories.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {report.categories.map((cat, idx) => {
+                            const categoryLabel = CATEGORY_CONFIG[cat]?.label || cat;
+                            return (
+                              <Badge key={idx} className="bg-blue-100 text-blue-700 text-xs">
+                                {categoryLabel}
+                              </Badge>
+                            );
+                          })}
+                        </div>
+                      )}
 
-                  <p className="text-sm text-gray-700 line-clamp-3">
-                    {report.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+                      <p className="text-sm text-gray-700 line-clamp-3">
+                        {report.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          )}
+        </Card>
 
         {/* Results Count */}
         {filteredReports.length > 0 && (

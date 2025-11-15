@@ -178,68 +178,51 @@ export function UserSuspensionView() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div
-            className="rounded-lg border shadow-sm hover:shadow-md transition-all duration-200"
-            style={{
-              background: 'linear-gradient(to bottom right, #eff6ff, #dbeafe)',
-              borderColor: '#bfdbfe'
-            }}
-          >
-            <div className="p-4">
+          <Card className="bg-white !border-3 !border-blue-500 shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-105 transition-all duration-300 cursor-pointer">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-blue-600 mb-1">Total Cities</p>
-                  <p className="text-3xl font-bold text-blue-900">{cities.length}</p>
+                  <p className="text-sm text-gray-600 mb-1">Total Cities</p>
+                  <p className="text-3xl font-bold text-gray-900">{cities.length}</p>
                 </div>
                 <MapPin className="w-10 h-10 text-blue-500 opacity-50" />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div
-            className="rounded-lg border shadow-sm hover:shadow-md transition-all duration-200"
-            style={{
-              background: 'linear-gradient(to bottom right, #fef2f2, #fee2e2)',
-              borderColor: '#fecaca'
-            }}
-          >
-            <div className="p-4">
+          <Card className="bg-white !border-3 !border-red-500 shadow-lg shadow-red-200 hover:shadow-xl hover:shadow-red-300 hover:scale-105 transition-all duration-300 cursor-pointer">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-red-600 mb-1">Suspended</p>
-                  <p className="text-3xl font-bold text-red-900">
+                  <p className="text-sm text-gray-600 mb-1">Suspended</p>
+                  <p className="text-3xl font-bold text-gray-900">
                     {cities.filter(c => c.suspended).length}
                   </p>
                 </div>
                 <Ban className="w-10 h-10 text-red-500 opacity-50" />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
 
-          <div
-            className="rounded-lg border shadow-sm hover:shadow-md transition-all duration-200"
-            style={{
-              background: 'linear-gradient(to bottom right, #f0fdf4, #dcfce7)',
-              borderColor: '#bbf7d0'
-            }}
-          >
-            <div className="p-4">
+          <Card className="bg-white !border-3 !border-green-500 shadow-lg shadow-green-200 hover:shadow-xl hover:shadow-green-300 hover:scale-105 transition-all duration-300 cursor-pointer">
+            <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-green-600 mb-1">Active</p>
-                  <p className="text-3xl font-bold text-green-900">
+                  <p className="text-sm text-gray-600 mb-1">Active</p>
+                  <p className="text-3xl font-bold text-gray-900">
                     {cities.filter(c => !c.suspended).length}
                   </p>
                 </div>
                 <CheckCircle className="w-10 h-10 text-green-500 opacity-50" />
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Search and Filter Bar */}
+        {/* Search, Filter and Cities Grid */}
         <Card className="mb-6">
-          <CardContent className="p-4">
+          {/* Search and Filter Header */}
+          <CardContent className="p-4 border-b border-gray-100">
             <div className="space-y-3">
               {/* Search Bar */}
               <div className="relative w-full">
@@ -298,19 +281,17 @@ export function UserSuspensionView() {
               </div>
             </div>
           </CardContent>
-        </Card>
 
-        {/* Cities Grid */}
-        {filteredCities.length === 0 ? (
-          <Card>
+          {/* Cities Content */}
+          {filteredCities.length === 0 ? (
             <CardContent className="p-12 text-center">
               <AlertCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-700 mb-2">No cities found</h3>
               <p className="text-gray-500">Try adjusting your search or filter criteria</p>
             </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          ) : (
+            <CardContent className="p-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {filteredCities.map((city) => (
               <Card
                 key={city.name}
@@ -461,9 +442,11 @@ export function UserSuspensionView() {
                   </div>
                 </CardContent>
               </Card>
-            ))}
-          </div>
-        )}
+              ))}
+              </div>
+            </CardContent>
+          )}
+        </Card>
 
         {/* Results Count */}
         {filteredCities.length > 0 && (

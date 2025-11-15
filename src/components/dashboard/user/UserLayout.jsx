@@ -3,6 +3,7 @@ import { UserSidebar } from "../../shared/UserSidebar";
 import { UserDashboard } from "./UserDashboard";
 import { UserSuspensionView } from "./UserSuspensionView";
 import { UserReportsPage } from "../../reports/UserReportsPage";
+import { CommunityViewUser } from "../../community/CommunityViewUser";
 import Settings from "../../shared/Settings";
 import { SocketProvider } from "../../../contexts/SocketContext";
 import { useState } from "react";
@@ -15,8 +16,10 @@ export function UserLayout() {
     switch (activeSection) {
       case 'suspensions':
         return <UserSuspensionView />;
-      case 'community':
+      case 'my-reports':
         return <UserReportsPage />;
+      case 'community':
+        return <CommunityViewUser />;
       case 'settings':
         return <Settings />;
       default:

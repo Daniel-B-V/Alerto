@@ -192,7 +192,7 @@ const MayorDashboard = () => {
       {cityWeather && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Rainfall */}
-          <Card className="bg-white !border-2 !border-blue-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-blue-500 shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -214,7 +214,7 @@ const MayorDashboard = () => {
           </Card>
 
           {/* Wind Speed */}
-          <Card className="bg-white !border-2 !border-purple-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-purple-500 shadow-lg shadow-purple-200 hover:shadow-xl hover:shadow-purple-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -231,7 +231,7 @@ const MayorDashboard = () => {
           </Card>
 
           {/* Temperature */}
-          <Card className="bg-white !border-2 !border-orange-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-orange-500 shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -245,7 +245,7 @@ const MayorDashboard = () => {
           </Card>
 
           {/* Humidity */}
-          <Card className="bg-white !border-2 !border-cyan-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-cyan-500 shadow-lg shadow-cyan-200 hover:shadow-xl hover:shadow-cyan-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <div className="p-4">
               <div className="flex items-center justify-between">
                 <div>

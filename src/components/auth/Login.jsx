@@ -85,12 +85,12 @@ const Login = () => {
         <div className="bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] px-12 py-12">
 
         {/* Logo/Brand */}
-        <div className="flex items-center gap-3 mb-8">
-          <div className="relative">
-            <Cloud className="w-10 h-10 text-blue-500" />
-            <Bell className="w-5 h-5 text-yellow-500 absolute -top-1 -right-1" />
-          </div>
-          <h1 className="text-3xl font-bold text-gray-900 leading-tight">ALERTO</h1>
+        <div className="flex justify-center mb-8">
+          <img
+            src="/assets/logo.png"
+            alt="Alerto Logo"
+            className="h-16 object-contain"
+          />
         </div>
 
         {/* Heading */}

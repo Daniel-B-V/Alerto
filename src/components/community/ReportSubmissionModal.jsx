@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Upload, MapPin, AlertTriangle, Loader } from "lucide-react";
+import { X, Upload, MapPin, AlertTriangle, Loader, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -30,7 +30,6 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState({
-    reporterName: '',
     title: '',
     description: '',
     city: '',
@@ -254,7 +253,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
       // Create report in Firestore with AI analysis and routing
       const reportData = {
-        reporterName: formData.reporterName || 'Anonymous',
+        reporterName: user?.displayName || user?.email || 'Anonymous',
         title: formData.title || `${formData.hazardType} in ${formData.city}`,
         description: formData.description,
         category: formData.hazardType, // Use hazardType as category
@@ -298,7 +297,6 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
       // Reset form
       setFormData({
-        reporterName: '',
         title: '',
         description: '',
         city: '',
@@ -402,20 +400,6 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
           <form id="report-form" onSubmit={handleSubmit} className="space-y-4">
             {/* Two Column Grid */}
             <div className="grid grid-cols-2 gap-4">
-              {/* Reporter Name */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reporter Name <span className="text-gray-400">(Optional)</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Your name or 'Anonymous'"
-                  value={formData.reporterName}
-                  onChange={(e) => handleInputChange('reporterName', e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
               {/* Type of Hazard */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -504,72 +488,77 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
             {/* Image Upload */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Add Images <span className="text-gray-400">(Optional)</span>
+                Add Images <span className="text-gray-400">(Optional, up to 5)</span>
               </label>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
-                <input
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageChange}
-                  className="hidden"
-                  id="image-upload"
-                  disabled={imagePreview.length >= 5}
-                />
-                <label
-                  htmlFor="image-upload"
-                  className="cursor-pointer flex flex-col items-center"
-                >
-                  <Upload className="w-10 h-10 text-blue-500 mb-3" />
-                  <p className="text-sm font-medium text-gray-700 mb-1">
-                    Click to upload images
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    PNG, JPG up to 10MB • {imagePreview.length}/5 uploaded
-                  </p>
-                </label>
-              </div>
 
-              {/* Image Previews */}
-              {imagePreview.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
+              <input
+                type="file"
+                accept="image/*"
+                multiple
+                onChange={handleImageChange}
+                className="hidden"
+                id="image-upload"
+                disabled={imagePreview.length >= 5}
+              />
+
+              {/* Show upload box if no images, otherwise show image grid */}
+              {imagePreview.length === 0 ? (
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-blue-400 hover:bg-blue-50 transition-all cursor-pointer">
+                  <label
+                    htmlFor="image-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <Upload className="w-10 h-10 text-blue-500 mb-3" />
+                    <p className="text-sm font-medium text-gray-700 mb-1">
+                      Click to upload images
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      PNG, JPG up to 10MB
+                    </p>
+                  </label>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {/* Show uploaded images */}
                   {imagePreview.map((img, idx) => (
-                    <div key={idx} className="relative group" style={{ width: '100px', height: '100px' }}>
+                    <div key={idx} className="relative group" style={{ width: '120px', height: '120px' }}>
                       <img
                         src={img.url}
                         alt={`Preview ${idx + 1}`}
                         style={{
-                          width: '100px',
-                          height: '100px',
+                          width: '120px',
+                          height: '120px',
                           objectFit: 'cover',
-                          borderRadius: '0.375rem',
-                          border: '1px solid #d1d5db'
+                          borderRadius: '0.5rem',
+                          border: '2px solid #e5e7eb'
                         }}
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        style={{
-                          position: 'absolute',
-                          top: '-4px',
-                          right: '-4px',
-                          backgroundColor: '#ef4444',
-                          color: 'white',
-                          borderRadius: '50%',
-                          padding: '4px',
-                          border: 'none',
-                          cursor: 'pointer',
-                          opacity: 0,
-                          transition: 'opacity 0.2s'
-                        }}
-                        onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                        onMouseOut={(e) => e.currentTarget.style.opacity = '0'}
-                        className="group-hover:opacity-100"
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
                       >
-                        <X className="w-3 h-3" />
+                        <X className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
+
+                  {/* Add more button */}
+                  {imagePreview.length < 5 && (
+                    <label
+                      htmlFor="image-upload"
+                      className="flex items-center justify-center cursor-pointer border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-400 hover:bg-blue-50 transition-all"
+                      style={{ width: '120px', height: '120px' }}
+                    >
+                      <div className="text-center">
+                        <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-blue-100 flex items-center justify-center">
+                          <Plus className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <p className="text-xs text-gray-600 font-medium">Add More</p>
+                        <p className="text-xs text-gray-400">{imagePreview.length}/5</p>
+                      </div>
+                    </label>
+                  )}
                 </div>
               )}
             </div>

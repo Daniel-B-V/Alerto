@@ -261,9 +261,19 @@ export function WeatherPanel({ showAnnouncement = false }) {
                 variant="outline"
                 size="sm"
                 className="flex items-center gap-2"
+                disabled={locationLoading}
               >
-                <Navigation className="w-4 h-4" />
-                Detect Location
+                {locationLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+                    Detecting...
+                  </>
+                ) : (
+                  <>
+                    <Navigation className="w-4 h-4" />
+                    Detect Location
+                  </>
+                )}
               </Button>
             </div>
           </CardContent>
@@ -281,7 +291,7 @@ export function WeatherPanel({ showAnnouncement = false }) {
       {/* Quick Stats - moved from dashboard */}
       {stats && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-          <Card className="bg-white !border-2 !border-blue-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-blue-500 shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900">{stats.totalCities}</div>
@@ -291,7 +301,7 @@ export function WeatherPanel({ showAnnouncement = false }) {
             </CardContent>
           </Card>
 
-          <Card className="bg-white !border-2 !border-green-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-green-500 shadow-lg shadow-green-200 hover:shadow-xl hover:shadow-green-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900">{stats.ongoingClasses}</div>
@@ -301,7 +311,7 @@ export function WeatherPanel({ showAnnouncement = false }) {
             </CardContent>
           </Card>
 
-          <Card className="bg-white !border-2 !border-red-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-red-500 shadow-lg shadow-red-200 hover:shadow-xl hover:shadow-red-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900">{stats.suspensions}</div>
@@ -311,7 +321,7 @@ export function WeatherPanel({ showAnnouncement = false }) {
             </CardContent>
           </Card>
 
-          <Card className="bg-white !border-2 !border-purple-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-purple-500 shadow-lg shadow-purple-200 hover:shadow-xl hover:shadow-purple-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
               <div className="text-center">
                 <div className="text-2xl font-bold text-gray-900">{stats.communityReports}</div>
@@ -326,7 +336,7 @@ export function WeatherPanel({ showAnnouncement = false }) {
       {/* Current Weather Data Cards */}
       {currentWeather && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-white !border-2 !border-blue-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-blue-500 shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -339,7 +349,7 @@ export function WeatherPanel({ showAnnouncement = false }) {
             </CardContent>
           </Card>
 
-          <Card className="bg-white !border-2 !border-cyan-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-cyan-500 shadow-lg shadow-cyan-200 hover:shadow-xl hover:shadow-cyan-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -355,7 +365,7 @@ export function WeatherPanel({ showAnnouncement = false }) {
             </CardContent>
           </Card>
 
-          <Card className="bg-white !border-2 !border-orange-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-orange-500 shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -372,7 +382,7 @@ export function WeatherPanel({ showAnnouncement = false }) {
             </CardContent>
           </Card>
 
-          <Card className="bg-white !border-2 !border-purple-500 shadow-sm hover:shadow-md transition-all duration-200">
+          <Card className="bg-white !border-4 !border-purple-500 shadow-lg shadow-purple-200 hover:shadow-xl hover:shadow-purple-300 hover:scale-105 transition-all duration-300 cursor-pointer">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>

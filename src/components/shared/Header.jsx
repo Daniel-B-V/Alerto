@@ -38,12 +38,12 @@ export function Header() {
     <header className="bg-white/80 backdrop-blur-xl border-b border-gray-100/50 px-6 py-4 shadow-sm">
       <div className="flex items-center justify-between">
         {/* Logo */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Cloud className="w-8 h-8 text-blue-500" />
-            <Bell className="w-4 h-4 text-yellow-500 absolute -top-1 -right-1" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">ALERTO</h1>
+        <div className="flex items-center">
+          <img
+            src="/assets/logo.png"
+            alt="Alerto Logo"
+            className="h-10 object-contain"
+          />
         </div>
 
         {/* Right Side */}
