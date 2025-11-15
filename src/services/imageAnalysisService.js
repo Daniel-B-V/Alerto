@@ -1,6 +1,5 @@
 // Hugging Face Image Analysis Service using CLIP
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
-const HF_API_KEY = import.meta.env.VITE_HUGGING_FACE_API_KEY;
 
 /**
  * Analyze report images to verify they match the reported hazard using Hugging Face CLIP
@@ -11,17 +10,6 @@ const HF_API_KEY = import.meta.env.VITE_HUGGING_FACE_API_KEY;
  */
 export const analyzeReportImages = async (imageUrls, reportData, weatherData = null) => {
   try {
-    // Check if API key is configured
-    if (!HF_API_KEY) {
-      console.error('Hugging Face API key not configured');
-      return {
-        credible: true,
-        confidence: 50,
-        reason: 'API key not configured - cannot analyze images',
-        matchesReport: 'unknown',
-        detectedHazards: []
-      };
-    }
 
     if (!imageUrls || imageUrls.length === 0) {
       return {
@@ -59,6 +47,8 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
     const candidateLabels = `${expectedLabel}, ${spamLabels}`;
 
     // Call backend proxy for Hugging Face CLIP API (avoids CORS)
+    console.log('🔍 Calling Hugging Face API via backend:', `${BACKEND_URL}/api/huggingface/image-classification`);
+
     const hfResponse = await fetch(`${BACKEND_URL}/api/huggingface/image-classification`, {
       method: 'POST',
       headers: {
@@ -71,10 +61,13 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
     });
 
     if (!hfResponse.ok) {
-      throw new Error(`Backend API error: ${hfResponse.status}`);
+      const errorText = await hfResponse.text();
+      console.error('❌ Backend API error:', hfResponse.status, errorText);
+      throw new Error(`Backend API error: ${hfResponse.status} - ${errorText}`);
     }
 
     const hfData = await hfResponse.json();
+    console.log('✅ Hugging Face API response received:', hfData);
 
     // Parse results
     const scores = hfData[0]?.scores || [];
