@@ -420,10 +420,10 @@ export function CommunityFeed() {
 
               return (
                 <Card key={report.id} className="overflow-hidden hover:shadow-lg transition-all duration-200">
-                  {/* Report Header - Profile, Location, Verified Badge */}
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      {/* Left side: Profile + Name + Location */}
+                  <CardContent className="p-4">
+                    {/* Top Row: Reporter info (left) + Status/Monitoring Tags (right) */}
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      {/* Left: Profile + Name + Location */}
                       <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div
                           className="flex-shrink-0"
@@ -468,152 +468,147 @@ export function CommunityFeed() {
 
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-gray-900 text-base">{report.userName || 'Anonymous User'}</div>
-                          <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
                             <MapPin className="w-3 h-3" />
                             <span>{report.location?.barangay ? `${report.location.barangay}, ${report.location.city}` : (report.location?.city || 'Unknown')}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Right side: Status Badge */}
-                      <div className="flex-shrink-0">
-                        <Badge
-                          className={`text-xs px-2 py-1 ${
-                            report.status === 'verified'
-                              ? 'bg-green-500 text-white hover:bg-green-600'
-                              : report.status === 'under_review'
-                              ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-                              : report.status === 'flagged'
-                              ? 'bg-red-500 text-white hover:bg-red-600'
-                              : 'bg-gray-500 text-white hover:bg-gray-600'
-                          }`}
-                        >
-                          {report.status === 'verified' && '✓ Verified'}
-                          {report.status === 'under_review' && '⚠ Under Review'}
-                          {report.status === 'flagged' && '⚠ Flagged'}
-                          {report.status === 'pending' && 'Pending'}
-                        </Badge>
-                      </div>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="pt-0 pb-3">
-                    {/* Report Title - Bigger */}
-                    {report.title && (
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">{report.title}</h3>
-                    )}
-
-                    {/* Report Description */}
-                    <p className="text-sm text-gray-700 mb-3 leading-relaxed whitespace-pre-wrap">
-                      {report.description}
-                    </p>
-
-                    {/* Report Images */}
-                    {report.images && report.images.length > 0 && (
-                      <div className="mb-3">
-                        <div className="flex flex-wrap gap-2">
-                          {report.images.slice(0, 5).map((image, idx) => (
-                            <div
-                              key={idx}
-                              className="relative cursor-pointer group overflow-hidden rounded-lg"
-                              style={{ width: '80px', height: '80px' }}
-                              onClick={() => setSelectedImage({ images: report.images, index: idx })}
-                            >
-                              <img
-                                src={typeof image === 'string' ? image : image.url}
-                                alt={`Report image ${idx + 1}`}
-                                style={{
-                                  width: '80px',
-                                  height: '80px',
-                                  objectFit: 'cover'
-                                }}
-                                className="transition-transform group-hover:scale-105"
-                              />
-                              {idx === 4 && report.images.length > 5 && (
-                                <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                  <span className="text-white text-sm font-bold">
-                                    +{report.images.length - 5}
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* AI Credibility Badge & Admin Actions */}
-                    <div className="flex items-center justify-between gap-2 flex-wrap pt-2 border-t border-gray-100">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {/* AI Credibility Badge (Hugging Face) */}
-                        {(report.imageAnalysis || report.aiCredibility !== null) && (
-                          <Badge
-                            className={`text-xs px-2 py-1 flex items-center gap-1 font-semibold ${
-                              report.aiCredibility >= 70 || (report.imageAnalysis && report.imageAnalysis.confidence >= 70)
-                                ? 'bg-green-600 text-white'
-                                : report.aiCredibility >= 40 || (report.imageAnalysis && report.imageAnalysis.confidence >= 40)
-                                ? 'bg-orange-500 text-white'
-                                : 'bg-red-600 text-white'
-                            }`}
-                            title={report.imageAnalysis?.reason || report.aiReason || 'AI-analyzed report'}
-                          >
-                            <Shield className="w-3 h-3" />
-                            {report.aiCredibility >= 70 || (report.imageAnalysis && report.imageAnalysis.confidence >= 70)
-                              ? `✓ Credible`
-                              : report.aiCredibility >= 40 || (report.imageAnalysis && report.imageAnalysis.confidence >= 40)
-                              ? `⚠ Suspicious`
-                              : `🚫 SPAM`
-                            }
-                          </Badge>
-                        )}
-
-                        {/* Status Badges */}
-                        {report.status === 'flagged' && (
-                          <Badge className="bg-red-100 text-red-800 text-xs px-2 py-1 font-semibold border border-red-300">
-                            Flagged
-                          </Badge>
-                        )}
-
+                      {/* Right: Monitoring + Status Badges */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {/* Monitoring Badge */}
                         {report.status === 'monitoring' && (
-                          <Badge className="bg-blue-100 text-blue-800 text-xs px-2 py-1 font-semibold border border-blue-300 flex items-center gap-1">
+                          <Badge className="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2.5 py-1 font-medium flex items-center gap-1">
                             <Eye className="w-3 h-3" />
                             Monitoring
                             {report.monitoringExpiresAt && (() => {
                               const expiresAt = report.monitoringExpiresAt?.toDate ? report.monitoringExpiresAt.toDate() : new Date(report.monitoringExpiresAt);
                               const now = new Date();
                               const hoursLeft = Math.max(0, Math.ceil((expiresAt - now) / (1000 * 60 * 60)));
-                              return hoursLeft > 0 ? ` (${hoursLeft}h left)` : ' (expired)';
+                              return hoursLeft > 0 ? ` (${hoursLeft}h)` : '';
                             })()}
                           </Badge>
                         )}
 
-                        <span className="text-xs text-gray-600 font-medium">{formatTimestamp(report.createdAt)}</span>
+                        {/* Status Badge - Verified, Pending, or Spam */}
+                        <Badge
+                          className={`text-xs px-2.5 py-1 font-medium ${
+                            report.status === 'verified'
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                              : report.status === 'flagged'
+                              ? 'bg-red-50 text-red-700 border border-red-200'
+                              : 'bg-slate-50 text-slate-700 border border-slate-200'
+                          }`}
+                        >
+                          {report.status === 'verified' && '✓ Verified'}
+                          {report.status === 'flagged' && 'Spam'}
+                          {(report.status === 'pending' || report.status === 'under_review' || !report.status) && 'Pending'}
+                        </Badge>
+                      </div>
+                    </div>
+
+                    {/* Title and Content Row: Description (left) + Image (right) */}
+                    <div className="flex gap-4 mb-3">
+                      {/* Left: Title + Description */}
+                      <div className="flex-1 min-w-0">
+                        {/* Report Title */}
+                        {report.title && (
+                          <h3 className="text-lg font-bold text-gray-900 mb-1.5">{report.title}</h3>
+                        )}
+
+                        {/* Report Description */}
+                        <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                          {report.description}
+                        </p>
                       </div>
 
-                      {/* Admin Actions: Verify & Reject Buttons (hide for flagged spam and verified reports) */}
-                      {(isAdmin || isMayorUser) &&
-                       report.status !== 'verified' &&
-                       report.status !== 'rejected' &&
-                       report.status !== 'flagged' && (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            onClick={() => handleVerifyReport(report.id)}
-                            size="sm"
-                            className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 h-7"
-                          >
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Verify
-                          </Button>
-                          <Button
-                            onClick={() => handleRejectReport(report.id)}
-                            size="sm"
-                            className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 h-7"
-                          >
-                            <XCircle className="w-3 h-3 mr-1" />
-                            Reject
-                          </Button>
+                      {/* Right: Image Thumbnail */}
+                      {report.images && report.images.length > 0 && (
+                        <div className="flex-shrink-0">
+                          <div className="flex flex-wrap gap-1.5" style={{ maxWidth: '180px' }}>
+                            {report.images.slice(0, 5).map((image, idx) => (
+                              <div
+                                key={idx}
+                                className="relative cursor-pointer group overflow-hidden rounded-md border border-gray-200"
+                                style={{
+                                  width: report.images.length === 1 ? '180px' : '86px',
+                                  height: report.images.length === 1 ? '180px' : '86px'
+                                }}
+                                onClick={() => setSelectedImage({ images: report.images, index: idx })}
+                              >
+                                <img
+                                  src={typeof image === 'string' ? image : image.url}
+                                  alt={`Report image ${idx + 1}`}
+                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                                />
+                                {idx === 4 && report.images.length > 5 && (
+                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                    <span className="text-white text-xs font-bold">
+                                      +{report.images.length - 5}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
+                    </div>
+
+                    {/* Bottom Section: Divider Line + AI Credibility (left) + Admin Buttons (right) */}
+                    <div className="pt-3 border-t border-gray-100">
+                      <div className="flex items-center justify-between gap-2">
+                        {/* Left: AI Credibility Badge with % */}
+                        <div className="flex items-center gap-2">
+                          {(report.imageAnalysis || report.aiCredibility !== null) && (
+                            <Badge
+                              className={`text-xs px-2.5 py-1 flex items-center gap-1.5 font-medium border ${
+                                report.aiCredibility >= 70 || (report.imageAnalysis && report.imageAnalysis.confidence >= 70)
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : report.aiCredibility >= 40 || (report.imageAnalysis && report.imageAnalysis.confidence >= 40)
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                  : 'bg-red-50 text-red-700 border-red-200'
+                              }`}
+                              title={report.imageAnalysis?.reason || report.aiReason || 'AI-analyzed report'}
+                            >
+                              <Shield className="w-3.5 h-3.5" />
+                              {report.aiCredibility >= 70 || (report.imageAnalysis && report.imageAnalysis.confidence >= 70)
+                                ? `Credible (${report.aiCredibility || report.imageAnalysis?.confidence}%)`
+                                : report.aiCredibility >= 40 || (report.imageAnalysis && report.imageAnalysis.confidence >= 40)
+                                ? `Suspicious (${report.aiCredibility || report.imageAnalysis?.confidence}%)`
+                                : `Spam (${report.aiCredibility || report.imageAnalysis?.confidence}%)`
+                              }
+                            </Badge>
+                          )}
+                          <span className="text-xs text-gray-500">{formatTimestamp(report.createdAt)}</span>
+                        </div>
+
+                        {/* Right: Admin Actions - Verify & Reject Buttons */}
+                        {(isAdmin || isMayorUser) &&
+                         report.status !== 'verified' &&
+                         report.status !== 'rejected' &&
+                         report.status !== 'flagged' && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              onClick={() => handleVerifyReport(report.id)}
+                              size="sm"
+                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs px-3 py-1.5 h-auto font-medium"
+                            >
+                              <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                              Verify
+                            </Button>
+                            <Button
+                              onClick={() => handleRejectReport(report.id)}
+                              size="sm"
+                              className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs px-3 py-1.5 h-auto font-medium"
+                            >
+                              <XCircle className="w-3.5 h-3.5 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
                     </div>
 
                   </CardContent>

@@ -18,14 +18,23 @@ router.post('/text-sentiment', async (req, res) => {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    const response = await fetch('https://api-inference.huggingface.co/models/facebook/bart-large-mnli', {
+    // Parse NLI format: "premise [SEP] hypothesis"
+    const parts = text.split('[SEP]');
+    const premise = parts[0]?.trim() || text;
+    const hypothesis = parts[1]?.trim() || 'This is legitimate content';
+
+    // Use zero-shot classification format for BART-large-mnli
+    const response = await fetch('https://router.huggingface.co/hf-inference/models/facebook/bart-large-mnli', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        inputs: text
+        inputs: premise,
+        parameters: {
+          candidate_labels: ['entailment', 'neutral', 'contradiction']
+        }
       })
     });
 
@@ -36,7 +45,10 @@ router.post('/text-sentiment', async (req, res) => {
     }
 
     const data = await response.json();
-    res.json(data);
+
+    // Hugging Face returns array directly: [{label, score}, ...]
+    // Wrap in array for frontend compatibility
+    res.json([data]);
 
   } catch (error) {
     console.error('Error in text sentiment analysis:', error);
@@ -58,7 +70,7 @@ router.post('/image-classification', async (req, res) => {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    const response = await fetch('https://api-inference.huggingface.co/models/openai/clip-vit-large-patch14', {
+    const response = await fetch('https://router.huggingface.co/hf-inference/models/openai/clip-vit-large-patch14', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_API_KEY}`,
