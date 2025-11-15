@@ -825,7 +825,7 @@ export function MayorReportsPage() {
                   <CardHeader className="p-4 pb-3 bg-gradient-to-r from-purple-100 to-blue-100 border-b border-purple-200">
                     <CardTitle className="text-lg flex items-center gap-2 text-purple-900">
                       <Sparkles className="w-5 h-5 text-purple-600" />
-                      Gemini AI Compiled Analysis
+                      AI Analysis
                       <Badge className="ml-auto bg-purple-600 text-white text-xs">
                         Credibility: {aiAnalysis.credibilityScore}%
                       </Badge>
