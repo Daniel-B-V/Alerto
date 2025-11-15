@@ -11,6 +11,18 @@ const HF_CLIP_API_URL = 'https://api-inference.huggingface.co/models/openai/clip
  */
 export const analyzeReportImages = async (imageUrls, reportData, weatherData = null) => {
   try {
+    // Check if API key is configured
+    if (!HF_API_KEY) {
+      console.error('Hugging Face API key not configured');
+      return {
+        credible: true,
+        confidence: 50,
+        reason: 'API key not configured - cannot analyze images',
+        matchesReport: 'unknown',
+        detectedHazards: []
+      };
+    }
+
     if (!imageUrls || imageUrls.length === 0) {
       return {
         credible: true,

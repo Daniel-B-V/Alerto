@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { generateTestTyphoonsLocal } from './typhoonTestData';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
@@ -30,7 +31,9 @@ export async function getActiveTyphoons() {
  */
 export async function getPhilippinesTyphoons() {
   try {
-    const response = await axios.get(`${API_URL}/api/typhoon/philippines`);
+    const response = await axios.get(`${API_URL}/api/typhoon/philippines`, {
+      timeout: 5000 // 5 second timeout
+    });
 
     if (response.data.success) {
       return response.data.data;
@@ -39,7 +42,11 @@ export async function getPhilippinesTyphoons() {
     throw new Error('Failed to fetch Philippines typhoons');
   } catch (error) {
     console.error('Error fetching Philippines typhoons:', error);
-    throw error;
+    console.warn('⚠️ Backend unavailable, auto-loading test data');
+
+    // Auto-fallback to local test data (works without backend)
+    const testData = generateTestTyphoonsLocal();
+    return testData;
   }
 }
 
@@ -79,7 +86,10 @@ export async function clearTyphoonCache() {
  */
 export async function getTestTyphoons() {
   try {
-    const response = await axios.get(`${API_URL}/api/typhoon/test-data`);
+    // Try to fetch from backend first
+    const response = await axios.get(`${API_URL}/api/typhoon/test-data`, {
+      timeout: 3000 // 3 second timeout
+    });
 
     if (response.data.success) {
       return {
@@ -91,7 +101,14 @@ export async function getTestTyphoons() {
 
     throw new Error('Failed to fetch test typhoon data');
   } catch (error) {
-    console.error('Error fetching test typhoons:', error);
-    throw error;
+    console.warn('Backend unavailable, using local test data');
+
+    // Fallback to local test data
+    const testData = generateTestTyphoonsLocal();
+    return {
+      data: testData,
+      isTestData: true,
+      message: '⚠️ This is synthetic test data generated locally (backend unavailable)'
+    };
   }
 }

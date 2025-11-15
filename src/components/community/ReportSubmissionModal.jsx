@@ -136,7 +136,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         }
       }
 
-      // Analyze images with Gemini AI (with weather data cross-reference)
+      // Analyze images with Hugging Face CLIP (with weather data cross-reference)
       let imageAnalysis = null;
       if (imageUrls.length > 0) {
         try {
@@ -176,8 +176,8 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
           };
         }
       } else {
-        // No images - Run Gemini protocol-based spam detection
-        console.log('No images provided - running Gemini protocol spam detection');
+        // No images - Run Hugging Face NLI-based spam detection
+        console.log('No images provided - running Hugging Face text analysis');
         try {
           const aiProtocolAnalysis = await analyzeReportText({
             title: formData.title,
@@ -198,7 +198,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
             redFlags: aiProtocolAnalysis.redFlags
           };
 
-          console.log('✅ Gemini Protocol Analysis Complete:', {
+          console.log('✅ Hugging Face NLI Analysis Complete:', {
             confidence: aiProtocolAnalysis.confidence,
             isSpam: aiProtocolAnalysis.isSpam,
             protocols: aiProtocolAnalysis.protocolScores,

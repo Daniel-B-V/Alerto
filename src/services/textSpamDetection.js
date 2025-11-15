@@ -216,6 +216,12 @@ export const analyzeReportTextWithProtocol = async (reportData) => {
  */
 async function classifyText(text, hypothesis) {
   try {
+    // Check if API key is configured
+    if (!HF_API_KEY) {
+      console.error('Hugging Face API key not configured');
+      throw new Error('API key not configured');
+    }
+
     const response = await fetch(HF_TEXT_CLASSIFICATION_URL, {
       method: 'POST',
       headers: {

@@ -44,9 +44,16 @@ export function TyphoonTracker() {
         data = result.data;
         setIsTestDataMode(true);
       } else {
-        console.log('🌀 Loading REAL typhoon data...');
+        console.log('🌀 Loading REAL typhoon data from backend...');
         data = await getPhilippinesTyphoons();
-        setIsTestDataMode(false);
+
+        // Check if data is actually test data (auto-fallback from service)
+        if (data.length > 0 && data[0].isTestData) {
+          console.log('⚠️ Backend unavailable, auto-loaded test data');
+          setIsTestDataMode(true);
+        } else {
+          setIsTestDataMode(false);
+        }
       }
 
       setTyphoons(data);
@@ -57,10 +64,16 @@ export function TyphoonTracker() {
         setSelectedTyphoon(data[0]);
       }
 
-      console.log(`✅ Loaded ${data.length} typhoon(s) ${isTest ? '(TEST DATA)' : '(REAL DATA)'}`);
+      console.log(`✅ Loaded ${data.length} typhoon(s) ${isTest || (data.length > 0 && data[0].isTestData) ? '(TEST DATA)' : '(REAL DATA)'}`);
+
+      // Clear any previous errors since we have data
+      setError(null);
     } catch (err) {
       console.error('❌ Error loading typhoons:', err);
-      setError('Failed to load typhoon data. Please try again later.');
+
+      // Only show error if we have no fallback data
+      setError('Unable to load typhoon data. Please try refreshing.');
+      setTyphoons([]); // Clear any existing data
     } finally {
       setLoading(false);
       setIsRefreshing(false);
@@ -195,8 +208,35 @@ export function TyphoonTracker() {
         </Card>
       )}
 
+      {/* No Typhoons State */}
+      {!loading && !error && typhoons.length === 0 && (
+        <Card className="bg-blue-50 border-blue-200">
+          <CardContent className="p-12">
+            <div className="flex flex-col items-center justify-center gap-4 text-center">
+              <Wind className="w-16 h-16 text-blue-400" />
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No Active Typhoons</h3>
+                <p className="text-gray-600 mb-4">
+                  There are currently no active tropical cyclones near the Philippines.
+                </p>
+                <p className="text-sm text-gray-500 mb-4">
+                  This is good news! The Western Pacific basin is currently clear.
+                </p>
+                <button
+                  onClick={handleToggleTestData}
+                  className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors mx-auto"
+                >
+                  <TestTube className="w-4 h-4" />
+                  View Test Data for Demo
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Main Content - Unified Single Card */}
-      {!loading && !error && (
+      {!loading && !error && typhoons.length > 0 && (
         <Card className="bg-white border-gray-200 overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px]">
             {/* Left Side - Map */}

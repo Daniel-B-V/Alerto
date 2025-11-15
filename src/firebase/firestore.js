@@ -201,7 +201,7 @@ export const createReport = async (reportData, userId) => {
       // Auto-verify based on AI confidence
       if (confidence >= 70) {
         status = 'verified';
-        verifiedBy = 'AI (Hugging Face CLIP)';
+        verifiedBy = 'AI Analysis';
         verifiedAt = serverTimestamp();
       } else if (confidence >= 40) {
         status = 'under_review';
