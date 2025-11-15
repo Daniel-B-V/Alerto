@@ -378,12 +378,12 @@ export function CommunityFeed() {
                 </h3>
                 <p className="text-gray-500 mb-4">
                   {reports.length === 0
-                    ? (user?.role === 'admin' || user?.role === 'super_admin'
+                    ? (user?.role === 'admin' || user?.role === 'super_admin' || user?.role === 'mayor' || user?.role === 'governor'
                         ? 'No reports submitted by the community yet.'
                         : 'Be the first to submit a weather report!')
                     : 'Try adjusting your filters to see more reports.'}
                 </p>
-                {isAuthenticated && user?.role !== 'admin' && user?.role !== 'super_admin' && reports.length === 0 && (
+                {isAuthenticated && user?.role !== 'admin' && user?.role !== 'super_admin' && user?.role !== 'mayor' && user?.role !== 'governor' && reports.length === 0 && (
                   <Button
                     onClick={() => setShowSubmitModal(true)}
                     className="bg-blue-500 hover:bg-blue-600"
