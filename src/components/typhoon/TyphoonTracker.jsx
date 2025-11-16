@@ -190,53 +190,8 @@ export function TyphoonTracker() {
         </Card>
       )}
 
-      {/* Error State */}
-      {error && !loading && (
-        <Card className="bg-red-50 border-red-200">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-3">
-              <AlertCircle className="w-6 h-6 text-red-600" />
-              <div>
-                <h3 className="font-semibold text-red-900">Error Loading Data</h3>
-                <p className="text-sm text-red-700 mt-1">{error}</p>
-                <p className="text-xs text-red-600 mt-2">
-                  Data source: NOAA ATCF (Automated Tropical Cyclone Forecasting System)
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* No Typhoons State */}
-      {!loading && !error && typhoons.length === 0 && (
-        <Card className="bg-blue-50 border-blue-200">
-          <CardContent className="p-12">
-            <div className="flex flex-col items-center justify-center gap-4 text-center">
-              <Wind className="w-16 h-16 text-blue-400" />
-              <div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">No Active Typhoons</h3>
-                <p className="text-gray-600 mb-4">
-                  There are currently no active tropical cyclones near the Philippines.
-                </p>
-                <p className="text-sm text-gray-500 mb-4">
-                  This is good news! The Western Pacific basin is currently clear.
-                </p>
-                <button
-                  onClick={handleToggleTestData}
-                  className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition-colors mx-auto"
-                >
-                  <TestTube className="w-4 h-4" />
-                  View Test Data for Demo
-                </button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Main Content - Unified Single Card */}
-      {!loading && !error && typhoons.length > 0 && (
+      {/* Main Content - Always show map (Unified Single Card) */}
+      {!loading && (
         <Card className="bg-white border-gray-200 overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px]">
             {/* Left Side - Map */}
@@ -259,20 +214,50 @@ export function TyphoonTracker() {
                     <AlertCircle className="w-5 h-5 text-blue-500" />
                     <h3 className="font-bold text-lg text-gray-900">Active Storms</h3>
                   </div>
-                  {typhoons.length > 0 && (
+                  {typhoons.length > 0 ? (
                     <Badge className="bg-blue-100 text-blue-700 border-blue-300">
                       {typhoons.length} active
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-green-100 text-green-700 border-green-300">
+                      0 active
                     </Badge>
                   )}
                 </div>
 
-                <StormDetailsPanel
-                  typhoons={typhoons}
-                  selectedTyphoon={selectedTyphoon}
-                  onSelectTyphoon={handleSelectTyphoon}
-                />
+                {typhoons.length > 0 ? (
+                  <StormDetailsPanel
+                    typhoons={typhoons}
+                    selectedTyphoon={selectedTyphoon}
+                    onSelectTyphoon={handleSelectTyphoon}
+                  />
+                ) : (
+                  <Card className="bg-green-50 border-green-200">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col items-center justify-center gap-4 text-center">
+                        <Wind className="w-12 h-12 text-green-400" />
+                        <div>
+                          <h3 className="text-lg font-bold text-gray-900 mb-2">No Active Typhoons</h3>
+                          <p className="text-sm text-gray-600 mb-2">
+                            There are currently no active tropical cyclones near the Philippines.
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            The Western Pacific basin is currently clear.
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleToggleTestData}
+                          className="flex items-center gap-2 px-3 py-2 bg-yellow-500 text-white text-sm rounded-lg hover:bg-yellow-600 transition-colors"
+                        >
+                          <TestTube className="w-4 h-4" />
+                          View Test Data for Demo
+                        </button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                {/* Data Source Info */}
+                {/* Data Source Info - Always show */}
                 <Card className={isTestDataMode ? "bg-yellow-50 border-yellow-300" : "bg-blue-50 border-blue-200"}>
                   <CardContent className="p-3">
                     <div className="text-xs space-y-2">
@@ -322,7 +307,7 @@ export function TyphoonTracker() {
                 </Card>
               </div>
 
-              {/* Timeline Control - Integrated at bottom */}
+              {/* Timeline Control - Integrated at bottom - Only show when there's a selected typhoon */}
               {selectedTyphoon && (
                 <div className="border-t border-gray-300 bg-white p-4">
                   <TyphoonTimeline
