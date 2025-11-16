@@ -199,10 +199,13 @@ export function AnalyticsPanel() {
 
       {/* Typhoon Tracker Section */}
       {!loading && !error && (
-        <div className="max-w-7xl mx-auto mb-16">
+        <div className="max-w-7xl mx-auto">
           <TyphoonTracker />
         </div>
       )}
+
+      {/* Spacer */}
+      <div className="h-16"></div>
 
       {/* City-by-City Weather Details */}
       {!loading && !error && (
