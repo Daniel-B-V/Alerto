@@ -131,7 +131,7 @@ export function TyphoonTracker() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mb-12">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -192,7 +192,7 @@ export function TyphoonTracker() {
 
       {/* Main Content - Always show map (Unified Single Card) */}
       {!loading && (
-        <Card className="bg-white border-gray-200 overflow-hidden mb-8">
+        <Card className="bg-white border-gray-200 overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px]">
             {/* Left Side - Map */}
             <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px]">

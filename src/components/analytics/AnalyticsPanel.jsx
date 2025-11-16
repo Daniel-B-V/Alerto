@@ -199,7 +199,7 @@ export function AnalyticsPanel() {
 
       {/* Typhoon Tracker Section */}
       {!loading && !error && (
-        <div className="max-w-7xl mx-auto mb-12">
+        <div className="max-w-7xl mx-auto">
           <TyphoonTracker />
         </div>
       )}
