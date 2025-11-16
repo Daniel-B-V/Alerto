@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import Globe from 'react-globe.gl';
-import { AlertCircle, RotateCw, ZoomIn, ZoomOut, Maximize2, Smartphone } from 'lucide-react';
+import { AlertCircle, RotateCw, ZoomIn, ZoomOut, Maximize2, Smartphone, Wind } from 'lucide-react';
 import { isWebGLSupported, isMobileDevice, getRecommended3DQuality, logWebGLInfo } from '../../utils/webglDetection';
 
 /**
  * Globe3DView Component
  * Interactive 3D globe visualization for typhoon tracking
- * Features: rotating earth, typhoon paths, forecast cones, city markers
+ * Features: rotating earth, typhoon paths, forecast cones, city markers, weather overlays
  */
 export function Globe3DView({ typhoons = [], onTyphoonClick, selectedTyphoon }) {
   const globeEl = useRef();
   const [globeReady, setGlobeReady] = useState(false);
   const [autoRotate, setAutoRotate] = useState(true);
   const [error, setError] = useState(null);
+  const [showWeatherLayer, setShowWeatherLayer] = useState(true);
 
   // Get device capabilities
   const qualitySettings = useMemo(() => getRecommended3DQuality(), []);
@@ -141,6 +142,35 @@ export function Globe3DView({ typhoons = [], onTyphoonClick, selectedTyphoon }) 
     { lat: 15.4817, lng: 120.5979, name: 'Tarlac', size: 0.2, color: '#fbbf24' },
   ], []);
 
+  // Weather overlay data (hexagonal bins for wind/rain visualization)
+  const weatherHexData = useMemo(() => {
+    if (!showWeatherLayer) return [];
+
+    const hexData = [];
+    // Cover Western Pacific region (where typhoons occur)
+    const latRange = { min: -20, max: 50 };
+    const lngRange = { min: 100, max: 180 };
+    const gridSize = 5; // degrees
+
+    for (let lat = latRange.min; lat <= latRange.max; lat += gridSize) {
+      for (let lng = lngRange.min; lng <= lngRange.max; lng += gridSize) {
+        // Simulate wind data (in real app, fetch from weather API)
+        const windSpeed = Math.random() * 30; // 0-30 knots
+        const precipitation = Math.random() * 10; // 0-10 mm
+
+        hexData.push({
+          lat,
+          lng,
+          windSpeed,
+          precipitation,
+          weight: windSpeed, // Use wind speed for color intensity
+        });
+      }
+    }
+
+    return hexData;
+  }, [showWeatherLayer]);
+
   // Control functions
   const handleZoomIn = (e) => {
     e?.stopPropagation();
@@ -238,6 +268,8 @@ export function Globe3DView({ typhoons = [], onTyphoonClick, selectedTyphoon }) 
     >
       <Globe
         ref={globeEl}
+        width={undefined} // Auto-fill container
+        height={undefined} // Auto-fill container
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
@@ -275,6 +307,33 @@ export function Globe3DView({ typhoons = [], onTyphoonClick, selectedTyphoon }) 
         labelColor={d => d.color}
         labelDotRadius={0.3}
         labelAltitude={0.01}
+
+        // Weather overlay (hex bins for wind/rain)
+        hexBinPointsData={weatherHexData}
+        hexBinPointLat={d => d.lat}
+        hexBinPointLng={d => d.lng}
+        hexBinPointWeight={d => d.weight}
+        hexAltitude={0.005}
+        hexTopColor={d => {
+          const intensity = d.sumWeight / d.points.length;
+          if (intensity > 20) return 'rgba(220, 38, 38, 0.6)'; // Red - High wind
+          if (intensity > 10) return 'rgba(245, 158, 11, 0.6)'; // Orange - Moderate wind
+          return 'rgba(16, 185, 129, 0.4)'; // Green - Low wind
+        }}
+        hexSideColor={d => {
+          const intensity = d.sumWeight / d.points.length;
+          if (intensity > 20) return 'rgba(220, 38, 38, 0.4)';
+          if (intensity > 10) return 'rgba(245, 158, 11, 0.4)';
+          return 'rgba(16, 185, 129, 0.2)';
+        }}
+        hexBinResolution={4}
+        hexMargin={0.1}
+        hexLabel={d => {
+          const avgWind = d.sumWeight / d.points.length;
+          return `<div style="background: rgba(0,0,0,0.8); padding: 6px; border-radius: 4px; color: white; font-size: 12px;">
+            Wind: ${avgWind.toFixed(1)} kt
+          </div>`;
+        }}
 
         // Atmosphere (adaptive quality)
         atmosphereColor="#3b82f6"
@@ -336,6 +395,18 @@ export function Globe3DView({ typhoons = [], onTyphoonClick, selectedTyphoon }) 
           title={autoRotate ? 'Stop Rotation' : 'Auto Rotate'}
         >
           <RotateCw className={`w-5 h-5 ${autoRotate ? 'animate-spin' : ''}`} style={{ animationDuration: '8s' }} />
+        </button>
+
+        <button
+          onClick={() => setShowWeatherLayer(!showWeatherLayer)}
+          className={`p-3 rounded-lg shadow-lg transition-all ${
+            showWeatherLayer
+              ? 'bg-green-500 text-white hover:bg-green-600'
+              : 'bg-white/90 hover:bg-white text-gray-700'
+          }`}
+          title={showWeatherLayer ? 'Hide Weather Layer' : 'Show Weather Layer'}
+        >
+          <Wind className="w-5 h-5" />
         </button>
       </div>
 
