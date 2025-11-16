@@ -1,8 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet-velocity/dist/leaflet-velocity.css';
-import 'leaflet-velocity';
+// Note: leaflet-velocity may not be needed for this implementation
+// Commenting out to avoid import errors
+// import 'leaflet-velocity/dist/leaflet-velocity.css';
+// import 'leaflet-velocity';
 import { getSampleWindData } from '../../services/windDataService';
 
 /**
@@ -35,6 +37,12 @@ export function VelocityLayer({ active = false }) {
         map.removeLayer(layerRef.current);
         layerRef.current = null;
       }
+      return;
+    }
+
+    // Check if L.velocityLayer exists
+    if (!L.velocityLayer) {
+      console.warn('leaflet-velocity plugin not loaded. Velocity layer will not be displayed.');
       return;
     }
 

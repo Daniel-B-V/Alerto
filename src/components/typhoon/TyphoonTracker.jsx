@@ -146,10 +146,9 @@ export function TyphoonTracker() {
 
       {/* Main Content - Always show map (Unified Single Card) */}
       {!loading && (
-<<<<<<< HEAD
         <Card className="bg-white border-gray-200 overflow-hidden">
           {/* Header - Inside Container */}
-          <div className="flex items-center justify-between flex-wrap gap-4 p-6">
+          <div className="flex items-center justify-between flex-wrap gap-4 px-6 py-4">
             <div>
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
                 <Wind className="w-7 h-7 text-red-500" />
@@ -194,17 +193,10 @@ export function TyphoonTracker() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px] gap-0">
+          <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px] gap-4">
             {/* Left Side - Map with Margins */}
-            <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px] bg-white pl-4 pt-4 pb-4 pr-2">
+            <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px] bg-white pl-6 pt-4 pb-4 pr-2">
               <div className="h-full min-h-[500px] lg:min-h-[700px] rounded-lg overflow-hidden border border-gray-200">
-=======
-        <Card className="bg-white border-gray-200">
-          <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px]">
-            {/* Left Side - Map */}
-            <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px]">
-              <div className="h-full min-h-[500px] lg:min-h-[700px]">
->>>>>>> 02f92405b5de853351dcdbddcf83fe446165b5e4
                 <TyphoonMap
                   typhoons={typhoons}
                   onTyphoonClick={handleSelectTyphoon}
@@ -216,7 +208,7 @@ export function TyphoonTracker() {
             {/* Right Side - Storm Details + Timeline */}
             <div className="lg:col-span-1 bg-white flex flex-col min-h-[400px] lg:min-h-[700px]">
               {/* Storm Details Section */}
-              <div className="flex-1 overflow-y-auto pl-2 pr-4 pt-4 pb-4 space-y-4">
+              <div className="flex-1 overflow-y-auto pl-2 pr-6 pt-4 pb-4 space-y-4">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-blue-500" />
