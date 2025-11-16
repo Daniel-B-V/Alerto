@@ -20,7 +20,7 @@ import {
   YAxis,
   CartesianGrid
 } from "recharts";
-import { getBatangasWeather, getDetailedHourlyForecast } from "../../services/weatherService";
+import { getBatangasWeather, getClimateForecast } from "../../services/weatherService";
 import { getReports } from "../../firebase/firestore";
 import { calculateWeatherSeverity, getSeverityConfig, CATEGORY_CONFIG } from "../../constants/categorization";
 
@@ -33,7 +33,7 @@ export function AnalyticsPanel() {
   const [cityDistribution, setCityDistribution] = useState([]);
   const [weeklyTrends, setWeeklyTrends] = useState([]);
   const [categoryBreakdown, setCategoryBreakdown] = useState([]);
-  const [hourlyForecast, setHourlyForecast] = useState([]);
+  const [climateForecast, setClimateForecast] = useState([]);
 
   // Load data
   const loadData = async () => {
@@ -57,9 +57,14 @@ export function AnalyticsPanel() {
 
       setCitiesWeather(uniqueCities);
 
-      // Fetch hourly forecast
-      const forecast = await getDetailedHourlyForecast('Batangas');
-      setHourlyForecast(forecast);
+      // Fetch 4-day climate forecast (optional, don't fail the entire page if this fails)
+      try {
+        const forecast = await getClimateForecast();
+        setClimateForecast(forecast);
+      } catch (forecastError) {
+        console.warn('Climate forecast failed, continuing without it:', forecastError);
+        setClimateForecast([]); // Set empty array so page still loads
+      }
 
       // Fetch community reports
       const reports = await getReports({ limit: 100 });
@@ -658,15 +663,15 @@ export function AnalyticsPanel() {
       {/* Spacer */}
       <div style={{ height: '48px', width: '100%' }}></div>
 
-      {/* Hourly Weather Forecast */}
-      {!loading && !error && hourlyForecast.length > 0 && (
+      {/* Climate Forecast */}
+      {!loading && !error && climateForecast.length > 0 && (
         <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">48-Hour Weather Forecast</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">4-Day Climate Forecast</h2>
           <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Cloud className="w-5 h-5 text-blue-500" />
-                Detailed Hourly Forecast - Batangas
+                Daily Climate Forecast - Batangas
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -674,7 +679,7 @@ export function AnalyticsPanel() {
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-3">Temperature & Rainfall</h3>
                 <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={hourlyForecast.slice(0, 24)}>
+                  <AreaChart data={climateForecast}>
                     <defs>
                       <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
@@ -708,7 +713,7 @@ export function AnalyticsPanel() {
               <div>
                 <h3 className="text-lg font-semibold mb-3">Wind Speed & Humidity</h3>
                 <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={hourlyForecast.slice(0, 24)}>
+                  <LineChart data={climateForecast}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="time" stroke="#6b7280" fontSize={11} />
                     <YAxis stroke="#6b7280" fontSize={12} />
