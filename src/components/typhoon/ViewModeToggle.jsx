@@ -9,6 +9,11 @@ import { Map, Globe2 } from 'lucide-react';
 export function ViewModeToggle({ viewMode, onViewModeChange }) {
   const [isAnimating, setIsAnimating] = useState(false);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('✅ ViewModeToggle mounted! Current mode:', viewMode);
+  }, [viewMode]);
+
   // Load saved preference on mount - but don't trigger change if already correct
   useEffect(() => {
     const savedMode = localStorage.getItem('typhoon-view-mode');
@@ -17,6 +22,11 @@ export function ViewModeToggle({ viewMode, onViewModeChange }) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
+
+  if (!viewMode) {
+    console.warn('⚠️ ViewModeToggle: viewMode is', viewMode);
+    return null;
+  }
 
   const handleToggle = () => {
     setIsAnimating(true);
@@ -33,7 +43,10 @@ export function ViewModeToggle({ viewMode, onViewModeChange }) {
   };
 
   return (
-    <div className="inline-flex items-center bg-white rounded-lg shadow-lg p-1 gap-1 border-2 border-gray-200">
+    <div
+      className="inline-flex items-center bg-white rounded-lg shadow-lg p-1 gap-1 border-2 border-blue-300"
+      style={{ minWidth: '120px' }}
+    >
       <button
         onClick={() => viewMode === '3d' && handleToggle()}
         className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-300 ${
@@ -45,7 +58,7 @@ export function ViewModeToggle({ viewMode, onViewModeChange }) {
         title="2D Map View"
       >
         <Map className="w-4 h-4" />
-        <span className="font-medium text-sm">2D</span>
+        <span className="font-medium text-sm whitespace-nowrap">2D</span>
       </button>
 
       <button
@@ -59,7 +72,7 @@ export function ViewModeToggle({ viewMode, onViewModeChange }) {
         disabled={isAnimating}
       >
         <Globe2 className={`w-4 h-4 ${viewMode === '3d' ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
-        <span className="font-medium text-sm">3D</span>
+        <span className="font-medium text-sm whitespace-nowrap">3D</span>
       </button>
     </div>
   );

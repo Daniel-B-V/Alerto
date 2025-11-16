@@ -248,18 +248,28 @@ export function TyphoonMap({
         {/* Animated Rain Radar - RainViewer */}
         <RainViewerLayer active={activeWeatherLayers.rain} />
 
-        {/* Animated Wind Flow - Leaflet Velocity */}
-        <VelocityLayer active={activeWeatherLayers.wind} />
-
-        {/* Wind Visualization - Using Windy.com tiles */}
+        {/* Wind Visualization - Multiple sources for reliability */}
         {activeWeatherLayers.wind && (
-          <TileLayer
-            url="https://tiles.windy.com/tiles/v10.0/gfs-surface-wind/{z}/{x}/{y}.png"
-            attribution='&copy; <a href="https://www.windy.com">Windy.com</a>'
-            opacity={0.5}
-            zIndex={500}
-          />
+          <>
+            {/* Option 1: Windy.com wind tiles */}
+            <TileLayer
+              url="https://tiles.windy.com/tiles/v10.0/gfs-surface-wind/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.windy.com">Windy.com</a>'
+              opacity={0.6}
+              zIndex={500}
+            />
+            {/* Option 2: Precipitation as visual indicator of wind patterns */}
+            <TileLayer
+              url={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${WEATHER_API_KEY}`}
+              attribution='&copy; <a href="https://openweathermap.org">OpenWeatherMap</a>'
+              opacity={0.3}
+              zIndex={499}
+            />
+          </>
         )}
+
+        {/* Velocity Layer (if library loaded) */}
+        <VelocityLayer active={activeWeatherLayers.wind} />
 
         {/* OpenWeatherMap Layers - Clouds, Temp, Pressure */}
         {activeWeatherLayers.clouds && (
