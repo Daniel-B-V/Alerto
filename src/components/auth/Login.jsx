@@ -251,7 +251,8 @@ const Login = () => {
           onClick={() => setShowPrivacyPolicy(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-2xl max-w-lg w-full max-h-[70vh] overflow-hidden"
+            className="bg-white rounded-lg shadow-2xl w-full max-h-[70vh] overflow-hidden"
+            style={{ maxWidth: '480px' }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header - Sticky */}
