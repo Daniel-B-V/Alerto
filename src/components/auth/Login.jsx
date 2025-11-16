@@ -246,24 +246,31 @@ const Login = () => {
 
       {/* Privacy Policy Modal */}
       {showPrivacyPolicy && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <div className="flex items-center gap-3">
-                <Shield className="w-6 h-6 text-blue-600" />
-                <h2 className="text-2xl font-bold text-gray-900">Privacy Policy & Terms of Service</h2>
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[9999] p-4"
+          onClick={() => setShowPrivacyPolicy(false)}
+        >
+          <div
+            className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header - Sticky */}
+            <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white sticky top-0 z-10">
+              <div className="flex items-center gap-2">
+                <Shield className="w-5 h-5 text-blue-600" />
+                <h2 className="text-xl font-bold text-gray-900">Privacy Policy & Terms</h2>
               </div>
               <button
                 onClick={() => setShowPrivacyPolicy(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+                title="Close"
               >
-                <X className="w-5 h-5 text-gray-500" />
+                <X className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
               </button>
             </div>
 
-            {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(80vh-140px)]">
+            {/* Modal Content - Scrollable */}
+            <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 140px)' }}>
               <div className="space-y-6 text-sm text-gray-700">
                 {/* Privacy Policy Section */}
                 <section>
@@ -350,11 +357,11 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Modal Footer */}
-            <div className="p-6 border-t border-gray-200 bg-gray-50">
+            {/* Modal Footer - Sticky */}
+            <div className="p-4 border-t border-gray-200 bg-gray-50 sticky bottom-0">
               <button
                 onClick={() => setShowPrivacyPolicy(false)}
-                className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                className="w-full px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
               >
                 I Understand
               </button>
