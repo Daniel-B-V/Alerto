@@ -231,91 +231,151 @@ export function CommunityViewUser() {
               <CardContent className="p-4">
                 <div className="grid grid-cols-1 gap-4">
                 {communityReports.map((report) => (
-                  <Card key={report.id} className="hover:shadow-lg transition-all duration-200 overflow-hidden">
-                    <CardContent className="p-5">
-                      {/* Title */}
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">
-                        {report.title || report.category || 'Community Report'}
-                      </h3>
-
-                      {/* Image Thumbnails */}
-                      {report.images && report.images.length > 0 && (
-                        <div
-                          className="mb-3"
-                          style={{
-                            display: 'flex',
-                            flexDirection: 'row',
-                            gap: '8px',
-                            alignItems: 'flex-start',
-                            flexWrap: 'nowrap'
-                          }}
-                        >
-                          {report.images.slice(0, 5).map((image, idx) => (
-                            <div
-                              key={idx}
-                              onClick={() => openLightbox(report.images, idx)}
-                              className="cursor-pointer hover:opacity-90 transition-opacity"
-                              style={{
-                                position: 'relative',
-                                width: '100px',
-                                height: '100px',
-                                backgroundColor: '#f3f4f6',
-                                borderRadius: '8px',
-                                overflow: 'hidden',
-                                flexShrink: 0,
-                                transform: 'none',
-                                rotate: 'none',
-                                scale: 'none',
-                                translate: 'none'
-                              }}
-                            >
+                  <Card key={report.id} className="hover:shadow-lg transition-shadow duration-200">
+                    <CardContent className="p-4">
+                      {/* Top Row: Reporter info (left) + Status Badge (right) */}
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        {/* Left: Profile + Name + Location */}
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <div
+                            className="flex-shrink-0"
+                            style={{
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              overflow: 'hidden',
+                              border: '2px solid #e5e7eb',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                            }}
+                          >
+                            {report.userPhotoURL ? (
                               <img
-                                src={typeof image === 'string' ? image : image.url}
-                                alt={`${report.title || 'Report image'} ${idx + 1}`}
+                                src={report.userPhotoURL}
+                                alt={report.userName || report.user?.name}
                                 style={{
                                   width: '100%',
                                   height: '100%',
-                                  objectFit: 'cover',
-                                  transform: 'none',
-                                  rotate: 'none',
-                                  scale: 'none',
-                                  translate: 'none'
+                                  objectFit: 'cover'
                                 }}
                               />
-                              {idx === 4 && report.images.length > 5 && (
-                                <div className="absolute inset-0 bg-black/70 flex items-center justify-center text-white text-lg font-bold">
-                                  +{report.images.length - 5}
-                                </div>
-                              )}
+                            ) : (
+                              <div
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  backgroundColor: getUserColor(report.userName || report.user?.name || 'Anonymous'),
+                                  backgroundImage: `linear-gradient(to bottom right, ${getUserColor(report.userName || report.user?.name || 'Anonymous')}, ${getUserColor(report.userName || report.user?.name || 'Anonymous')}dd)`,
+                                  color: 'white',
+                                  fontWeight: 'bold',
+                                  fontSize: '16px'
+                                }}
+                              >
+                                {(report.userName || report.user?.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold text-gray-900 text-base">
+                              {report.userName || report.user?.name || 'Anonymous User'}
                             </div>
-                          ))}
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
+                              <MapPin className="w-3 h-3" />
+                              <span>
+                                {report.location?.barangay
+                                  ? `${report.location.barangay}, ${report.location.city}`
+                                  : report.location?.city || 'Unknown'}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                      )}
 
-                      {/* Date */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                        <Calendar className="w-4 h-4" />
-                        {formatTimestamp(report.createdAt)}
+                        {/* Right: Status Badge */}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2.5 py-1 font-medium">
+                            ✓ Verified
+                          </Badge>
+                        </div>
                       </div>
 
-                      {/* Location */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                        <MapPin className="w-4 h-4" />
-                        {report.location?.barangay
-                          ? `${report.location.barangay}, ${report.location.city}`
-                          : report.location?.city || 'Unknown'}
+                      {/* Content Row: Title + Description (left) + Images (right) */}
+                      <div className="flex gap-4 mb-3">
+                        {/* Left: Title + Description */}
+                        <div className="flex-1 min-w-0">
+                          {/* Report Title */}
+                          {report.title && (
+                            <h3 className="text-lg font-bold text-gray-900 mb-1.5">
+                              {report.title}
+                            </h3>
+                          )}
+
+                          {/* Report Description */}
+                          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
+                            {report.description}
+                          </p>
+                        </div>
+
+                        {/* Right: Image Thumbnails */}
+                        {report.images && report.images.length > 0 && (
+                          <div
+                            className="flex-shrink-0"
+                            style={{
+                              display: 'flex',
+                              flexDirection: 'row',
+                              gap: '8px',
+                              alignItems: 'flex-start',
+                              flexWrap: 'nowrap'
+                            }}
+                          >
+                            {report.images.slice(0, 5).map((image, idx) => (
+                              <div
+                                key={idx}
+                                onClick={() => openLightbox(report.images, idx)}
+                                className="cursor-pointer hover:opacity-90 transition-opacity"
+                                style={{
+                                  position: 'relative',
+                                  width: '100px',
+                                  height: '100px',
+                                  backgroundColor: '#f3f4f6',
+                                  borderRadius: '8px',
+                                  overflow: 'hidden',
+                                  flexShrink: 0,
+                                  transform: 'none'
+                                }}
+                              >
+                                <img
+                                  src={typeof image === 'string' ? image : image.url}
+                                  alt={`Report image ${idx + 1}`}
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    transform: 'none'
+                                  }}
+                                />
+                                {idx === 4 && report.images.length > 5 && (
+                                  <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                                    <span className="text-white text-lg font-bold">
+                                      +{report.images.length - 5}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      {/* Description */}
-                      <p className="text-sm text-gray-700 leading-relaxed mb-3 line-clamp-3">
-                        {report.description}
-                      </p>
-
-                      {/* Status Badge */}
-                      <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs px-2.5 py-1 font-medium">
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Verified
-                      </Badge>
+                      {/* Bottom Row: Timestamp */}
+                      <div className="pt-3 border-t border-gray-100">
+                        <div className="flex items-center gap-2 text-xs text-gray-500">
+                          <Clock className="w-3 h-3" />
+                          <span>{formatTimestamp(report.createdAt)}</span>
+                        </div>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
@@ -342,7 +402,7 @@ export function CommunityViewUser() {
               <CardContent className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {mayorAnnouncements.map((announcement) => (
-                  <Card key={announcement.id} className="hover:shadow-lg transition-all duration-200">
+                  <Card key={announcement.id} className="hover:shadow-lg transition-shadow duration-200">
                     <CardContent className="p-5">
                       {/* Title */}
                       <h3 className="text-lg font-bold text-gray-900 mb-2">
@@ -397,7 +457,7 @@ export function CommunityViewUser() {
               <CardContent className="p-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {governorAnnouncements.map((announcement) => (
-                  <Card key={announcement.id} className="hover:shadow-lg transition-all duration-200">
+                  <Card key={announcement.id} className="hover:shadow-lg transition-shadow duration-200">
                     <CardContent className="p-5">
                       {/* Title */}
                       <h3 className="text-lg font-bold text-gray-900 mb-2">
