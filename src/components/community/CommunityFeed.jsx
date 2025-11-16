@@ -523,35 +523,59 @@ export function CommunityFeed() {
                         </p>
                       </div>
 
-                      {/* Right: Image Thumbnail */}
+                      {/* Right: Image Thumbnails - Horizontal Layout */}
                       {report.images && report.images.length > 0 && (
-                        <div className="flex-shrink-0">
-                          <div className="flex flex-wrap gap-1.5" style={{ maxWidth: '180px' }}>
-                            {report.images.slice(0, 5).map((image, idx) => (
-                              <div
-                                key={idx}
-                                className="relative cursor-pointer group overflow-hidden rounded-md border border-gray-200"
+                        <div
+                          className="flex-shrink-0"
+                          style={{
+                            display: 'flex',
+                            flexDirection: 'row',
+                            gap: '8px',
+                            alignItems: 'flex-start',
+                            flexWrap: 'nowrap'
+                          }}
+                        >
+                          {report.images.slice(0, 5).map((image, idx) => (
+                            <div
+                              key={idx}
+                              onClick={() => setSelectedImage({ images: report.images, index: idx })}
+                              className="cursor-pointer hover:opacity-90 transition-opacity"
+                              style={{
+                                position: 'relative',
+                                width: '100px',
+                                height: '100px',
+                                backgroundColor: '#f3f4f6',
+                                borderRadius: '8px',
+                                overflow: 'hidden',
+                                flexShrink: 0,
+                                transform: 'none',
+                                rotate: 'none',
+                                scale: 'none',
+                                translate: 'none'
+                              }}
+                            >
+                              <img
+                                src={typeof image === 'string' ? image : image.url}
+                                alt={`Report image ${idx + 1}`}
                                 style={{
-                                  width: report.images.length === 1 ? '180px' : '86px',
-                                  height: report.images.length === 1 ? '180px' : '86px'
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  transform: 'none',
+                                  rotate: 'none',
+                                  scale: 'none',
+                                  translate: 'none'
                                 }}
-                                onClick={() => setSelectedImage({ images: report.images, index: idx })}
-                              >
-                                <img
-                                  src={typeof image === 'string' ? image : image.url}
-                                  alt={`Report image ${idx + 1}`}
-                                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                                />
-                                {idx === 4 && report.images.length > 5 && (
-                                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-                                    <span className="text-white text-xs font-bold">
-                                      +{report.images.length - 5}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
+                              />
+                              {idx === 4 && report.images.length > 5 && (
+                                <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                                  <span className="text-white text-lg font-bold">
+                                    +{report.images.length - 5}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          ))}
                         </div>
                       )}
                     </div>
@@ -574,10 +598,10 @@ export function CommunityFeed() {
                             >
                               <Shield className="w-3.5 h-3.5" />
                               {report.aiCredibility >= 70 || (report.imageAnalysis && report.imageAnalysis.confidence >= 70)
-                                ? `Credible (${report.aiCredibility || report.imageAnalysis?.confidence}%)`
+                                ? `Credible (${report.aiCredibility || report.imageAnalysis?.confidence || 0}%)`
                                 : report.aiCredibility >= 40 || (report.imageAnalysis && report.imageAnalysis.confidence >= 40)
-                                ? `Suspicious (${report.aiCredibility || report.imageAnalysis?.confidence}%)`
-                                : `Spam (${report.aiCredibility || report.imageAnalysis?.confidence}%)`
+                                ? `Suspicious (${report.aiCredibility || report.imageAnalysis?.confidence || 0}%)`
+                                : `Spam (${report.aiCredibility || report.imageAnalysis?.confidence || 0}%)`
                               }
                             </Badge>
                           )}

@@ -4,7 +4,6 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Card } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -103,17 +102,15 @@ const PendingRequestsTable = () => {
 
   if (loading && requests.length === 0) {
     return (
-      <Card className="p-6">
-        <div className="flex items-center justify-center h-64">
-          <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
-          <span className="ml-2 text-gray-500">Loading requests...</span>
-        </div>
-      </Card>
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-6 h-6 animate-spin text-gray-400" />
+        <span className="ml-2 text-gray-500">Loading requests...</span>
+      </div>
     );
   }
 
   return (
-    <Card className="p-6">
+    <div className="p-6">
       <div className="flex justify-between items-center mb-4">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Pending Approval Requests</h2>
@@ -271,7 +268,7 @@ const PendingRequestsTable = () => {
           </AlertDescription>
         </Alert>
       )}
-    </Card>
+    </div>
   );
 };
 

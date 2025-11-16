@@ -255,6 +255,18 @@ export const generateHighDensityReports = (city, count = 45) => {
       // Some reports are verified (about 70% for high density areas)
       const isVerified = Math.random() < 0.7;
 
+      // Generate realistic AI credibility score based on severity
+      let aiCredibility;
+      if (severity === 'critical') {
+        aiCredibility = 70 + Math.floor(Math.random() * 25); // 70-95%
+      } else if (severity === 'high') {
+        aiCredibility = 55 + Math.floor(Math.random() * 30); // 55-85%
+      } else if (severity === 'medium') {
+        aiCredibility = 40 + Math.floor(Math.random() * 30); // 40-70%
+      } else {
+        aiCredibility = 20 + Math.floor(Math.random() * 40); // 20-60%
+      }
+
       reports.push({
         id: `report_${city.replace(/\s/g, '_').toLowerCase()}_${reportId++}`,
         category: type,
@@ -277,7 +289,11 @@ export const generateHighDensityReports = (city, count = 45) => {
         status: 'verified', // All reports auto-verified by AI
         verifiedBy: 'AI (Gemini)',
         verifiedAt: { seconds: Math.floor((createdAt.getTime() + 1000) / 1000), nanoseconds: 0 }, // Verified shortly after creation
-        images: generateCategoryImages(type, Math.floor(Math.random() * 5) + 1) // 1-5 images per report
+        images: generateCategoryImages(type, Math.floor(Math.random() * 5) + 1), // 1-5 images per report
+        aiCredibility: aiCredibility, // AI credibility score
+        aiReason: aiCredibility >= 70 ? 'High confidence - multiple verification factors' :
+                  aiCredibility >= 40 ? 'Moderate confidence - some verification needed' :
+                  'Low confidence - manual review recommended'
       });
     }
   });
@@ -319,6 +335,18 @@ export const generateScatteredReports = (cities, totalCount = 30) => {
     // Lower verification rate for scattered reports (about 30%)
     const isVerified = Math.random() < 0.3;
 
+    // Generate realistic AI credibility score based on severity
+    let aiCredibility;
+    if (severity === 'critical') {
+      aiCredibility = 70 + Math.floor(Math.random() * 25); // 70-95%
+    } else if (severity === 'high') {
+      aiCredibility = 55 + Math.floor(Math.random() * 30); // 55-85%
+    } else if (severity === 'medium') {
+      aiCredibility = 40 + Math.floor(Math.random() * 30); // 40-70%
+    } else {
+      aiCredibility = 20 + Math.floor(Math.random() * 40); // 20-60%
+    }
+
     reports.push({
       id: `report_${city.replace(/\s/g, '_').toLowerCase()}_${i + 1}`,
       category: category.value,
@@ -341,7 +369,11 @@ export const generateScatteredReports = (cities, totalCount = 30) => {
       status: 'verified', // All reports auto-verified by AI
       verifiedBy: 'AI (Gemini)',
       verifiedAt: { seconds: Math.floor((createdAt.getTime() + 1000) / 1000), nanoseconds: 0 }, // Verified shortly after creation
-      images: generateCategoryImages(category.value, Math.floor(Math.random() * 5) + 1) // 1-5 images per report
+      images: generateCategoryImages(category.value, Math.floor(Math.random() * 5) + 1), // 1-5 images per report
+      aiCredibility: aiCredibility, // AI credibility score
+      aiReason: aiCredibility >= 70 ? 'High confidence - multiple verification factors' :
+                aiCredibility >= 40 ? 'Moderate confidence - some verification needed' :
+                'Low confidence - manual review recommended'
     });
   }
 

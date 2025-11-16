@@ -146,22 +146,23 @@ const SuspensionPanel = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Header & Statistics */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-3">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
               🛑 Alerto: Class Suspension Decision System
             </h1>
-            <Badge className="bg-purple-100 text-purple-800 border-purple-200 font-semibold px-4 py-2">
-              👑 Governor
-            </Badge>
+            <p className="text-gray-600 text-base mt-1">
+              Monitor weather conditions and manage class suspensions across Batangas Province
+            </p>
           </div>
-          <p className="text-gray-600 text-base">
-            Monitor weather conditions and manage class suspensions across Batangas Province
-          </p>
+          <Badge className="bg-purple-100 text-purple-800 border-purple-200 font-semibold px-4 py-2">
+            👑 Governor
+          </Badge>
+        </div>
 
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+        {/* Statistics Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -201,7 +202,6 @@ const SuspensionPanel = () => {
                 <Info className="w-8 h-8 text-gray-600" />
               </div>
             </Card>
-          </div>
         </div>
 
         {/* Error Alert */}
@@ -217,14 +217,14 @@ const SuspensionPanel = () => {
           <Tabs defaultValue="candidates" className="w-full">
             <div className="border-b border-gray-200">
               <TabsList className="inline-flex h-auto p-0 bg-transparent w-auto gap-0">
-                <TabsTrigger 
-                  value="candidates" 
+                <TabsTrigger
+                  value="candidates"
                   className="data-[state=active]:border-b-2 data-[state=active]:border-red-500 data-[state=active]:text-red-600 text-gray-600 rounded-none border-b-2 border-transparent px-6 py-3 font-medium hover:text-gray-900 transition-colors"
                 >
                   Suspension Candidates
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="active" 
+                <TabsTrigger
+                  value="active"
                   className="data-[state=active]:border-b-2 data-[state=active]:border-red-500 data-[state=active]:text-red-600 text-gray-600 rounded-none border-b-2 border-transparent px-6 py-3 font-medium hover:text-gray-900 transition-colors"
                 >
                   Active Suspensions
@@ -232,13 +232,13 @@ const SuspensionPanel = () => {
                     <Badge className="ml-2 bg-red-500 text-white">{stats.activeCount}</Badge>
                   )}
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="requests" 
+                <TabsTrigger
+                  value="requests"
                   className="data-[state=active]:border-b-2 data-[state=active]:border-red-500 data-[state=active]:text-red-600 text-gray-600 rounded-none border-b-2 border-transparent px-6 py-3 font-medium hover:text-gray-900 transition-colors"
                 >
                   Mayor Requests
                 </TabsTrigger>
-                <TabsTrigger 
+                <TabsTrigger
                   value="analytics"
                   className="data-[state=active]:border-b-2 data-[state=active]:border-red-500 data-[state=active]:text-red-600 text-gray-600 rounded-none border-b-2 border-transparent px-6 py-3 font-medium hover:text-gray-900 transition-colors"
                 >

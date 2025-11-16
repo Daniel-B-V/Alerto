@@ -30,7 +30,6 @@ export function AnalyticsPanel() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [citiesWeather, setCitiesWeather] = useState([]);
   const [communityReports, setCommunityReports] = useState([]);
-  const [showAllCities, setShowAllCities] = useState(false);
   const [cityDistribution, setCityDistribution] = useState([]);
   const [weeklyTrends, setWeeklyTrends] = useState([]);
   const [categoryBreakdown, setCategoryBreakdown] = useState([]);
@@ -176,11 +175,6 @@ export function AnalyticsPanel() {
         </div>
       </div>
 
-      {/* Typhoon Tracker Section */}
-      <div className="max-w-7xl mx-auto mb-8">
-        <TyphoonTracker />
-      </div>
-
       {/* Loading State */}
       {loading && (
         <div className="flex items-center justify-center min-h-[400px]">
@@ -206,13 +200,38 @@ export function AnalyticsPanel() {
       {/* City-by-City Weather Details */}
       {!loading && !error && (
         <div className="max-w-7xl mx-auto mb-6">
-          <div className="mb-4">
-            <h2 className="text-2xl font-bold text-gray-900">City-by-City Weather Conditions</h2>
-          </div>
           {citiesWeather && citiesWeather.length > 0 ? (
-            <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                {(showAllCities ? citiesWeather : citiesWeather.slice(0, 8)).map((city, index) => {
+            <Card className="bg-white border-gray-200 shadow-sm p-6">
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">City-by-City Weather Conditions</h2>
+                <p className="text-gray-600 mt-1">All cities in Batangas Provincial Area</p>
+              </div>
+              <div
+                className="overflow-y-auto overflow-x-hidden custom-scrollbar"
+                style={{
+                  maxHeight: '600px',
+                  scrollbarWidth: 'thin',
+                  scrollbarColor: '#CBD5E1 #F1F5F9'
+                }}
+              >
+                <style>{`
+                  .custom-scrollbar::-webkit-scrollbar {
+                    width: 8px;
+                  }
+                  .custom-scrollbar::-webkit-scrollbar-track {
+                    background: #F1F5F9;
+                    border-radius: 10px;
+                  }
+                  .custom-scrollbar::-webkit-scrollbar-thumb {
+                    background: #CBD5E1;
+                    border-radius: 10px;
+                  }
+                  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+                    background: #94A3B8;
+                  }
+                `}</style>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pr-2">
+                  {citiesWeather.map((city, index) => {
               // Check if weather data has alerts array with risk level
               const alertLevel = city.alerts && city.alerts.length > 0 ? city.alerts[0].level : null;
 
@@ -286,18 +305,9 @@ export function AnalyticsPanel() {
                 </Card>
               );
             })}
-          </div>
-
-          {/* Show All Button - Always visible when there are cities */}
-          <div className="flex justify-center mt-8">
-            <button
-              onClick={() => setShowAllCities(!showAllCities)}
-              className="text-black font-medium hover:underline"
-            >
-              {showAllCities ? 'Show less' : 'Show all'}
-            </button>
-          </div>
-        </>
+                </div>
+              </div>
+            </Card>
           ) : (
             <Card className="bg-blue-50 border-blue-200">
               <CardContent className="p-6 text-center">
@@ -321,6 +331,13 @@ export function AnalyticsPanel() {
               </CardContent>
             </Card>
           )}
+        </div>
+      )}
+
+      {/* Typhoon Tracker Section */}
+      {!loading && !error && (
+        <div className="max-w-7xl mx-auto mb-8">
+          <TyphoonTracker />
         </div>
       )}
 
