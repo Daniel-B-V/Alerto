@@ -12,9 +12,12 @@ import {
   FORECAST_CONE_STYLE
 } from '../../config/typhoonStyles';
 import { generateForecastCone, smoothConeEdges } from '../../utils/forecastCone';
-import { Wind, CloudRain, Cloud, Thermometer, Gauge } from 'lucide-react';
+import { Wind, CloudRain, Cloud, Thermometer, Gauge, Map, Satellite } from 'lucide-react';
 import { RainViewerLayer } from './RainViewerLayer';
 import { VelocityLayer } from './VelocityLayer';
+import { CitiesLayer } from './CitiesLayer';
+import { LocationSearch } from './LocationSearch';
+import { PAR_BOUNDARY_ACCURATE, PAR_STYLE } from '../../constants/parBoundary';
 
 // Fix for default marker icon issue in Leaflet with Webpack/Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -153,6 +156,7 @@ export function TyphoonMap({
     temp: false,
     pressure: false
   });
+  const [baseMapType, setBaseMapType] = useState('street'); // 'street' or 'satellite'
 
   const WEATHER_API_KEY = '13616e53cdfb9b00c018abeaa05e9784'; // OpenWeatherMap API key
 
@@ -189,11 +193,41 @@ export function TyphoonMap({
         ref={mapRef}
         className="rounded-lg overflow-hidden"
       >
-        {/* Base map tiles */}
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        />
+        {/* Base map tiles - Conditional rendering based on map type */}
+        {baseMapType === 'street' ? (
+          <TileLayer
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          />
+        ) : (
+          <>
+            {/* ESRI World Imagery (Satellite) */}
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+              attribution='&copy; <a href="https://www.esri.com/">Esri</a>, Maxar, Earthstar Geographics'
+            />
+            {/* Labels overlay for satellite view */}
+            <TileLayer
+              url="https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}"
+              attribution=''
+            />
+          </>
+        )}
+
+        {/* Philippine Area of Responsibility (PAR) Boundary */}
+        <Polygon
+          positions={PAR_BOUNDARY_ACCURATE}
+          pathOptions={PAR_STYLE}
+        >
+          <Popup>
+            <div className="text-sm">
+              <strong className="text-blue-600">Philippine Area of Responsibility (PAR)</strong>
+              <p className="text-xs mt-1">
+                This is the area where PAGASA monitors and issues tropical cyclone bulletins.
+              </p>
+            </div>
+          </Popup>
+        </Polygon>
 
         {/* Weather Layers */}
         {/* Animated Rain Radar - RainViewer */}
@@ -239,6 +273,14 @@ export function TyphoonMap({
             onClick={() => onTyphoonClick && onTyphoonClick(typhoon)}
           />
         ))}
+
+        {/* Major Philippine Cities */}
+        <CitiesLayer visible={true} />
+
+        {/* Location Search - Inside MapContainer to access map context */}
+        <div className="absolute top-4 right-4 z-[1000]" style={{ pointerEvents: 'auto' }}>
+          <LocationSearch />
+        </div>
       </MapContainer>
 
       {/* Weather Layer Controls - OUTSIDE MapContainer to overlay properly */}
@@ -250,6 +292,29 @@ export function TyphoonMap({
           pointerEvents: 'none'
         }}
       >
+        {/* Base Map Toggle */}
+        <button
+          onClick={() => setBaseMapType(prev => prev === 'street' ? 'satellite' : 'street')}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all bg-white text-gray-700 hover:bg-gray-100 border-2 border-gray-300"
+          title={baseMapType === 'street' ? 'Switch to Satellite View' : 'Switch to Street Map'}
+          style={{ minWidth: '100px', pointerEvents: 'auto', cursor: 'pointer' }}
+        >
+          {baseMapType === 'street' ? (
+            <>
+              <Satellite className="w-5 h-5" />
+              <span className="text-sm font-medium">Satellite</span>
+            </>
+          ) : (
+            <>
+              <Map className="w-5 h-5" />
+              <span className="text-sm font-medium">Street</span>
+            </>
+          )}
+        </button>
+
+        {/* Divider */}
+        <div className="border-t border-gray-300 mx-2" style={{ pointerEvents: 'none' }}></div>
+
         <button
           onClick={() => toggleWeatherLayer('wind')}
           className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all ${
@@ -519,17 +584,72 @@ function TyphoonLayer({ typhoon, onClick, selectedDate = null }) {
       )}
 
 
-      {/* Layer 4: Wind radius circle - Hide when forecast cone is showing */}
-      {current.windSpeed > 60 && !selectedDate && forecastCone.length === 0 && (
-        <Circle
-          center={currentMarkerPosition}
-          radius={current.windSpeed * 1000} // Convert km to meters
-          fillColor={intensityStyle.color}
-          fillOpacity={0.12}
-          color={intensityStyle.color}
-          weight={2}
-          opacity={0.6}
-        />
+      {/* Layer 4: Wind field rings - Multiple radii showing danger zones */}
+      {!selectedDate && forecastCone.length === 0 && (
+        <>
+          {/* 64kt (119 km/h) Typhoon Force Winds - Innermost (Red) */}
+          {current.windSpeed >= 119 && (
+            <Circle
+              center={currentMarkerPosition}
+              radius={80 * 1000} // 80km radius for typhoon force
+              fillColor="#dc2626"
+              fillOpacity={0.15}
+              color="#dc2626"
+              weight={2}
+              opacity={0.7}
+              dashArray="5, 5"
+            >
+              <Popup>
+                <div className="text-xs">
+                  <strong>Typhoon Force Winds</strong><br/>
+                  ≥64 kt (119 km/h)
+                </div>
+              </Popup>
+            </Circle>
+          )}
+
+          {/* 50kt (93 km/h) Storm Force Winds - Middle (Orange) */}
+          {current.windSpeed >= 93 && (
+            <Circle
+              center={currentMarkerPosition}
+              radius={150 * 1000} // 150km radius for storm force
+              fillColor="#f97316"
+              fillOpacity={0.1}
+              color="#f97316"
+              weight={2}
+              opacity={0.6}
+              dashArray="5, 5"
+            >
+              <Popup>
+                <div className="text-xs">
+                  <strong>Storm Force Winds</strong><br/>
+                  ≥50 kt (93 km/h)
+                </div>
+              </Popup>
+            </Circle>
+          )}
+
+          {/* 34kt (63 km/h) Tropical Storm Force Winds - Outermost (Yellow) */}
+          {current.windSpeed >= 63 && (
+            <Circle
+              center={currentMarkerPosition}
+              radius={250 * 1000} // 250km radius for tropical storm force
+              fillColor="#facc15"
+              fillOpacity={0.08}
+              color="#facc15"
+              weight={2}
+              opacity={0.5}
+              dashArray="5, 5"
+            >
+              <Popup>
+                <div className="text-xs">
+                  <strong>Tropical Storm Force Winds</strong><br/>
+                  ≥34 kt (63 km/h)
+                </div>
+              </Popup>
+            </Circle>
+          )}
+        </>
       )}
 
       {/* Current position marker */}

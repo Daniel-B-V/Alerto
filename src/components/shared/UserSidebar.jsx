@@ -5,8 +5,7 @@ import {
   Settings,
   ChevronLeft,
   List,
-  Users,
-  Wind
+  Users
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useState } from "react";
@@ -17,7 +16,6 @@ export function UserSidebar({ activeSection, onSectionChange }) {
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Dashboard" },
     { id: "community", icon: Users, label: "Community Hub" },
-    { id: "typhoon-tracker", icon: Wind, label: "Typhoon Tracker" },
     { id: "suspensions", icon: GraduationCap, label: "Class Suspensions" },
     { id: "my-reports", icon: FileText, label: "My Reports" },
     { id: "settings", icon: Settings, label: "Settings" },
