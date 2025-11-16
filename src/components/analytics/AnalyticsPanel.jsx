@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { BarChart3, RefreshCw, Cloud, AlertTriangle, CloudRain, Wind, Droplets, PieChart as PieChartIcon, TrendingUp, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { TyphoonTracker } from "../typhoon/TyphoonTracker";
+import TyphoonTracker from "../typhoon/TyphoonTracker";
 import {
   PieChart,
   Pie,
