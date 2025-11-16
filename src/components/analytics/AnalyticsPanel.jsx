@@ -205,7 +205,7 @@ export function AnalyticsPanel() {
       )}
 
       {/* Spacer */}
-      <div className="h-16"></div>
+      <div style={{ height: '48px', width: '100%' }}></div>
 
       {/* City-by-City Weather Details */}
       {!loading && !error && (
@@ -343,6 +343,9 @@ export function AnalyticsPanel() {
           )}
         </div>
       )}
+
+      {/* Spacer */}
+      <div style={{ height: '48px', width: '100%' }}></div>
 
       {/* Additional Statistics Cards */}
       {!loading && !error && communityReports.length > 0 && (
@@ -493,6 +496,9 @@ export function AnalyticsPanel() {
         </div>
       )}
 
+      {/* Spacer */}
+      <div style={{ height: '48px', width: '100%' }}></div>
+
       {/* Charts Section */}
       {!loading && !error && (
         <div className="max-w-7xl mx-auto mb-16">
@@ -566,6 +572,9 @@ export function AnalyticsPanel() {
           </div>
         </div>
       )}
+
+      {/* Spacer */}
+      <div style={{ height: '48px', width: '100%' }}></div>
 
       {/* Reports by City */}
       {!loading && !error && cityDistribution && cityDistribution.length > 0 && (
@@ -645,6 +654,9 @@ export function AnalyticsPanel() {
           </Card>
         </div>
       )}
+
+      {/* Spacer */}
+      <div style={{ height: '48px', width: '100%' }}></div>
 
       {/* Hourly Weather Forecast */}
       {!loading && !error && hourlyForecast.length > 0 && (
