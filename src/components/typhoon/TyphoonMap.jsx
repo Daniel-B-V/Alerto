@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, CircleMarker, Polygon, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -12,6 +12,9 @@ import {
   FORECAST_CONE_STYLE
 } from '../../config/typhoonStyles';
 import { generateForecastCone, smoothConeEdges } from '../../utils/forecastCone';
+import { Wind, CloudRain, Cloud, Thermometer, Gauge } from 'lucide-react';
+import { RainViewerLayer } from './RainViewerLayer';
+import { VelocityLayer } from './VelocityLayer';
 
 // Fix for default marker icon issue in Leaflet with Webpack/Vite
 delete L.Icon.Default.prototype._getIconUrl;
@@ -143,20 +146,86 @@ export function TyphoonMap({
   useTestData
 }) {
   const mapRef = useRef(null);
+  const [activeWeatherLayers, setActiveWeatherLayers] = useState({
+    wind: false,
+    rain: false,
+    clouds: false,
+    temp: false,
+    pressure: false
+  });
+
+  const WEATHER_API_KEY = '13616e53cdfb9b00c018abeaa05e9784'; // OpenWeatherMap API key
+
+  const toggleWeatherLayer = (layer) => {
+    setActiveWeatherLayers(prev => {
+      // If clicking the same layer, deactivate it
+      if (prev[layer]) {
+        return {
+          wind: false,
+          rain: false,
+          clouds: false,
+          temp: false,
+          pressure: false
+        };
+      }
+      // Otherwise, activate only the clicked layer
+      return {
+        wind: false,
+        rain: false,
+        clouds: false,
+        temp: false,
+        pressure: false,
+        [layer]: true
+      };
+    });
+  };
 
   return (
-    <div className="relative w-full h-full rounded-lg overflow-hidden border border-gray-300">
+    <div className="relative w-full h-full rounded-lg border border-gray-300">
       <MapContainer
         center={[12.8797, 121.774]} // Center on Philippines
         zoom={6}
         style={{ height: '100%', width: '100%', minHeight: '600px' }}
         ref={mapRef}
+        className="rounded-lg overflow-hidden"
       >
         {/* Base map tiles */}
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         />
+
+        {/* Weather Layers */}
+        {/* Animated Rain Radar - RainViewer */}
+        <RainViewerLayer active={activeWeatherLayers.rain} />
+
+        {/* Animated Wind Flow - Leaflet Velocity */}
+        <VelocityLayer active={activeWeatherLayers.wind} />
+
+        {/* OpenWeatherMap Layers - Clouds, Temp, Pressure */}
+        {activeWeatherLayers.clouds && (
+          <TileLayer
+            url={`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${WEATHER_API_KEY}`}
+            attribution='&copy; <a href="https://openweathermap.org">OpenWeatherMap</a>'
+            opacity={0.5}
+          />
+        )}
+
+        {activeWeatherLayers.temp && (
+          <TileLayer
+            url={`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${WEATHER_API_KEY}`}
+            attribution='&copy; <a href="https://openweathermap.org">OpenWeatherMap</a>'
+            opacity={0.5}
+          />
+        )}
+
+        {activeWeatherLayers.pressure && (
+          <TileLayer
+            url={`https://tile.openweathermap.org/map/pressure_new/{z}/{x}/{y}.png?appid=${WEATHER_API_KEY}`}
+            attribution='&copy; <a href="https://openweathermap.org">OpenWeatherMap</a>'
+            opacity={0.5}
+          />
+        )}
 
         {/* Fit bounds to show all typhoons */}
         <FitBounds typhoons={typhoons} />
@@ -171,6 +240,86 @@ export function TyphoonMap({
           />
         ))}
       </MapContainer>
+
+      {/* Weather Layer Controls - OUTSIDE MapContainer to overlay properly */}
+      <div
+        className="absolute left-4 flex flex-col gap-2"
+        style={{
+          top: '100px',
+          zIndex: 1000,
+          pointerEvents: 'none'
+        }}
+      >
+        <button
+          onClick={() => toggleWeatherLayer('wind')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all ${
+            activeWeatherLayers.wind
+              ? 'bg-blue-500 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
+          }`}
+          title="Animated Wind Flow"
+          style={{ minWidth: '100px', pointerEvents: 'auto', cursor: 'pointer' }}
+        >
+          <Wind className="w-5 h-5" />
+          <span className="text-sm font-medium">Wind</span>
+        </button>
+
+        <button
+          onClick={() => toggleWeatherLayer('rain')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all ${
+            activeWeatherLayers.rain
+              ? 'bg-blue-500 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
+          }`}
+          title="Animated Rain Radar"
+          style={{ minWidth: '100px', pointerEvents: 'auto', cursor: 'pointer' }}
+        >
+          <CloudRain className="w-5 h-5" />
+          <span className="text-sm font-medium">Rain</span>
+        </button>
+
+        <button
+          onClick={() => toggleWeatherLayer('clouds')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all ${
+            activeWeatherLayers.clouds
+              ? 'bg-blue-500 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
+          }`}
+          title="Cloud Coverage"
+          style={{ minWidth: '100px', pointerEvents: 'auto', cursor: 'pointer' }}
+        >
+          <Cloud className="w-5 h-5" />
+          <span className="text-sm font-medium">Clouds</span>
+        </button>
+
+        <button
+          onClick={() => toggleWeatherLayer('temp')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all ${
+            activeWeatherLayers.temp
+              ? 'bg-blue-500 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
+          }`}
+          title="Temperature"
+          style={{ minWidth: '100px', pointerEvents: 'auto', cursor: 'pointer' }}
+        >
+          <Thermometer className="w-5 h-5" />
+          <span className="text-sm font-medium">Temp</span>
+        </button>
+
+        <button
+          onClick={() => toggleWeatherLayer('pressure')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all ${
+            activeWeatherLayers.pressure
+              ? 'bg-blue-500 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
+          }`}
+          title="Atmospheric Pressure"
+          style={{ minWidth: '100px', pointerEvents: 'auto', cursor: 'pointer' }}
+        >
+          <Gauge className="w-5 h-5" />
+          <span className="text-sm font-medium">Pressure</span>
+        </button>
+      </div>
 
       {/* Header Overlay - positioned absolutely over the map */}
       {title && (

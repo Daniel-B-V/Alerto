@@ -441,6 +441,88 @@ export const getDetailedHourlyForecast = async (city = DEFAULT_LOCATION.city) =>
   }
 };
 
+// Get 4-day daily forecast (aggregated from 5-day/3-hour forecast)
+export const getClimateForecast = async () => {
+  try {
+    const apiKey = '13616e53cdfb9b00c018abeaa05e9784';
+    // Using Batangas coordinates
+    const lat = 13.7567;
+    const lon = 121.058;
+
+    const response = await fetch(
+      `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    // Group forecast data by day
+    const dailyData = {};
+
+    data.list.forEach(item => {
+      const date = new Date(item.dt * 1000);
+      const dayKey = date.toDateString(); // Use date string as key
+
+      if (!dailyData[dayKey]) {
+        dailyData[dayKey] = {
+          timestamp: date,
+          temps: [],
+          humidities: [],
+          rainfalls: [],
+          windSpeeds: [],
+          pressures: [],
+          weather: item.weather[0]
+        };
+      }
+
+      dailyData[dayKey].temps.push(item.main.temp);
+      dailyData[dayKey].humidities.push(item.main.humidity);
+      dailyData[dayKey].rainfalls.push(item.rain ? item.rain['3h'] || 0 : 0);
+      dailyData[dayKey].windSpeeds.push(item.wind.speed * 3.6); // Convert m/s to km/h
+      dailyData[dayKey].pressures.push(item.main.pressure);
+    });
+
+    // Convert to array and calculate daily averages
+    const forecastData = Object.values(dailyData).slice(0, 4).map(day => {
+      const avgTemp = day.temps.reduce((a, b) => a + b, 0) / day.temps.length;
+      const minTemp = Math.min(...day.temps);
+      const maxTemp = Math.max(...day.temps);
+      const avgHumidity = day.humidities.reduce((a, b) => a + b, 0) / day.humidities.length;
+      const totalRainfall = day.rainfalls.reduce((a, b) => a + b, 0);
+      const avgWindSpeed = day.windSpeeds.reduce((a, b) => a + b, 0) / day.windSpeeds.length;
+      const avgPressure = day.pressures.reduce((a, b) => a + b, 0) / day.pressures.length;
+
+      const dayName = day.timestamp.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+
+      return {
+        time: dayName,
+        fullTime: day.timestamp.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }),
+        timestamp: day.timestamp,
+        temperature: Math.round(avgTemp),
+        tempMin: Math.round(minTemp),
+        tempMax: Math.round(maxTemp),
+        humidity: Math.round(avgHumidity),
+        rainfall: Math.round(totalRainfall * 10) / 10,
+        windSpeed: Math.round(avgWindSpeed),
+        pressure: Math.round(avgPressure),
+        weather: {
+          main: day.weather.main,
+          description: day.weather.description,
+          icon: day.weather.icon
+        }
+      };
+    });
+
+    return forecastData;
+  } catch (error) {
+    console.error('Climate forecast error:', error);
+    throw error;
+  }
+};
+
 /**
  * Get PAGASA rainfall warning for a city's current conditions
  * @param {object} weatherData - Weather data object with rainfall
@@ -606,6 +688,7 @@ export default {
   getBatangasWeather,
   getHourlyForecast,
   getDetailedHourlyForecast,
+  getClimateForecast,
   getWeatherAlerts,
   getWeatherStatistics,
   getWeatherIconName,
