@@ -197,6 +197,13 @@ export function AnalyticsPanel() {
         </Card>
       )}
 
+      {/* Typhoon Tracker Section */}
+      {!loading && !error && (
+        <div className="max-w-7xl mx-auto mb-8">
+          <TyphoonTracker />
+        </div>
+      )}
+
       {/* City-by-City Weather Details */}
       {!loading && !error && (
         <div className="max-w-7xl mx-auto mb-6">
@@ -331,13 +338,6 @@ export function AnalyticsPanel() {
               </CardContent>
             </Card>
           )}
-        </div>
-      )}
-
-      {/* Typhoon Tracker Section */}
-      {!loading && !error && (
-        <div className="max-w-7xl mx-auto mb-8">
-          <TyphoonTracker />
         </div>
       )}
 
