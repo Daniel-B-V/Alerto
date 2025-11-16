@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { BarChart3, RefreshCw, Cloud, AlertTriangle, CloudRain, Wind, Droplets, PieChart as PieChartIcon, TrendingUp, Calendar } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
-import { TyphoonTracker } from "../typhoon/TyphoonTracker";
+import TyphoonTracker from "../typhoon/TyphoonTracker";
 import {
   PieChart,
   Pie,
@@ -197,9 +197,19 @@ export function AnalyticsPanel() {
         </Card>
       )}
 
+      {/* Typhoon Tracker Section */}
+      {!loading && !error && (
+        <div className="max-w-7xl mx-auto">
+          <TyphoonTracker />
+        </div>
+      )}
+
+      {/* Spacer */}
+      <div style={{ height: '48px', width: '100%' }}></div>
+
       {/* City-by-City Weather Details */}
       {!loading && !error && (
-        <div className="max-w-7xl mx-auto mb-6">
+        <div className="max-w-7xl mx-auto mb-16">
           {citiesWeather && citiesWeather.length > 0 ? (
             <Card className="bg-white border-gray-200 shadow-sm p-6">
               <div className="mb-6">
@@ -334,16 +344,12 @@ export function AnalyticsPanel() {
         </div>
       )}
 
-      {/* Typhoon Tracker Section */}
-      {!loading && !error && (
-        <div className="max-w-7xl mx-auto mb-8">
-          <TyphoonTracker />
-        </div>
-      )}
+      {/* Spacer */}
+      <div style={{ height: '48px', width: '100%' }}></div>
 
       {/* Additional Statistics Cards */}
       {!loading && !error && communityReports.length > 0 && (
-        <div className="max-w-7xl mx-auto mb-6">
+        <div className="max-w-7xl mx-auto mb-16">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Report Analytics</h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Severity Distribution Pie Chart */}
@@ -490,9 +496,12 @@ export function AnalyticsPanel() {
         </div>
       )}
 
+      {/* Spacer */}
+      <div style={{ height: '48px', width: '100%' }}></div>
+
       {/* Charts Section */}
       {!loading && !error && (
-        <div className="max-w-7xl mx-auto mb-6">
+        <div className="max-w-7xl mx-auto mb-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Weekly Trends Line Chart */}
             {weeklyTrends.length > 0 && (
@@ -564,9 +573,12 @@ export function AnalyticsPanel() {
         </div>
       )}
 
+      {/* Spacer */}
+      <div style={{ height: '48px', width: '100%' }}></div>
+
       {/* Reports by City */}
       {!loading && !error && cityDistribution && cityDistribution.length > 0 && (
-        <div className="max-w-7xl mx-auto mb-8">
+        <div className="max-w-7xl mx-auto mb-16">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Reports by Location</h2>
           <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
             <CardHeader>
@@ -642,6 +654,9 @@ export function AnalyticsPanel() {
           </Card>
         </div>
       )}
+
+      {/* Spacer */}
+      <div style={{ height: '48px', width: '100%' }}></div>
 
       {/* Hourly Weather Forecast */}
       {!loading && !error && hourlyForecast.length > 0 && (
