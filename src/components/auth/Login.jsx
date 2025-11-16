@@ -164,17 +164,17 @@ const Login = () => {
 
             {/* Privacy Consent Checkbox */}
             <div className="space-y-3">
-              <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <input
                   type="checkbox"
                   id="privacyConsent"
                   checked={privacyConsent}
                   onChange={(e) => setPrivacyConsent(e.target.checked)}
                   disabled={loading}
-                  className="mt-0.5 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer"
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500 focus:ring-2 cursor-pointer flex-shrink-0"
                 />
-                <label htmlFor="privacyConsent" className="flex-1 text-sm text-gray-700 leading-relaxed cursor-pointer">
-                  <Shield className="w-4 h-4 inline mr-1 text-blue-600" />
+                <Shield className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                <label htmlFor="privacyConsent" className="flex-1 text-sm text-gray-700 cursor-pointer">
                   I agree to the{' '}
                   <button
                     type="button"
@@ -251,31 +251,28 @@ const Login = () => {
           onClick={() => setShowPrivacyPolicy(false)}
         >
           <div
-            className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden"
+            className="bg-white rounded-lg shadow-2xl max-w-lg w-full max-h-[70vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header - Sticky */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-200 bg-white sticky top-0 z-10">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-blue-600" />
-                <h2 className="text-xl font-bold text-gray-900">Privacy Policy & Terms</h2>
-              </div>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-white">
+              <h2 className="text-lg font-bold text-gray-900">Privacy Policy & Terms</h2>
               <button
                 onClick={() => setShowPrivacyPolicy(false)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors group"
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
                 title="Close"
               >
-                <X className="w-5 h-5 text-gray-500 group-hover:text-gray-700" />
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
 
             {/* Modal Content - Scrollable */}
-            <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(85vh - 140px)' }}>
-              <div className="space-y-6 text-sm text-gray-700">
+            <div className="p-4 overflow-y-auto" style={{ maxHeight: 'calc(70vh - 110px)' }}>
+              <div className="space-y-4 text-sm text-gray-700">
                 {/* Privacy Policy Section */}
                 <section>
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">Privacy Policy</h3>
-                  <div className="space-y-3">
+                  <h3 className="text-base font-bold text-gray-900 mb-2">Privacy Policy</h3>
+                  <div className="space-y-2">
                     <p>
                       <strong>Last Updated:</strong> January 2025
                     </p>
@@ -283,8 +280,8 @@ const Login = () => {
                       Alerto is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your personal information when you use our disaster reporting and weather monitoring platform.
                     </p>
 
-                    <h4 className="font-semibold text-gray-900 mt-4">Information We Collect</h4>
-                    <ul className="list-disc list-inside space-y-2 ml-4">
+                    <h4 className="font-semibold text-gray-900 mt-3">Information We Collect</h4>
+                    <ul className="list-disc list-inside space-y-1 ml-4 text-xs">
                       <li>Account information (email, name, profile photo)</li>
                       <li>Location data for disaster reporting and weather alerts</li>
                       <li>Disaster reports and uploaded media (photos, videos)</li>
@@ -292,8 +289,8 @@ const Login = () => {
                       <li>Communication preferences and notification settings</li>
                     </ul>
 
-                    <h4 className="font-semibold text-gray-900 mt-4">How We Use Your Information</h4>
-                    <ul className="list-disc list-inside space-y-2 ml-4">
+                    <h4 className="font-semibold text-gray-900 mt-3">How We Use Your Information</h4>
+                    <ul className="list-disc list-inside space-y-1 ml-4 text-xs">
                       <li>Provide real-time disaster alerts and weather monitoring</li>
                       <li>Enable community reporting and emergency response coordination</li>
                       <li>Improve our services and develop new features</li>
@@ -301,28 +298,28 @@ const Login = () => {
                       <li>Comply with legal obligations and protect user safety</li>
                     </ul>
 
-                    <h4 className="font-semibold text-gray-900 mt-4">Data Security</h4>
-                    <p>
+                    <h4 className="font-semibold text-gray-900 mt-3">Data Security</h4>
+                    <p className="text-xs">
                       We implement industry-standard security measures to protect your data, including encryption, secure authentication, and regular security audits. Your disaster reports may be shared with authorized emergency responders.
                     </p>
 
-                    <h4 className="font-semibold text-gray-900 mt-4">Your Rights</h4>
-                    <p>
+                    <h4 className="font-semibold text-gray-900 mt-3">Your Rights</h4>
+                    <p className="text-xs">
                       You have the right to access, modify, or delete your personal data at any time. You can also control your notification preferences and location sharing settings in your account.
                     </p>
                   </div>
                 </section>
 
                 {/* Terms of Service Section */}
-                <section className="pt-6 border-t border-gray-200">
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">Terms of Service</h3>
-                  <div className="space-y-3">
+                <section className="pt-4 border-t border-gray-200">
+                  <h3 className="text-base font-bold text-gray-900 mb-2">Terms of Service</h3>
+                  <div className="space-y-2">
                     <p>
                       By using Alerto, you agree to the following terms and conditions:
                     </p>
 
-                    <h4 className="font-semibold text-gray-900 mt-4">Acceptable Use</h4>
-                    <ul className="list-disc list-inside space-y-2 ml-4">
+                    <h4 className="font-semibold text-gray-900 mt-3">Acceptable Use</h4>
+                    <ul className="list-disc list-inside space-y-1 ml-4 text-xs">
                       <li>You must provide accurate and truthful disaster reports</li>
                       <li>Do not submit false, misleading, or malicious reports</li>
                       <li>Respect the privacy and safety of other community members</li>
@@ -330,23 +327,23 @@ const Login = () => {
                       <li>Do not spam, harass, or abuse other users</li>
                     </ul>
 
-                    <h4 className="font-semibold text-gray-900 mt-4">Content Responsibility</h4>
-                    <p>
+                    <h4 className="font-semibold text-gray-900 mt-3">Content Responsibility</h4>
+                    <p className="text-xs">
                       Users are responsible for the content they submit. Alerto reserves the right to remove reports that violate our community guidelines or contain inappropriate content.
                     </p>
 
-                    <h4 className="font-semibold text-gray-900 mt-4">Disclaimer</h4>
-                    <p>
+                    <h4 className="font-semibold text-gray-900 mt-3">Disclaimer</h4>
+                    <p className="text-xs">
                       Alerto provides information for general awareness and community coordination. For official emergency instructions, always follow guidance from local authorities (PAGASA, NDRRMC, local government units). We are not liable for decisions made based on information from our platform.
                     </p>
 
-                    <h4 className="font-semibold text-gray-900 mt-4">Service Availability</h4>
-                    <p>
+                    <h4 className="font-semibold text-gray-900 mt-3">Service Availability</h4>
+                    <p className="text-xs">
                       While we strive for 24/7 availability, we cannot guarantee uninterrupted service. The platform may be temporarily unavailable for maintenance or due to technical issues.
                     </p>
 
-                    <h4 className="font-semibold text-gray-900 mt-4">Contact Us</h4>
-                    <p>
+                    <h4 className="font-semibold text-gray-900 mt-3">Contact Us</h4>
+                    <p className="text-xs">
                       For questions about this Privacy Policy or Terms of Service, please contact us at:{' '}
                       <a href="mailto:support@alerto.com" className="text-blue-600 hover:underline font-semibold">
                         support@alerto.com
@@ -357,11 +354,11 @@ const Login = () => {
               </div>
             </div>
 
-            {/* Modal Footer - Sticky */}
-            <div className="p-4 border-t border-gray-200 bg-gray-50 sticky bottom-0">
+            {/* Modal Footer */}
+            <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
               <button
                 onClick={() => setShowPrivacyPolicy(false)}
-                className="w-full px-5 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors text-sm"
               >
                 I Understand
               </button>
