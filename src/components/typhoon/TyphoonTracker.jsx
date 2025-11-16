@@ -192,7 +192,7 @@ export function TyphoonTracker() {
 
       {/* Main Content - Always show map (Unified Single Card) */}
       {!loading && (
-        <Card className="bg-white border-gray-200 overflow-hidden">
+        <Card className="bg-white border-gray-200 overflow-hidden mb-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px]">
             {/* Left Side - Map */}
             <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px]">

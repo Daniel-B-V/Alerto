@@ -206,9 +206,9 @@ export function AnalyticsPanel() {
 
       {/* City-by-City Weather Details */}
       {!loading && !error && (
-        <div className="max-w-7xl mx-auto mb-12">
+        <div className="max-w-7xl mx-auto">
           {citiesWeather && citiesWeather.length > 0 ? (
-            <Card className="bg-white border-gray-200 shadow-sm p-6">
+            <Card className="bg-white border-gray-200 shadow-sm p-6 mb-12">
               <div className="mb-6">
                 <h2 className="text-2xl font-bold text-gray-900">City-by-City Weather Conditions</h2>
                 <p className="text-gray-600 mt-1">All cities in Batangas Provincial Area</p>
@@ -343,7 +343,7 @@ export function AnalyticsPanel() {
 
       {/* Additional Statistics Cards */}
       {!loading && !error && communityReports.length > 0 && (
-        <div className="max-w-7xl mx-auto mb-6">
+        <div className="max-w-7xl mx-auto mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Report Analytics</h2>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Severity Distribution Pie Chart */}
@@ -492,7 +492,7 @@ export function AnalyticsPanel() {
 
       {/* Charts Section */}
       {!loading && !error && (
-        <div className="max-w-7xl mx-auto mb-6">
+        <div className="max-w-7xl mx-auto mb-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Weekly Trends Line Chart */}
             {weeklyTrends.length > 0 && (
@@ -566,7 +566,7 @@ export function AnalyticsPanel() {
 
       {/* Reports by City */}
       {!loading && !error && cityDistribution && cityDistribution.length > 0 && (
-        <div className="max-w-7xl mx-auto mb-8">
+        <div className="max-w-7xl mx-auto mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">Reports by Location</h2>
           <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
             <CardHeader>
