@@ -9,13 +9,14 @@ import { Map, Globe2 } from 'lucide-react';
 export function ViewModeToggle({ viewMode, onViewModeChange }) {
   const [isAnimating, setIsAnimating] = useState(false);
 
-  // Load saved preference on mount
+  // Load saved preference on mount - but don't trigger change if already correct
   useEffect(() => {
     const savedMode = localStorage.getItem('typhoon-view-mode');
-    if (savedMode && savedMode !== viewMode) {
+    if (savedMode && savedMode !== viewMode && onViewModeChange) {
       onViewModeChange(savedMode);
     }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   const handleToggle = () => {
     setIsAnimating(true);
@@ -32,31 +33,33 @@ export function ViewModeToggle({ viewMode, onViewModeChange }) {
   };
 
   return (
-    <div className="inline-flex items-center bg-white rounded-lg shadow-lg p-1 gap-1">
+    <div className="inline-flex items-center bg-white rounded-lg shadow-lg p-1 gap-1 border-2 border-gray-200">
       <button
         onClick={() => viewMode === '3d' && handleToggle()}
-        className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-300 ${
+        className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-300 ${
           viewMode === '2d'
             ? 'bg-blue-500 text-white shadow-md'
             : 'text-gray-600 hover:bg-gray-100'
         } ${isAnimating && viewMode === '2d' ? 'scale-105' : ''}`}
         disabled={isAnimating}
+        title="2D Map View"
       >
-        <Map className="w-5 h-5" />
-        <span className="font-medium text-sm hidden sm:inline">2D Map</span>
+        <Map className="w-4 h-4" />
+        <span className="font-medium text-sm">2D</span>
       </button>
 
       <button
         onClick={() => viewMode === '2d' && handleToggle()}
-        className={`flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-300 ${
+        title="3D Globe View"
+        className={`flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-300 ${
           viewMode === '3d'
             ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md'
             : 'text-gray-600 hover:bg-gray-100'
         } ${isAnimating && viewMode === '3d' ? 'scale-105' : ''}`}
         disabled={isAnimating}
       >
-        <Globe2 className={`w-5 h-5 ${viewMode === '3d' ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
-        <span className="font-medium text-sm hidden sm:inline">3D Globe</span>
+        <Globe2 className={`w-4 h-4 ${viewMode === '3d' ? 'animate-spin' : ''}`} style={{ animationDuration: '3s' }} />
+        <span className="font-medium text-sm">3D</span>
       </button>
     </div>
   );

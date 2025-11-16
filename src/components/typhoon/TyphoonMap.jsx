@@ -251,12 +251,12 @@ export function TyphoonMap({
         {/* Animated Wind Flow - Leaflet Velocity */}
         <VelocityLayer active={activeWeatherLayers.wind} />
 
-        {/* OpenWeatherMap Wind Layer - Fallback/Additional visualization */}
+        {/* Wind Visualization - Using Windy.com tiles */}
         {activeWeatherLayers.wind && (
           <TileLayer
-            url={`https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${WEATHER_API_KEY}`}
-            attribution='&copy; <a href="https://openweathermap.org">OpenWeatherMap</a>'
-            opacity={0.6}
+            url="https://tiles.windy.com/tiles/v10.0/gfs-surface-wind/{z}/{x}/{y}.png"
+            attribution='&copy; <a href="https://www.windy.com">Windy.com</a>'
+            opacity={0.5}
             zIndex={500}
           />
         )}
