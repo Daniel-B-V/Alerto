@@ -179,7 +179,7 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={() => setShowPrivacyPolicy(true)}
-                    className="text-blue-600 font-semibold hover:underline"
+                    className="text-blue-600 hover:underline"
                   >
                     Privacy Policy
                   </button>
@@ -187,7 +187,7 @@ const Login = () => {
                   <button
                     type="button"
                     onClick={() => setShowPrivacyPolicy(true)}
-                    className="text-blue-600 font-semibold hover:underline"
+                    className="text-blue-600 hover:underline"
                   >
                     Terms of Service
                   </button>
@@ -251,7 +251,7 @@ const Login = () => {
           onClick={() => setShowPrivacyPolicy(false)}
         >
           <div
-            className="bg-white rounded-lg shadow-2xl max-w-lg w-full max-h-[70vh] overflow-hidden"
+            className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[70vh] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header - Sticky */}
