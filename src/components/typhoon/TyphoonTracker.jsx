@@ -7,6 +7,7 @@ import TyphoonMap from './TyphoonMap';
 import StormDetailsPanel from './StormDetailsPanel';
 import TyphoonTimeline from './TyphoonTimeline';
 import { ViewModeToggle } from './ViewModeToggle';
+import { ErrorBoundary } from '../shared/ErrorBoundary';
 
 // Lazy load 3D globe for better performance
 const Globe3DView = lazy(() => import('./Globe3DView').then(module => ({ default: module.Globe3DView })));
@@ -221,23 +222,28 @@ export function TyphoonTracker() {
                     selectedDate={selectedTimelineDate}
                   />
                 ) : (
-                  <Suspense
-                    fallback={
-                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900 to-purple-900">
-                        <div className="text-center">
-                          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
-                          <p className="text-white text-lg">Loading 3D Globe...</p>
-                          <p className="text-white/70 text-sm mt-2">Initializing WebGL renderer</p>
-                        </div>
-                      </div>
-                    }
+                  <ErrorBoundary
+                    onReset={() => setViewMode('2d')}
+                    errorMessage="The 3D globe encountered an error. Switching back to 2D map."
                   >
-                    <Globe3DView
-                      typhoons={typhoons}
-                      onTyphoonClick={handleSelectTyphoon}
-                      selectedTyphoon={selectedTyphoon}
-                    />
-                  </Suspense>
+                    <Suspense
+                      fallback={
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900 to-purple-900">
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+                            <p className="text-white text-lg">Loading 3D Globe...</p>
+                            <p className="text-white/70 text-sm mt-2">Initializing WebGL renderer</p>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <Globe3DView
+                        typhoons={typhoons}
+                        onTyphoonClick={handleSelectTyphoon}
+                        selectedTyphoon={selectedTyphoon}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
                 )}
               </div>
             </div>

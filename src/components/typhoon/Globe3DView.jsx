@@ -142,34 +142,53 @@ export function Globe3DView({ typhoons = [], onTyphoonClick, selectedTyphoon }) 
   ], []);
 
   // Control functions
-  const handleZoomIn = () => {
-    if (!globeEl.current) return;
-    const pov = globeEl.current.pointOfView();
-    globeEl.current.pointOfView({ altitude: Math.max(pov.altitude - 0.5, 0.5) }, 500);
+  const handleZoomIn = (e) => {
+    e?.stopPropagation();
+    try {
+      if (!globeEl.current) return;
+      const pov = globeEl.current.pointOfView();
+      globeEl.current.pointOfView({ altitude: Math.max(pov.altitude - 0.5, 0.5) }, 500);
+    } catch (error) {
+      console.error('Error zooming in:', error);
+    }
   };
 
-  const handleZoomOut = () => {
-    if (!globeEl.current) return;
-    const pov = globeEl.current.pointOfView();
-    globeEl.current.pointOfView({ altitude: Math.min(pov.altitude + 0.5, 4) }, 500);
+  const handleZoomOut = (e) => {
+    e?.stopPropagation();
+    try {
+      if (!globeEl.current) return;
+      const pov = globeEl.current.pointOfView();
+      globeEl.current.pointOfView({ altitude: Math.min(pov.altitude + 0.5, 4) }, 500);
+    } catch (error) {
+      console.error('Error zooming out:', error);
+    }
   };
 
-  const handleReset = () => {
-    if (!globeEl.current) return;
-    globeEl.current.pointOfView({ lat: 12.8797, lng: 121.774, altitude: 2.5 }, 1000);
+  const handleReset = (e) => {
+    e?.stopPropagation();
+    try {
+      if (!globeEl.current) return;
+      globeEl.current.pointOfView({ lat: 12.8797, lng: 121.774, altitude: 2.5 }, 1000);
+    } catch (error) {
+      console.error('Error resetting view:', error);
+    }
   };
 
   const handleFocusTyphoon = (typhoon) => {
-    if (!globeEl.current || !typhoon.current) return;
+    try {
+      if (!globeEl.current || !typhoon || !typhoon.current) return;
 
-    globeEl.current.pointOfView({
-      lat: typhoon.current.lat,
-      lng: typhoon.current.lon,
-      altitude: 1.5
-    }, 1000);
+      globeEl.current.pointOfView({
+        lat: typhoon.current.lat,
+        lng: typhoon.current.lon,
+        altitude: 1.5
+      }, 1000);
 
-    if (onTyphoonClick) {
-      onTyphoonClick(typhoon);
+      if (onTyphoonClick) {
+        onTyphoonClick(typhoon);
+      }
+    } catch (error) {
+      console.error('Error focusing on typhoon:', error);
     }
   };
 
@@ -212,7 +231,11 @@ export function Globe3DView({ typhoons = [], onTyphoonClick, selectedTyphoon }) 
   }
 
   return (
-    <div className="relative w-full h-full">
+    <div
+      className="relative w-full h-full"
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
       <Globe
         ref={globeEl}
         globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
@@ -324,7 +347,11 @@ export function Globe3DView({ typhoons = [], onTyphoonClick, selectedTyphoon }) 
             {typhoons.map(typhoon => (
               <button
                 key={typhoon.id}
-                onClick={() => handleFocusTyphoon(typhoon)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFocusTyphoon(typhoon);
+                }}
+                onMouseDown={(e) => e.stopPropagation()}
                 className={`w-full text-left p-2 rounded-lg transition-all ${
                   selectedTyphoon?.id === typhoon.id
                     ? 'bg-blue-500 text-white'
