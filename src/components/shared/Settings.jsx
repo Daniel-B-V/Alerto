@@ -151,10 +151,10 @@ const Settings = () => {
           </Alert>
         )}
 
-        <div className="space-y-4">
+        <div className="space-y-6">
           {/* Governor Option */}
-          <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex items-center mb-2">
+          <div className="border-2 rounded-lg p-5 hover:border-purple-300 hover:bg-purple-50/30 transition-all">
+            <div className="flex items-center mb-3">
               <Crown className="w-5 h-5 text-purple-600 mr-2" />
               <h3 className="font-bold text-lg">Governor</h3>
               {(currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin') && (
@@ -173,25 +173,30 @@ const Settings = () => {
               <li>✓ Approve/reject mayor requests</li>
               <li>✓ Access analytics dashboard</li>
             </ul>
-            <Button
-              onClick={() => handleSwitchRole('governor')}
-              disabled={switching || currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin'}
-              className="w-full bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white"
-            >
-              {switching ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Switching...
-                </>
-              ) : (
-                'Switch to Governor'
-              )}
-            </Button>
+            <div className="pt-3 border-t mt-4">
+              <button
+                onClick={() => handleSwitchRole('governor')}
+                disabled={switching || currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin'}
+                className="w-full !bg-purple-600 hover:!bg-purple-700 disabled:!bg-gray-400 disabled:cursor-not-allowed !text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                style={{ backgroundColor: switching || currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin' ? '#9ca3af' : '#9333ea', color: 'white' }}
+              >
+                {switching ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Switching...
+                  </>
+                ) : (currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin') ? (
+                  'Current Role'
+                ) : (
+                  'Switch to Governor'
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Mayor Option */}
-          <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex items-center mb-2">
+          <div className="border-2 rounded-lg p-5 hover:border-blue-300 hover:bg-blue-50/30 transition-all">
+            <div className="flex items-center mb-3">
               <Building2 className="w-5 h-5 text-blue-600 mr-2" />
               <h3 className="font-bold text-lg">Mayor</h3>
               {currentRole === 'mayor' && (
@@ -220,7 +225,7 @@ const Settings = () => {
               <select
                 value={selectedCity}
                 onChange={(e) => setSelectedCity(e.target.value)}
-                className="w-full border rounded px-3 py-2 text-sm"
+                className="w-full border-2 rounded-lg px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
                 disabled={switching}
               >
                 {BATANGAS_LOCATIONS.map(city => (
@@ -229,25 +234,30 @@ const Settings = () => {
               </select>
             </div>
 
-            <Button
-              onClick={() => handleSwitchRole('mayor', selectedCity)}
-              disabled={switching || (currentRole === 'mayor' && user?.assignedCity === selectedCity)}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white"
-            >
-              {switching ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Switching...
-                </>
-              ) : (
-                'Switch to Mayor'
-              )}
-            </Button>
+            <div className="pt-3 border-t mt-4">
+              <button
+                onClick={() => handleSwitchRole('mayor', selectedCity)}
+                disabled={switching || (currentRole === 'mayor' && user?.assignedCity === selectedCity)}
+                className="w-full !bg-blue-600 hover:!bg-blue-700 disabled:!bg-gray-400 disabled:cursor-not-allowed !text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                style={{ backgroundColor: switching || (currentRole === 'mayor' && user?.assignedCity === selectedCity) ? '#9ca3af' : '#2563eb', color: 'white' }}
+              >
+                {switching ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Switching...
+                  </>
+                ) : (currentRole === 'mayor' && user?.assignedCity === selectedCity) ? (
+                  'Current Role'
+                ) : (
+                  'Switch to Mayor'
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Regular User Option */}
-          <div className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex items-center mb-2">
+          <div className="border-2 rounded-lg p-5 hover:border-gray-300 hover:bg-gray-50/50 transition-all">
+            <div className="flex items-center mb-3">
               <User className="w-5 h-5 text-gray-600 mr-2" />
               <h3 className="font-bold text-lg">Regular User</h3>
               {currentRole === 'user' && (
@@ -265,21 +275,25 @@ const Settings = () => {
               <li>✓ Submit community reports</li>
               <li>✓ View weather information</li>
             </ul>
-            <Button
-              onClick={() => handleSwitchRole('user')}
-              disabled={switching || currentRole === 'user'}
-              variant="outline"
-              className="w-full disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {switching ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Switching...
-                </>
-              ) : (
-                'Switch to User'
-              )}
-            </Button>
+            <div className="pt-3 border-t mt-4">
+              <button
+                onClick={() => handleSwitchRole('user')}
+                disabled={switching || currentRole === 'user'}
+                className="w-full !bg-gray-600 hover:!bg-gray-700 disabled:!bg-gray-400 disabled:cursor-not-allowed !text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                style={{ backgroundColor: switching || currentRole === 'user' ? '#9ca3af' : '#4b5563', color: 'white' }}
+              >
+                {switching ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Switching...
+                  </>
+                ) : currentRole === 'user' ? (
+                  'Current Role'
+                ) : (
+                  'Switch to User'
+                )}
+              </button>
+            </div>
           </div>
         </div>
       </Card>
