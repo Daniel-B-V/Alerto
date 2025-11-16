@@ -177,7 +177,7 @@ export function CommunityViewUser() {
       {/* Tabs and Content Container */}
       <Card>
         {/* Filter Tabs */}
-        <CardContent className="p-4">
+        <CardContent className="px-4 pt-4 pb-2">
           <div className="flex gap-2">
             <button
               onClick={() => setActiveTab("community")}
