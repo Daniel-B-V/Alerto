@@ -251,6 +251,16 @@ export function TyphoonMap({
         {/* Animated Wind Flow - Leaflet Velocity */}
         <VelocityLayer active={activeWeatherLayers.wind} />
 
+        {/* OpenWeatherMap Wind Layer - Fallback/Additional visualization */}
+        {activeWeatherLayers.wind && (
+          <TileLayer
+            url={`https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${WEATHER_API_KEY}`}
+            attribution='&copy; <a href="https://openweathermap.org">OpenWeatherMap</a>'
+            opacity={0.6}
+            zIndex={500}
+          />
+        )}
+
         {/* OpenWeatherMap Layers - Clouds, Temp, Pressure */}
         {activeWeatherLayers.clouds && (
           <TileLayer

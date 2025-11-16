@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const typhoonService = require('../services/typhoonService');
 const { generateTestTyphoons } = require('../services/typhoonTestData');
+const multiModelService = require('../services/multiModelForecastService');
+const stormImpactService = require('../services/stormImpactService');
 
 /**
  * GET /api/typhoon/active
@@ -80,6 +82,142 @@ router.get('/test-data', (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to generate test data',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/typhoon/ensemble/:id
+ * Get multi-model ensemble forecast for a specific typhoon
+ */
+router.get('/ensemble/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`📡 API Request: GET /api/typhoon/ensemble/${id}`);
+
+    const ensembleData = await multiModelService.getEnsembleForecast(id);
+
+    if (ensembleData.error) {
+      return res.status(404).json({
+        success: false,
+        error: ensembleData.error
+      });
+    }
+
+    res.json({
+      success: true,
+      data: ensembleData,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(`❌ Error in /api/typhoon/ensemble/${req.params.id}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch ensemble forecast',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/typhoon/spaghetti/:id
+ * Get spaghetti plot data (all forecast models) for a specific typhoon
+ */
+router.get('/spaghetti/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`📡 API Request: GET /api/typhoon/spaghetti/${id}`);
+
+    const spaghettiData = await multiModelService.getSpaghettiPlot(id);
+
+    if (spaghettiData.error) {
+      return res.status(404).json({
+        success: false,
+        error: spaghettiData.error
+      });
+    }
+
+    res.json({
+      success: true,
+      data: spaghettiData,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(`❌ Error in /api/typhoon/spaghetti/${req.params.id}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch spaghetti plot data',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/typhoon/impact/:id
+ * Get storm impact prediction for a specific typhoon
+ */
+router.get('/impact/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`📡 API Request: GET /api/typhoon/impact/${id}`);
+
+    // First get the typhoon data
+    const allTyphoons = await typhoonService.getActiveTyphoons();
+    const typhoon = allTyphoons.find(t => t.id === id);
+
+    if (!typhoon) {
+      return res.status(404).json({
+        success: false,
+        error: 'Typhoon not found'
+      });
+    }
+
+    // Calculate impact
+    const impactData = await stormImpactService.getStormImpact(typhoon);
+
+    if (impactData.error) {
+      return res.status(500).json({
+        success: false,
+        error: impactData.error
+      });
+    }
+
+    res.json({
+      success: true,
+      data: impactData,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error(`❌ Error in /api/typhoon/impact/${req.params.id}:`, error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to calculate storm impact',
+      message: error.message
+    });
+  }
+});
+
+/**
+ * GET /api/typhoon/models
+ * Get information about available forecast models
+ */
+router.get('/models', (req, res) => {
+  try {
+    console.log('📡 API Request: GET /api/typhoon/models');
+
+    const modelInfo = multiModelService.getModelInfo();
+
+    res.json({
+      success: true,
+      data: modelInfo,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('❌ Error in /api/typhoon/models:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch model information',
       message: error.message
     });
   }

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { RefreshCw, Wind, AlertCircle, TestTube } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -6,6 +6,10 @@ import { getPhilippinesTyphoons, getTestTyphoons } from '../../services/typhoonS
 import TyphoonMap from './TyphoonMap';
 import StormDetailsPanel from './StormDetailsPanel';
 import TyphoonTimeline from './TyphoonTimeline';
+import { ViewModeToggle } from './ViewModeToggle';
+
+// Lazy load 3D globe for better performance
+const Globe3DView = lazy(() => import('./Globe3DView').then(module => ({ default: module.Globe3DView })));
 
 /**
  * TyphoonTracker Component
@@ -21,6 +25,10 @@ export function TyphoonTracker() {
   const [useTestData, setUseTestData] = useState(false);
   const [isTestDataMode, setIsTestDataMode] = useState(false);
   const [selectedTimelineDate, setSelectedTimelineDate] = useState(null);
+  const [viewMode, setViewMode] = useState(() => {
+    // Load saved preference from localStorage
+    return localStorage.getItem('typhoon-view-mode') || '2d';
+  });
 
   // Auto-refresh interval (10 minutes)
   const REFRESH_INTERVAL = 10 * 60 * 1000;
@@ -130,6 +138,14 @@ export function TyphoonTracker() {
     setSelectedTimelineDate(date);
   };
 
+  /**
+   * Handle view mode change (2D/3D)
+   */
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('typhoon-view-mode', mode);
+  };
+
   return (
     <div className="space-y-6">
       {/* Loading State */}
@@ -165,12 +181,13 @@ export function TyphoonTracker() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               {lastUpdate && (
                 <div className="text-sm text-gray-600">
                   Last updated: {lastUpdate.toLocaleTimeString()}
                 </div>
               )}
+              <ViewModeToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
               <button
                 onClick={handleToggleTestData}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -194,14 +211,34 @@ export function TyphoonTracker() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px] gap-4">
-            {/* Left Side - Map with Margins */}
+            {/* Left Side - Map or Globe with Margins */}
             <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px] bg-white pl-6 pt-4 pb-4 pr-2">
               <div className="h-full min-h-[500px] lg:min-h-[700px] rounded-lg overflow-hidden border border-gray-200">
-                <TyphoonMap
-                  typhoons={typhoons}
-                  onTyphoonClick={handleSelectTyphoon}
-                  selectedDate={selectedTimelineDate}
-                />
+                {viewMode === '2d' ? (
+                  <TyphoonMap
+                    typhoons={typhoons}
+                    onTyphoonClick={handleSelectTyphoon}
+                    selectedDate={selectedTimelineDate}
+                  />
+                ) : (
+                  <Suspense
+                    fallback={
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900 to-purple-900">
+                        <div className="text-center">
+                          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+                          <p className="text-white text-lg">Loading 3D Globe...</p>
+                          <p className="text-white/70 text-sm mt-2">Initializing WebGL renderer</p>
+                        </div>
+                      </div>
+                    }
+                  >
+                    <Globe3DView
+                      typhoons={typhoons}
+                      onTyphoonClick={handleSelectTyphoon}
+                      selectedTyphoon={selectedTyphoon}
+                    />
+                  </Suspense>
+                )}
               </div>
             </div>
 
