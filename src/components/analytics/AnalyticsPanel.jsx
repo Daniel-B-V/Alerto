@@ -199,14 +199,14 @@ export function AnalyticsPanel() {
 
       {/* Typhoon Tracker Section */}
       {!loading && !error && (
-        <div className="max-w-7xl mx-auto mb-8">
+        <div className="max-w-7xl mx-auto mb-12">
           <TyphoonTracker />
         </div>
       )}
 
       {/* City-by-City Weather Details */}
       {!loading && !error && (
-        <div className="max-w-7xl mx-auto mb-6">
+        <div className="max-w-7xl mx-auto mb-12">
           {citiesWeather && citiesWeather.length > 0 ? (
             <Card className="bg-white border-gray-200 shadow-sm p-6">
               <div className="mb-6">
