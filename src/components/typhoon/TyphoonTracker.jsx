@@ -146,7 +146,6 @@ export function TyphoonTracker() {
 
       {/* Main Content - Always show map (Unified Single Card) */}
       {!loading && (
-<<<<<<< HEAD
         <Card className="bg-white border-gray-200 overflow-hidden">
           {/* Header - Inside Container */}
           <div className="flex items-center justify-between flex-wrap gap-4 p-6">
@@ -198,13 +197,6 @@ export function TyphoonTracker() {
             {/* Left Side - Map with Margins */}
             <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px] bg-white pl-4 pt-4 pb-4 pr-2">
               <div className="h-full min-h-[500px] lg:min-h-[700px] rounded-lg overflow-hidden border border-gray-200">
-=======
-        <Card className="bg-white border-gray-200">
-          <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px]">
-            {/* Left Side - Map */}
-            <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px]">
-              <div className="h-full min-h-[500px] lg:min-h-[700px]">
->>>>>>> 02f92405b5de853351dcdbddcf83fe446165b5e4
                 <TyphoonMap
                   typhoons={typhoons}
                   onTyphoonClick={handleSelectTyphoon}
