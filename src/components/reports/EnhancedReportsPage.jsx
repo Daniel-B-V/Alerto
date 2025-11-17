@@ -832,65 +832,63 @@ export function EnhancedReportsPage() {
             </div>
 
             <div className="overflow-y-auto p-4 space-y-4 flex-1">
-              {/* Factual Verification Section */}
-              <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 shadow-lg">
-                <CardHeader className="p-4 pb-3 bg-gradient-to-r from-green-100 to-emerald-100 border-b border-green-200">
-                  <CardTitle className="text-lg flex items-center gap-2 text-green-900">
-                    <Shield className="w-5 h-5 text-green-600" />
+              {/* Factual Verification Section - Compact */}
+              <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-300">
+                <CardHeader className="p-3 pb-2 bg-gradient-to-r from-green-100 to-emerald-100 border-b border-green-200">
+                  <CardTitle className="text-sm flex items-center gap-2 text-green-900">
+                    <Shield className="w-4 h-4 text-green-600" />
                     Factual Verification
-                    <Badge className="ml-auto bg-green-600 text-white text-xs">
+                    <Badge className="ml-auto bg-green-600 text-white text-[10px] px-2 py-0.5">
                       Multi-Source
                     </Badge>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-4 space-y-3">
-                  {/* Verification Summary */}
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-white rounded-lg p-3 border border-green-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">🤖</span>
-                        <span className="text-xs font-semibold text-gray-700">AI Text Check</span>
+                <CardContent className="p-3 space-y-2">
+                  {/* Verification Summary - Compact */}
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-white rounded p-2 border border-green-200">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-lg">🤖</span>
+                        <span className="text-[10px] font-semibold text-gray-700">AI Text</span>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-green-700">
+                        <div className="text-base font-bold text-green-700">
                           {selectedLocation.reports.filter(r => r.status === 'verified').length}
                         </div>
-                        <div className="text-xs text-gray-600">Authenticated</div>
+                        <div className="text-[10px] text-gray-600">Authenticated</div>
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-lg p-3 border border-green-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">📷</span>
-                        <span className="text-xs font-semibold text-gray-700">Image Match</span>
+                    <div className="bg-white rounded p-2 border border-green-200">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-lg">📷</span>
+                        <span className="text-[10px] font-semibold text-gray-700">Image</span>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-green-700">
+                        <div className="text-base font-bold text-green-700">
                           {selectedLocation.reports.filter(r => r.images && r.images.length > 0).length}
                         </div>
-                        <div className="text-xs text-gray-600">With Evidence</div>
+                        <div className="text-[10px] text-gray-600">With Evidence</div>
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-lg p-3 border border-green-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">🌤️</span>
-                        <span className="text-xs font-semibold text-gray-700">Weather Data</span>
+                    <div className="bg-white rounded p-2 border border-green-200">
+                      <div className="flex items-center gap-1 mb-1">
+                        <span className="text-lg">🌤️</span>
+                        <span className="text-[10px] font-semibold text-gray-700">Weather</span>
                       </div>
                       <div className="text-center">
-                        <div className="text-lg font-bold text-gray-700">
+                        <div className="text-base font-bold text-gray-700">
                           {selectedLocation.aiConfidence}%
                         </div>
-                        <div className="text-xs text-gray-600">Match Score</div>
+                        <div className="text-[10px] text-gray-600">Match Score</div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded-lg p-3 border border-green-200">
-                    <p className="text-xs text-gray-700">
-                      <strong>Verification Methods:</strong> Reports are validated using AI spam detection (Hugging Face NLI),
-                      image authenticity analysis (Hugging Face CLIP), and weather data correlation (OpenWeather API).
-                      The match score represents consistency between reported conditions and actual weather data.
+                  <div className="bg-white rounded p-2 border border-green-200">
+                    <p className="text-[10px] text-gray-700">
+                      <strong>Methods:</strong> AI spam detection (Hugging Face NLI), image analysis (CLIP), weather correlation (OpenWeather API).
                     </p>
                   </div>
                 </CardContent>
@@ -932,42 +930,6 @@ export function EnhancedReportsPage() {
                         {aiAnalysis.compiledSummary}
                       </p>
                     </div>
-
-                    {/* Patterns Detected */}
-                    {aiAnalysis.patterns && aiAnalysis.patterns.length > 0 && (
-                      <div className="bg-white rounded-lg p-4 border border-purple-200">
-                        <h4 className="font-semibold text-base text-purple-900 mb-3 flex items-center gap-2">
-                          <Target className="w-5 h-5" />
-                          Patterns Detected
-                        </h4>
-                        <ul className="space-y-2">
-                          {aiAnalysis.patterns.map((pattern, idx) => (
-                            <li key={idx} className="text-sm text-gray-800 flex items-start gap-2">
-                              <span className="text-purple-600">•</span>
-                              <span>{pattern}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* Key Findings */}
-                    {aiAnalysis.keyFindings && aiAnalysis.keyFindings.length > 0 && (
-                      <div className="bg-white rounded-lg p-4 border border-purple-200">
-                        <h4 className="font-semibold text-base text-purple-900 mb-3 flex items-center gap-2">
-                          <AlertCircle className="w-5 h-5" />
-                          Key Findings
-                        </h4>
-                        <ul className="space-y-2">
-                          {aiAnalysis.keyFindings.map((finding, idx) => (
-                            <li key={idx} className="text-sm text-gray-800 flex items-start gap-2">
-                              <span className="text-purple-600">→</span>
-                              <span>{finding}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
 
                     {/* Recommendations */}
                     {aiAnalysis.recommendations && aiAnalysis.recommendations.length > 0 && (
