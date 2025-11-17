@@ -217,18 +217,55 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
               div::-webkit-scrollbar-button {
                 display: none;
               }
+              .tabular-nums {
+                font-variant-numeric: tabular-nums;
+              }
+              .group:hover .group-hover\:block {
+                display: block;
+                animation: fadeIn 0.2s ease-in;
+              }
+              @keyframes fadeIn {
+                from {
+                  opacity: 0;
+                  transform: translateY(-4px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
             `}</style>
             <table className="w-full">
               <thead className="bg-gray-50 border-b-2 border-gray-200" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">City</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">PAGASA Warning</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">
+                    <div className="flex items-center gap-1.5">
+                      <span>Rainfall Alert</span>
+                      <div className="group relative inline-block">
+                        <AlertCircle className="w-3.5 h-3.5 text-gray-400 cursor-help" />
+                        <div className="hidden group-hover:block absolute z-50 w-72 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-lg left-0 top-6 whitespace-normal">
+                          <p className="mb-2 font-semibold">Data Source & Calculation</p>
+                          <p className="mb-2">
+                            Warning levels are calculated from current weather data using official PAGASA thresholds:
+                          </p>
+                          <ul className="space-y-1 ml-3">
+                            <li>• Yellow: 7.5-15 mm/h rainfall</li>
+                            <li>• Orange: 15-30 mm/h rainfall</li>
+                            <li>• Red: 30+ mm/h rainfall</li>
+                          </ul>
+                          <p className="mt-2 text-gray-300 text-[10px]">
+                            Based on DepEd Order No. 022, s. 2024
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Rainfall</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Wind</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Reports</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">AI Action</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Suspension Levels</th>
-                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Action</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase w-32">Action</th>
                 </tr>
               </thead>
             <tbody className="divide-y-2 divide-gray-300">
@@ -268,24 +305,33 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                   </td>
 
                   {/* Rainfall */}
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex flex-col items-end">
-                      <span className="font-bold text-gray-900">{candidate.criteria.rainfall} mm/h</span>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="font-bold text-gray-900 tabular-nums">{candidate.criteria.rainfall} mm/h</span>
                       {candidate.criteria.rainfall >= 30 && (
                         <span className="text-xs text-red-600 font-bold">Heavy</span>
                       )}
                       {candidate.criteria.rainfall >= 15 && candidate.criteria.rainfall < 30 && (
                         <span className="text-xs text-orange-600 font-bold">Moderate</span>
                       )}
+                      {candidate.criteria.rainfall > 0 && candidate.criteria.rainfall < 15 && (
+                        <span className="text-xs text-gray-500">Light</span>
+                      )}
                     </div>
                   </td>
 
                   {/* Wind Speed */}
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex flex-col items-end">
-                      <span className="font-bold text-gray-900">{candidate.criteria.windSpeed} km/h</span>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col items-end gap-0.5">
+                      <span className="font-bold text-gray-900 tabular-nums">{candidate.criteria.windSpeed} km/h</span>
                       {candidate.criteria.windSpeed >= 55 && (
                         <span className="text-xs text-red-600 font-bold">Strong</span>
+                      )}
+                      {candidate.criteria.windSpeed >= 39 && candidate.criteria.windSpeed < 55 && (
+                        <span className="text-xs text-orange-600 font-bold">Moderate</span>
+                      )}
+                      {candidate.criteria.windSpeed > 0 && candidate.criteria.windSpeed < 39 && (
+                        <span className="text-xs text-gray-500">Light</span>
                       )}
                     </div>
                   </td>
@@ -305,26 +351,6 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                   {/* AI Action */}
                   <td className="px-4 py-3">
                     {getAIActionBadge(candidate.aiRecommendation)}
-                  </td>
-
-                  {/* Suspension Levels */}
-                  <td className="px-4 py-3">
-                    <div className="flex flex-col space-y-1.5">
-                      {SUSPENSION_LEVELS.slice(0, 5).map((level) => (
-                        <label
-                          key={level.id}
-                          className="flex items-center space-x-2 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded"
-                        >
-                          <Checkbox
-                            checked={selectedCities[candidate.city]?.levels?.includes(level.id) || false}
-                            onCheckedChange={() => handleLevelToggle(candidate.city, level.id)}
-                            disabled={candidate.hasActiveSuspension}
-                            className="border-gray-400"
-                          />
-                          <span className="text-xs font-medium">{level.icon} {level.shortLabel}</span>
-                        </label>
-                      ))}
-                    </div>
                   </td>
 
                   {/* Action Buttons */}
