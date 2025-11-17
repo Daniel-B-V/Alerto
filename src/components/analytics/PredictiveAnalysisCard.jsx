@@ -212,8 +212,8 @@ export function PredictiveAnalysisCard({ citiesWeather }) {
                 <Brain className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-3xl font-bold text-white drop-shadow-lg">AI Predictive Analysis</h2>
-                <p className="text-white text-sm mt-1 font-medium">Next 24 Hours Weather Intelligence</p>
+                <h2 className="text-3xl font-bold text-gray-900">AI Predictive Analysis</h2>
+                <p className="text-gray-700 text-sm mt-1 font-medium">Next 24 Hours Weather Intelligence</p>
               </div>
             </div>
             <Badge className="bg-yellow-400 text-gray-900 border-yellow-500 shadow-lg px-4 py-2 text-sm font-bold">
