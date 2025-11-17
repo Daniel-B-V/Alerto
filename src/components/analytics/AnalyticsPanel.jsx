@@ -23,7 +23,6 @@ import {
 import { getBatangasWeather, getClimateForecast } from "../../services/weatherService";
 import { getReports } from "../../firebase/firestore";
 import { calculateWeatherSeverity, getSeverityConfig, CATEGORY_CONFIG } from "../../constants/categorization";
-import { PredictiveAnalysisCard } from "./PredictiveAnalysisCard";
 
 export function AnalyticsPanel() {
   const [loading, setLoading] = useState(true);
@@ -201,13 +200,6 @@ export function AnalyticsPanel() {
             </div>
           </CardContent>
         </Card>
-      )}
-
-      {/* Predictive Analysis Card - AI-Powered Decision Support */}
-      {!loading && !error && citiesWeather.length > 0 && (
-        <div className="max-w-7xl mx-auto mb-8">
-          <PredictiveAnalysisCard citiesWeather={citiesWeather} />
-        </div>
       )}
 
       {/* Typhoon Tracker Section */}
