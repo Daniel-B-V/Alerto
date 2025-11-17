@@ -163,9 +163,19 @@ export function PredictiveAnalysisCard({ citiesWeather }) {
       // Find peak risk time (simulated)
       const currentHour = new Date().getHours();
       const peakHour = currentHour + 4 + Math.floor(Math.random() * 4);
-      const peakHourFormatted = peakHour > 12 ? `${peakHour - 12}:00 PM` : `${peakHour}:00 AM`;
       const endHour = peakHour + 4;
-      const endHourFormatted = endHour > 12 ? `${endHour - 12}:00 PM` : `${endHour}:00 AM`;
+
+      // Helper function to format hour in 12-hour format
+      const formatHour = (hour) => {
+        const h24 = hour % 24; // Handle hours over 24
+        const period = h24 >= 12 ? 'PM' : 'AM';
+        let h12 = h24 % 12;
+        if (h12 === 0) h12 = 12; // Handle midnight and noon
+        return `${h12}:00 ${period}`;
+      };
+
+      const peakHourFormatted = formatHour(peakHour);
+      const endHourFormatted = formatHour(endHour);
 
       setPredictiveData({
         topRiskCities,
