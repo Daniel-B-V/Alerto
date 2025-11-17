@@ -195,7 +195,7 @@ export function TyphoonTracker() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px] gap-4">
             {/* Left Side - Map with Margins */}
-            <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px] bg-white pl-6 pt-4 pb-4 pr-2">
+            <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px] bg-white pl-8 pt-4 pb-4 pr-2">
               <div className="h-full min-h-[500px] lg:min-h-[700px] rounded-lg overflow-hidden border border-gray-200">
                 <TyphoonMap
                   typhoons={typhoons}
@@ -206,7 +206,7 @@ export function TyphoonTracker() {
             </div>
 
             {/* Right Side - Storm Details + Timeline */}
-            <div className="lg:col-span-1 bg-white flex flex-col min-h-[400px] lg:min-h-[700px]">
+            <div className="lg:col-span-1 bg-white flex flex-col min-h-[400px] lg:min-h-[700px] pr-8">
               {/* Storm Details Section */}
               <div className="flex-1 overflow-y-auto pl-2 pr-6 pt-4 pb-4 space-y-4">
                 <div className="flex items-center justify-between mb-2">
