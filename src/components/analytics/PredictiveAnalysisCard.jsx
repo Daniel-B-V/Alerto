@@ -205,19 +205,19 @@ export function PredictiveAnalysisCard({ citiesWeather }) {
     <div className="space-y-6">
       {/* Main Predictive Card */}
       <Card className="bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50 border-2 border-blue-300 shadow-2xl overflow-hidden">
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
-                <Brain className="w-6 h-6 text-white" />
+        <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-white rounded-xl shadow-lg">
+                <Brain className="w-8 h-8 text-blue-600" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white">AI Predictive Analysis</h2>
-                <p className="text-blue-100 text-sm">Next 24 Hours Weather Intelligence</p>
+                <h2 className="text-3xl font-bold text-white drop-shadow-lg">AI Predictive Analysis</h2>
+                <p className="text-white text-sm mt-1 font-medium">Next 24 Hours Weather Intelligence</p>
               </div>
             </div>
-            <Badge className="bg-white/20 text-white border-white/30 backdrop-blur-sm px-4 py-2 text-sm">
-              <Zap className="w-4 h-4 mr-1" />
+            <Badge className="bg-yellow-400 text-gray-900 border-yellow-500 shadow-lg px-4 py-2 text-sm font-bold">
+              <Zap className="w-4 h-4 mr-1 text-yellow-600" />
               Live Analysis
             </Badge>
           </div>
