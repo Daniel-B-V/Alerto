@@ -529,28 +529,30 @@ export function TestRoleDashboard() {
                     {(activeTab === 'today' || activeTab === 'tomorrow') && weatherData && (
                       <>
                         {/* Top Section - Current Day + Week Cards + Chance of Rain */}
-                        <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr_280px] gap-4">
-                          {/* Left: Large Current Day Card */}
-                          <CurrentDayCard data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
+                        <div className="overflow-x-auto pb-2">
+                          <div className="grid grid-cols-[240px_1fr_260px] gap-3 min-w-[900px]">
+                            {/* Left: Large Current Day Card */}
+                            <CurrentDayCard data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
 
-                          {/* Center: Week Cards (6 cards in grid) */}
-                          {weatherData.week && (
-                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 content-start">
-                              {weatherData.week.slice(0, 6).map((day, index) => (
-                                <WeekDayCardCompact key={index} day={day} />
-                              ))}
-                            </div>
-                          )}
+                            {/* Center: Week Cards (6 cards in single row) */}
+                            {weatherData.week && (
+                              <div className="grid grid-cols-6 gap-2">
+                                {weatherData.week.slice(0, 6).map((day, index) => (
+                                  <WeekDayCardCompact key={index} day={day} />
+                                ))}
+                              </div>
+                            )}
 
-                          {/* Right: Chance of Rain */}
-                          <ChanceOfRainChart data={weatherData.hourlyRain} />
+                            {/* Right: Chance of Rain */}
+                            <ChanceOfRainChart data={weatherData.hourlyRain} />
+                          </div>
                         </div>
 
                         {/* Today's Overview Section */}
                         <TodaysOverview data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
 
                         {/* Bottom Section - Map + Other Cities */}
-                        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
                           {/* Left: Map */}
                           <PhilippinesWeatherMap />
 
@@ -884,40 +886,40 @@ function CurrentDayCard({ data }) {
   const getWeatherIcon = () => {
     const condition = data.condition.toLowerCase();
     if (condition.includes('clear') || condition.includes('sun')) {
-      return <Sun className="w-32 h-32 text-yellow-400" />;
+      return <Sun className="w-24 h-24 text-yellow-400" />;
     } else if (condition.includes('rain')) {
-      return <CloudRain className="w-32 h-32 text-blue-400" />;
+      return <CloudRain className="w-24 h-24 text-blue-400" />;
     } else if (condition.includes('cloud')) {
-      return <Cloud className="w-32 h-32 text-gray-400" />;
+      return <Cloud className="w-24 h-24 text-gray-400" />;
     }
-    return <Cloud className="w-32 h-32 text-gray-400" />;
+    return <Cloud className="w-24 h-24 text-gray-400" />;
   };
 
   return (
-    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl shadow-md border border-gray-200 p-8 flex flex-col justify-between min-h-[450px]">
+    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl shadow-md border border-gray-200 p-5 flex flex-col justify-between min-h-[380px]">
       {/* Day Label and Time */}
-      <div className="mb-4">
-        <div className="text-sm text-gray-600 mb-1">Current Time</div>
-        <div className="text-xl font-bold text-gray-900">{data.time}</div>
+      <div className="mb-3">
+        <div className="text-xs text-gray-600 mb-1">Current Time</div>
+        <div className="text-lg font-bold text-gray-900">{data.time}</div>
       </div>
 
       {/* Main Temperature & Icon */}
-      <div className="flex items-center justify-between my-6">
-        <div className="text-9xl font-bold text-gray-900 leading-none">
+      <div className="flex items-center justify-between my-4">
+        <div className="text-8xl font-bold text-gray-900 leading-none">
           {data.temp}°
         </div>
-        <div className="ml-4">
+        <div className="ml-3">
           {getWeatherIcon()}
         </div>
       </div>
 
       {/* Real Feel */}
-      <div className="text-lg text-gray-600 mb-6">
+      <div className="text-base text-gray-600 mb-4">
         Real feel {data.feels_like}°
       </div>
 
       {/* Weather Details - Compact */}
-      <div className="space-y-2 mb-6">
+      <div className="space-y-1.5 mb-4">
         <div className="flex items-center justify-between text-sm">
           <span className="text-gray-600">Wind: {data.wind_direction}</span>
           <span className="font-semibold text-gray-900">{data.wind_speed}km/h</span>
@@ -1031,26 +1033,26 @@ function WeekDayCardCompact({ day }) {
     switch (condition) {
       case 'clear':
       case 'sunny':
-        return <Sun className="w-12 h-12 text-yellow-400" />;
+        return <Sun className="w-10 h-10 text-yellow-400" />;
       case 'clouds':
       case 'cloudy':
-        return <Cloud className="w-12 h-12 text-gray-400" />;
+        return <Cloud className="w-10 h-10 text-gray-400" />;
       case 'rain':
       case 'rainy':
-        return <CloudRain className="w-12 h-12 text-blue-400" />;
+        return <CloudRain className="w-10 h-10 text-blue-400" />;
       default:
-        return <Cloud className="w-12 h-12 text-gray-400" />;
+        return <Cloud className="w-10 h-10 text-gray-400" />;
     }
   };
 
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center">
+    <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-sm border border-gray-200 p-3 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center min-h-[140px]">
       <div className="text-center w-full">
-        <div className="font-bold text-gray-800 text-xs uppercase mb-3">{day.day}</div>
-        <div className="flex justify-center mb-3">
+        <div className="font-bold text-gray-800 text-xs uppercase mb-2">{day.day}</div>
+        <div className="flex justify-center mb-2">
           {getWeatherIcon(day.condition)}
         </div>
-        <div className="text-2xl font-bold text-gray-900 mb-1">{day.temp}°</div>
+        <div className="text-xl font-bold text-gray-900 mb-1">{day.temp}°</div>
         <div className="text-[10px] text-gray-500">
           <span className="text-red-500 font-semibold">{day.high}°</span>
           <span className="mx-1">/</span>
@@ -1131,13 +1133,13 @@ function ChanceOfRainChart({ data }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-5">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-bold text-gray-900">Chance of rain</h3>
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-base font-bold text-gray-900">Chance of rain</h3>
       </div>
 
       {/* Legend */}
-      <div className="flex gap-4 mb-4 text-xs">
+      <div className="flex gap-3 mb-3 text-xs">
         {[
           { color: 'bg-blue-300', label: 'Light' },
           { color: 'bg-blue-500', label: 'Moderate' },
@@ -1151,7 +1153,7 @@ function ChanceOfRainChart({ data }) {
       </div>
 
       {/* Chart */}
-      <div className="flex items-end justify-between gap-2 h-32">
+      <div className="flex items-end justify-between gap-2 h-24">
         {data.map((item, index) => (
           <div key={index} className="flex-1 flex flex-col items-center gap-1">
             <div className="text-xs font-semibold text-blue-600">{item.probability}%</div>
@@ -1267,7 +1269,7 @@ function PhilippinesWeatherMap() {
         <p className="text-sm text-gray-500 mt-1">Real-time conditions across the country</p>
       </div>
 
-      <div className="relative h-[450px]">
+      <div className="relative h-[350px]">
         <MapContainer
           center={[12.8797, 121.7740]}
           zoom={5.5}
@@ -1451,13 +1453,13 @@ function TodaysOverview({ data }) {
   const uvLevel = getUVLevel(uvIndex);
 
   return (
-    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
-      <h3 className="text-xl font-bold text-gray-900 mb-6">Today's Overview</h3>
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-5">
+      <h3 className="text-lg font-bold text-gray-900 mb-4">Today's Overview</h3>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
         {/* Wind Status */}
-        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 border border-blue-100">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-4 border border-blue-100">
+          <div className="flex items-center gap-2 mb-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <Wind className="w-5 h-5 text-blue-600" />
             </div>
@@ -1488,8 +1490,8 @@ function TodaysOverview({ data }) {
         </div>
 
         {/* UV Index */}
-        <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-5 border border-orange-100">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-4 border border-orange-100">
+          <div className="flex items-center gap-2 mb-3">
             <div className="p-2 bg-orange-100 rounded-lg">
               <Sun className="w-5 h-5 text-orange-600" />
             </div>
@@ -1535,8 +1537,8 @@ function TodaysOverview({ data }) {
         </div>
 
         {/* Humidity */}
-        <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-5 border border-cyan-100">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-4 border border-cyan-100">
+          <div className="flex items-center gap-2 mb-3">
             <div className="p-2 bg-cyan-100 rounded-lg">
               <Droplets className="w-5 h-5 text-cyan-600" />
             </div>
@@ -1576,8 +1578,8 @@ function TodaysOverview({ data }) {
         </div>
 
         {/* Visibility */}
-        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-5 border border-purple-100">
-          <div className="flex items-center gap-2 mb-4">
+        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-100">
+          <div className="flex items-center gap-2 mb-3">
             <div className="p-2 bg-purple-100 rounded-lg">
               <Eye className="w-5 h-5 text-purple-600" />
             </div>
@@ -1634,7 +1636,7 @@ function BatangasCitiesPanel({ cities }) {
         </button>
       </div>
 
-      <div className="max-h-[450px] overflow-y-auto p-4 space-y-2">
+      <div className="max-h-[350px] overflow-y-auto p-4 space-y-2">
         {cities.length > 0 ? (
           cities.map((city, index) => (
             <div
