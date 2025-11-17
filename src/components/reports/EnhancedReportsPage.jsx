@@ -6,6 +6,7 @@ import {
   FileText,
   MapPin,
   AlertTriangle,
+  AlertCircle,
   CheckCircle,
   XCircle,
   TrendingUp,
