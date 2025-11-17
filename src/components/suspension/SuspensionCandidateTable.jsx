@@ -261,8 +261,8 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                       </div>
                     </div>
                   </th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Rainfall</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase">Wind</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Rainfall</th>
+                  <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Wind</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase">Reports</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">AI Action</th>
                   <th className="px-4 py-3 text-center text-xs font-semibold text-gray-600 uppercase w-32">Action</th>
@@ -306,7 +306,7 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
 
                   {/* Rainfall */}
                   <td className="px-4 py-3">
-                    <div className="flex flex-col items-end gap-0.5">
+                    <div className="flex flex-col items-center gap-0.5">
                       <span className="font-bold text-gray-900 tabular-nums">{candidate.criteria.rainfall} mm/h</span>
                       {candidate.criteria.rainfall >= 30 && (
                         <span className="text-xs text-red-600 font-bold">Heavy</span>
@@ -322,7 +322,7 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
 
                   {/* Wind Speed */}
                   <td className="px-4 py-3">
-                    <div className="flex flex-col items-end gap-0.5">
+                    <div className="flex flex-col items-center gap-0.5">
                       <span className="font-bold text-gray-900 tabular-nums">{candidate.criteria.windSpeed} km/h</span>
                       {candidate.criteria.windSpeed >= 55 && (
                         <span className="text-xs text-red-600 font-bold">Strong</span>
