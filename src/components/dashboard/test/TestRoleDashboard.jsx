@@ -35,7 +35,8 @@ import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } fro
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet-velocity/dist/leaflet-velocity.css';
-import { BATANGAS_MUNICIPALITIES, BATANGAS_LOCATIONS } from '../../../constants/batangasLocations';
+import { BATANGAS_MUNICIPALITIES, BATANGAS_LOCATIONS as BATANGAS_LOCATIONS_MAP } from '../../../constants/batangasLocations';
+import { BATANGAS_LOCATIONS } from '../../../constants/suspensionCriteria';
 import { VelocityLayer } from '../../typhoon/VelocityLayer';
 import {
   getCurrentWeather,
@@ -46,6 +47,12 @@ import {
 import { Header } from '../../shared/Header';
 import { Button } from '../../ui/button';
 import { SocketProvider } from '../../../contexts/SocketContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { setUserRole } from '../../../firebase/firestore';
+import { Card } from '../../ui/card';
+import { Alert, AlertDescription } from '../../ui/alert';
+import { Badge } from '../../ui/badge';
+import { Shield, Crown, Building2, Check, Info, FlaskConical, RefreshCw } from 'lucide-react';
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -141,6 +148,7 @@ function TestSidebar({ activeSection, onSectionChange }) {
 }
 
 export function TestRoleDashboard() {
+  const { user, logout } = useAuth();
   const [activeSection, setActiveSection] = useState('dashboard');
   const [activeTab, setActiveTab] = useState('today');
   const [selectedCity, setSelectedCity] = useState('BATANGAS CITY');
@@ -150,6 +158,48 @@ export function TestRoleDashboard() {
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [userLocation, setUserLocation] = useState(null);
   const [locationError, setLocationError] = useState(null);
+
+  // Role switching state
+  const [selectedCityForRole, setSelectedCityForRole] = useState('Batangas City');
+  const [switching, setSwitching] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const currentRole = user?.role || 'user';
+
+  // Handle role switching
+  const handleSwitchRole = async (role, city = null) => {
+    setSwitching(true);
+    setMessage(null);
+
+    try {
+      const result = await setUserRole(user.uid, role, city);
+
+      if (result.success) {
+        const roleLabel = role === 'governor' ? 'Governor' : role === 'mayor' ? `Mayor of ${city}` : role === 'test' ? 'Test Role' : 'User';
+        setMessage({
+          type: 'success',
+          text: `✅ Successfully switched to ${roleLabel}! Refreshing...`
+        });
+
+        // Refresh page after 1.5 seconds
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      } else {
+        setMessage({
+          type: 'error',
+          text: `❌ Failed to switch role: ${result.error}`
+        });
+        setSwitching(false);
+      }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: `❌ Error: ${error.message}`
+      });
+      setSwitching(false);
+    }
+  };
 
   // Detect user's location
   const detectLocation = () => {
@@ -523,10 +573,296 @@ export function TestRoleDashboard() {
             )}
 
             {activeSection === 'settings' && (
-              <div className="bg-white rounded-xl p-8 text-center">
-                <SettingsIcon className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Settings Section</h3>
-                <p className="text-gray-600">This section is under development.</p>
+              <div className="space-y-6 max-w-4xl">
+                {/* Header */}
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">Settings</h1>
+                  <p className="text-gray-600">Manage your account and role settings</p>
+                </div>
+
+                {/* Current User Info */}
+                <Card className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+                  <h2 className="text-xl font-bold mb-4 flex items-center">
+                    <User className="w-5 h-5 mr-2" />
+                    Current User
+                  </h2>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Email:</span>
+                      <span className="font-medium">{user?.email}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Display Name:</span>
+                      <span className="font-medium">{user?.displayName || 'Not set'}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">User ID:</span>
+                      <span className="font-mono text-xs text-gray-500">{user?.uid}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t">
+                      <span className="text-sm text-gray-600">Current Role:</span>
+                      <Badge className={
+                        currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin'
+                          ? 'bg-purple-100 text-purple-800'
+                          : currentRole === 'mayor'
+                          ? 'bg-blue-100 text-blue-800'
+                          : currentRole === 'test'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }>
+                        {currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin'
+                          ? '👑 Governor/Admin'
+                          : currentRole === 'mayor'
+                          ? `🏛️ Mayor${user?.assignedCity ? ` of ${user.assignedCity}` : ''}`
+                          : currentRole === 'test'
+                          ? '🧪 Test Role'
+                          : '👤 User'}
+                      </Badge>
+                    </div>
+
+                    {user?.assignedCity && currentRole === 'mayor' && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Assigned City:</span>
+                        <span className="font-medium text-blue-600">{user.assignedCity}</span>
+                      </div>
+                    )}
+
+                    {user?.assignedProvince && (
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">Province:</span>
+                        <span className="font-medium">{user.assignedProvince}</span>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+
+                {/* Role Management */}
+                <Card className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+                  <h2 className="text-xl font-bold mb-4 flex items-center">
+                    <Shield className="w-5 h-5 mr-2" />
+                    Role Management
+                  </h2>
+
+                  <Alert className="mb-6 bg-blue-50 border-blue-200">
+                    <Info className="h-4 w-4 text-blue-600" />
+                    <AlertDescription className="text-blue-800 text-sm">
+                      <strong>Development Feature:</strong> Switch between roles to test different views and permissions.
+                      In production, roles would be assigned by administrators only.
+                    </AlertDescription>
+                  </Alert>
+
+                  {message && (
+                    <Alert className={message.type === 'success' ? 'bg-green-50 border-green-200 mb-4' : 'bg-red-50 border-red-200 mb-4'}>
+                      <AlertDescription className={message.type === 'success' ? 'text-green-800' : 'text-red-800'}>
+                        {message.text}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  <div className="space-y-6">
+                    {/* Governor Option */}
+                    <div className="border-2 rounded-lg p-5 hover:border-purple-300 hover:bg-purple-50/30 transition-all">
+                      <div className="flex items-center mb-3">
+                        <Crown className="w-5 h-5 text-purple-600 mr-2" />
+                        <h3 className="font-bold text-lg">Governor</h3>
+                        {(currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin') && (
+                          <Badge className="ml-2 bg-green-100 text-green-800">
+                            <Check className="w-3 h-3 mr-1" />
+                            Current
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Full access to all cities, can issue suspensions directly, approve mayor requests, view analytics.
+                      </p>
+                      <ul className="text-xs text-gray-500 space-y-1 mb-4">
+                        <li>✓ View all 34 Batangas cities</li>
+                        <li>✓ Issue and manage suspensions</li>
+                        <li>✓ Approve/reject mayor requests</li>
+                        <li>✓ Access analytics dashboard</li>
+                      </ul>
+                      <div className="pt-3 border-t mt-4">
+                        <button
+                          onClick={() => handleSwitchRole('governor')}
+                          disabled={switching || currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin'}
+                          className="w-full !bg-purple-600 hover:!bg-purple-700 disabled:!bg-gray-400 disabled:cursor-not-allowed !text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          style={{ backgroundColor: switching || currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin' ? '#9ca3af' : '#9333ea', color: 'white' }}
+                        >
+                          {switching ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              Switching...
+                            </>
+                          ) : (currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin') ? (
+                            'Current Role'
+                          ) : (
+                            'Switch to Governor'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Mayor Option */}
+                    <div className="border-2 rounded-lg p-5 hover:border-blue-300 hover:bg-blue-50/30 transition-all">
+                      <div className="flex items-center mb-3">
+                        <Building2 className="w-5 h-5 text-blue-600 mr-2" />
+                        <h3 className="font-bold text-lg">Mayor</h3>
+                        {currentRole === 'mayor' && (
+                          <Badge className="ml-2 bg-green-100 text-green-800">
+                            <Check className="w-3 h-3 mr-1" />
+                            Current
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        City-specific view, can request suspensions from governor, limited to assigned city only.
+                      </p>
+                      <ul className="text-xs text-gray-500 space-y-1 mb-4">
+                        <li>✓ View your city's weather only</li>
+                        <li>✓ 12-hour forecast chart</li>
+                        <li>✓ Request suspensions (needs approval)</li>
+                        <li>✓ Track your request status</li>
+                      </ul>
+
+                      {/* City Selector */}
+                      <div className="mb-4">
+                        <label className="flex items-center text-sm font-medium text-gray-700 mb-2">
+                          <MapPin className="w-4 h-4 mr-1" />
+                          Select Your City:
+                        </label>
+                        <select
+                          value={selectedCityForRole}
+                          onChange={(e) => setSelectedCityForRole(e.target.value)}
+                          className="w-full border-2 rounded-lg px-3 py-2.5 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                          disabled={switching}
+                        >
+                          {BATANGAS_LOCATIONS.map(city => (
+                            <option key={city} value={city}>{city}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="pt-3 border-t mt-4">
+                        <button
+                          onClick={() => handleSwitchRole('mayor', selectedCityForRole)}
+                          disabled={switching || (currentRole === 'mayor' && user?.assignedCity === selectedCityForRole)}
+                          className="w-full !bg-blue-600 hover:!bg-blue-700 disabled:!bg-gray-400 disabled:cursor-not-allowed !text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          style={{ backgroundColor: switching || (currentRole === 'mayor' && user?.assignedCity === selectedCityForRole) ? '#9ca3af' : '#2563eb', color: 'white' }}
+                        >
+                          {switching ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              Switching...
+                            </>
+                          ) : (currentRole === 'mayor' && user?.assignedCity === selectedCityForRole) ? (
+                            'Current Role'
+                          ) : (
+                            'Switch to Mayor'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Regular User Option */}
+                    <div className="border-2 rounded-lg p-5 hover:border-gray-300 hover:bg-gray-50/50 transition-all">
+                      <div className="flex items-center mb-3">
+                        <User className="w-5 h-5 text-gray-600 mr-2" />
+                        <h3 className="font-bold text-lg">Regular User</h3>
+                        {currentRole === 'user' && (
+                          <Badge className="ml-2 bg-green-100 text-green-800">
+                            <Check className="w-3 h-3 mr-1" />
+                            Current
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Standard citizen access, can view public information and submit community reports.
+                      </p>
+                      <ul className="text-xs text-gray-500 space-y-1 mb-4">
+                        <li>✓ View active suspensions</li>
+                        <li>✓ Submit community reports</li>
+                        <li>✓ View weather information</li>
+                      </ul>
+                      <div className="pt-3 border-t mt-4">
+                        <button
+                          onClick={() => handleSwitchRole('user')}
+                          disabled={switching || currentRole === 'user'}
+                          className="w-full !bg-gray-600 hover:!bg-gray-700 disabled:!bg-gray-400 disabled:cursor-not-allowed !text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          style={{ backgroundColor: switching || currentRole === 'user' ? '#9ca3af' : '#4b5563', color: 'white' }}
+                        >
+                          {switching ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              Switching...
+                            </>
+                          ) : currentRole === 'user' ? (
+                            'Current Role'
+                          ) : (
+                            'Switch to User'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Test Role Option */}
+                    <div className="border-2 rounded-lg p-5 hover:border-green-300 hover:bg-green-50/30 transition-all">
+                      <div className="flex items-center mb-3">
+                        <FlaskConical className="w-5 h-5 text-green-600 mr-2" />
+                        <h3 className="font-bold text-lg">Test Role</h3>
+                        {currentRole === 'test' && (
+                          <Badge className="ml-2 bg-green-100 text-green-800">
+                            <Check className="w-3 h-3 mr-1" />
+                            Current
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mb-3">
+                        Same permissions as regular user, designed for UI/UX experimentation and testing.
+                      </p>
+                      <ul className="text-xs text-gray-500 space-y-1 mb-4">
+                        <li>✓ View active suspensions</li>
+                        <li>✓ Submit community reports</li>
+                        <li>✓ View weather information</li>
+                        <li>✓ Test UI/UX changes safely</li>
+                      </ul>
+                      <div className="pt-3 border-t mt-4">
+                        <button
+                          onClick={() => handleSwitchRole('test')}
+                          disabled={switching || currentRole === 'test'}
+                          className="w-full !bg-green-600 hover:!bg-green-700 disabled:!bg-gray-400 disabled:cursor-not-allowed !text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                          style={{ backgroundColor: switching || currentRole === 'test' ? '#9ca3af' : '#16a34a', color: 'white' }}
+                        >
+                          {switching ? (
+                            <>
+                              <RefreshCw className="w-4 h-4 animate-spin" />
+                              Switching...
+                            </>
+                          ) : currentRole === 'test' ? (
+                            'Current Role'
+                          ) : (
+                            'Switch to Test Role'
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Account Actions */}
+                <Card className="p-6 bg-white rounded-xl shadow-md border border-gray-200">
+                  <h2 className="text-xl font-bold mb-4">Account Actions</h2>
+                  <Button
+                    onClick={logout}
+                    variant="outline"
+                    className="text-red-600 border-red-200 hover:bg-red-50"
+                  >
+                    Sign Out
+                  </Button>
+                </Card>
               </div>
             )}
           </div>
