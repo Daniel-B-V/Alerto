@@ -1,5 +1,6 @@
 import { Header } from "./components/shared/Header";
 import { Sidebar } from "./components/shared/Sidebar";
+import { OfflineIndicator } from "./components/shared/OfflineIndicator";
 import { DashboardContent } from "./components/dashboard/admin/DashboardContent";
 import { UserLayout } from "./components/dashboard/user/UserLayout";
 import { Login } from "./components/auth/Login";
@@ -93,6 +94,7 @@ function AppContent() {
     return (
       <SocketProvider>
         <SuspensionProvider>
+          <OfflineIndicator />
           <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30">
             <Header />
             <div className="flex-1 flex overflow-hidden">
@@ -112,6 +114,7 @@ function AppContent() {
     // Regular User Interface
     return (
       <SuspensionProvider>
+        <OfflineIndicator />
         <UserLayout />
       </SuspensionProvider>
     );

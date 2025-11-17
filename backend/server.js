@@ -14,6 +14,7 @@ const weatherRoutes = require('./routes/weather');
 const adminRoutes = require('./routes/admin');
 const typhoonRoutes = require('./routes/typhoon');
 const huggingfaceRoutes = require('./routes/huggingface');
+const lightningRoutes = require('./routes/lightning');
 
 // Import middleware
 const authMiddleware = require('./middleware/auth');
@@ -22,17 +23,9 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-<<<<<<< HEAD
-    origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      "http://localhost:3001"
-    ],
-    methods: ["GET", "POST"]
-=======
-    origin: ['http://localhost:3000', 'http://localhost:5173', 'https://alerto.vercel.app', process.env.FRONTEND_URL].filter(Boolean),
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:5173', 'https://alerto.vercel.app', process.env.FRONTEND_URL].filter(Boolean),
     methods: ["GET", "POST"],
     credentials: true
->>>>>>> a4eba119f71de15c728469c2198836d70fd4ac56
   }
 });
 
@@ -47,17 +40,10 @@ const limiter = rateLimit({
 });
 app.use('/api/', limiter);
 
-<<<<<<< HEAD
-// CORS configuration - Allow both port 3000 and 3001
-app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || "http://localhost:3000",
-    "http://localhost:3001"
-  ],
-=======
 // CORS configuration - support multiple origins for local dev and Vercel
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
   'http://localhost:5173', // Vite dev server
   'https://alerto.vercel.app', // Add your Vercel domain here
   process.env.FRONTEND_URL
@@ -75,7 +61,6 @@ app.use(cors({
       callback(null, true); // Allow for now, can change to false in production
     }
   },
->>>>>>> a4eba119f71de15c728469c2198836d70fd4ac56
   credentials: true
 }));
 
@@ -116,6 +101,7 @@ app.use('/api/weather', weatherRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
 app.use('/api/typhoon', typhoonRoutes);
 app.use('/api/huggingface', huggingfaceRoutes);
+app.use('/api/lightning', lightningRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

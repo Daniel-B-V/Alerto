@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { RefreshCw, Wind, AlertCircle, TestTube } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
@@ -6,6 +6,11 @@ import { getPhilippinesTyphoons, getTestTyphoons } from '../../services/typhoonS
 import TyphoonMap from './TyphoonMap';
 import StormDetailsPanel from './StormDetailsPanel';
 import TyphoonTimeline from './TyphoonTimeline';
+import { ViewModeToggle } from './ViewModeToggle';
+import { ErrorBoundary } from '../shared/ErrorBoundary';
+
+// Lazy load 3D globe for better performance
+const Globe3DView = lazy(() => import('./Globe3DView').then(module => ({ default: module.Globe3DView })));
 
 /**
  * TyphoonTracker Component
@@ -21,6 +26,10 @@ export function TyphoonTracker() {
   const [useTestData, setUseTestData] = useState(false);
   const [isTestDataMode, setIsTestDataMode] = useState(false);
   const [selectedTimelineDate, setSelectedTimelineDate] = useState(null);
+  const [viewMode, setViewMode] = useState(() => {
+    // Load saved preference from localStorage
+    return localStorage.getItem('typhoon-view-mode') || '2d';
+  });
 
   // Auto-refresh interval (10 minutes)
   const REFRESH_INTERVAL = 10 * 60 * 1000;
@@ -130,6 +139,14 @@ export function TyphoonTracker() {
     setSelectedTimelineDate(date);
   };
 
+  /**
+   * Handle view mode change (2D/3D)
+   */
+  const handleViewModeChange = (mode) => {
+    setViewMode(mode);
+    localStorage.setItem('typhoon-view-mode', mode);
+  };
+
   return (
     <div className="space-y-6">
       {/* Loading State */}
@@ -165,12 +182,13 @@ export function TyphoonTracker() {
               </p>
             </div>
 
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               {lastUpdate && (
                 <div className="text-sm text-gray-600">
                   Last updated: {lastUpdate.toLocaleTimeString()}
                 </div>
               )}
+              <ViewModeToggle viewMode={viewMode} onViewModeChange={handleViewModeChange} />
               <button
                 onClick={handleToggleTestData}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
@@ -193,38 +211,48 @@ export function TyphoonTracker() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px] gap-4 px-6 pb-6">
-            {/* Left Side - Map and Timeline */}
-            <div className="lg:col-span-2 flex flex-col gap-4">
-              {/* Map Container */}
-              <div className="relative flex-1 min-h-[500px] bg-white">
-                <div className="h-full rounded-lg overflow-hidden border border-gray-200">
+          <div className="grid grid-cols-1 lg:grid-cols-3 min-h-[700px] gap-4">
+            {/* Left Side - Map or Globe with Margins */}
+            <div className="lg:col-span-2 relative min-h-[500px] lg:min-h-[700px] bg-white pl-6 pt-4 pb-4 pr-2">
+              <div className="h-full min-h-[500px] lg:min-h-[700px] rounded-lg overflow-hidden border border-gray-200">
+                {viewMode === '2d' ? (
                   <TyphoonMap
                     typhoons={typhoons}
                     onTyphoonClick={handleSelectTyphoon}
                     selectedDate={selectedTimelineDate}
                   />
-                </div>
+                ) : (
+                  <ErrorBoundary
+                    onReset={() => setViewMode('2d')}
+                    errorMessage="The 3D globe encountered an error. Switching back to 2D map."
+                  >
+                    <Suspense
+                      fallback={
+                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-900 to-purple-900">
+                          <div className="text-center">
+                            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-white mx-auto mb-4"></div>
+                            <p className="text-white text-lg">Loading 3D Globe...</p>
+                            <p className="text-white/70 text-sm mt-2">Initializing WebGL renderer</p>
+                          </div>
+                        </div>
+                      }
+                    >
+                      <Globe3DView
+                        typhoons={typhoons}
+                        onTyphoonClick={handleSelectTyphoon}
+                        selectedTyphoon={selectedTyphoon}
+                      />
+                    </Suspense>
+                  </ErrorBoundary>
+                )}
               </div>
-
-              {/* Timeline Control - Below Map - Only show when there's a selected typhoon */}
-              {selectedTyphoon && (
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <TyphoonTimeline
-                    typhoon={selectedTyphoon}
-                    selectedDate={selectedTimelineDate}
-                    onDateChange={handleTimelineDateChange}
-                    compact={true}
-                  />
-                </div>
-              )}
             </div>
 
-            {/* Right Side - Storm Details (Full Height) */}
-            <div className="lg:col-span-1 bg-white flex flex-col h-full">
+            {/* Right Side - Storm Details + Timeline */}
+            <div className="lg:col-span-1 bg-white flex flex-col min-h-[400px] lg:min-h-[700px]">
               {/* Storm Details Section */}
-              <div className="flex-1 overflow-y-auto pt-4 pb-4 flex flex-col gap-4">
-                <div className="flex items-center justify-between">
+              <div className="flex-1 overflow-y-auto pl-2 pr-6 pt-4 pb-4 space-y-4">
+                <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="w-5 h-5 text-blue-500" />
                     <h3 className="font-bold text-lg text-gray-900">Active Storms</h3>
@@ -247,13 +275,13 @@ export function TyphoonTracker() {
                     onSelectTyphoon={handleSelectTyphoon}
                   />
                 ) : (
-                  <Card className="bg-green-50 border-green-200 flex-1 flex flex-col">
-                    <CardContent className="p-4 flex-1 flex items-center justify-center">
-                      <div className="flex flex-col items-center justify-center gap-3 text-center">
-                        <Wind className="w-10 h-10 text-green-400" />
+                  <Card className="bg-green-50 border-green-200">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col items-center justify-center gap-4 text-center">
+                        <Wind className="w-12 h-12 text-green-400" />
                         <div>
-                          <h3 className="text-base font-bold text-gray-900 mb-1">No Active Typhoons</h3>
-                          <p className="text-sm text-gray-600 mb-1">
+                          <h3 className="text-lg font-bold text-gray-900 mb-2">No Active Typhoons</h3>
+                          <p className="text-sm text-gray-600 mb-2">
                             There are currently no active tropical cyclones near the Philippines.
                           </p>
                           <p className="text-xs text-gray-500">
@@ -321,6 +349,18 @@ export function TyphoonTracker() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Timeline Control - Integrated at bottom - Only show when there's a selected typhoon */}
+              {selectedTyphoon && (
+                <div className="border-t border-gray-300 bg-white p-4">
+                  <TyphoonTimeline
+                    typhoon={selectedTyphoon}
+                    selectedDate={selectedTimelineDate}
+                    onDateChange={handleTimelineDateChange}
+                    compact={true}
+                  />
+                </div>
+              )}
             </div>
           </div>
         </Card>

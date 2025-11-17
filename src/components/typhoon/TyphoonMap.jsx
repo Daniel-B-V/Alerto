@@ -12,11 +12,12 @@ import {
   FORECAST_CONE_STYLE
 } from '../../config/typhoonStyles';
 import { generateForecastCone, smoothConeEdges } from '../../utils/forecastCone';
-import { Wind, CloudRain, Cloud, Thermometer, Gauge, Map, Satellite } from 'lucide-react';
+import { Wind, CloudRain, Cloud, Thermometer, Gauge, Map, Satellite, Zap } from 'lucide-react';
 import { RainViewerLayer } from './RainViewerLayer';
 import { VelocityLayer } from './VelocityLayer';
 import { CitiesLayer } from './CitiesLayer';
 import { LocationSearch } from './LocationSearch';
+import { LightningLayer } from './LightningLayer';
 import { PAR_BOUNDARY_ACCURATE, PAR_STYLE } from '../../constants/parBoundary';
 
 // Fix for default marker icon issue in Leaflet with Webpack/Vite
@@ -154,7 +155,9 @@ export function TyphoonMap({
     rain: false,
     clouds: false,
     temp: false,
-    pressure: false
+    pressure: false,
+    lightning: false,
+    stormCells: false
   });
   const [baseMapType, setBaseMapType] = useState('street'); // 'street' or 'satellite'
 
@@ -162,6 +165,14 @@ export function TyphoonMap({
 
   const toggleWeatherLayer = (layer) => {
     setActiveWeatherLayers(prev => {
+      // Lightning and storm cells can be toggled independently
+      if (layer === 'lightning' || layer === 'stormCells') {
+        return {
+          ...prev,
+          [layer]: !prev[layer]
+        };
+      }
+
       // If clicking the same layer, deactivate it
       if (prev[layer]) {
         return {
@@ -169,16 +180,20 @@ export function TyphoonMap({
           rain: false,
           clouds: false,
           temp: false,
-          pressure: false
+          pressure: false,
+          lightning: prev.lightning,
+          stormCells: prev.stormCells
         };
       }
-      // Otherwise, activate only the clicked layer
+      // Otherwise, activate only the clicked layer (preserve lightning/stormCells)
       return {
         wind: false,
         rain: false,
         clouds: false,
         temp: false,
         pressure: false,
+        lightning: prev.lightning,
+        stormCells: prev.stormCells,
         [layer]: true
       };
     });
@@ -233,7 +248,27 @@ export function TyphoonMap({
         {/* Animated Rain Radar - RainViewer */}
         <RainViewerLayer active={activeWeatherLayers.rain} />
 
-        {/* Animated Wind Flow - Leaflet Velocity */}
+        {/* Wind Visualization - Multiple sources for reliability */}
+        {activeWeatherLayers.wind && (
+          <>
+            {/* Option 1: Windy.com wind tiles */}
+            <TileLayer
+              url="https://tiles.windy.com/tiles/v10.0/gfs-surface-wind/{z}/{x}/{y}.png"
+              attribution='&copy; <a href="https://www.windy.com">Windy.com</a>'
+              opacity={0.6}
+              zIndex={500}
+            />
+            {/* Option 2: Precipitation as visual indicator of wind patterns */}
+            <TileLayer
+              url={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${WEATHER_API_KEY}`}
+              attribution='&copy; <a href="https://openweathermap.org">OpenWeatherMap</a>'
+              opacity={0.3}
+              zIndex={499}
+            />
+          </>
+        )}
+
+        {/* Velocity Layer (if library loaded) */}
         <VelocityLayer active={activeWeatherLayers.wind} />
 
         {/* OpenWeatherMap Layers - Clouds, Temp, Pressure */}
@@ -276,6 +311,12 @@ export function TyphoonMap({
 
         {/* Major Philippine Cities */}
         <CitiesLayer visible={true} />
+
+        {/* Lightning Layer */}
+        <LightningLayer
+          showLightning={activeWeatherLayers.lightning}
+          showStormCells={activeWeatherLayers.stormCells}
+        />
 
         {/* Location Search - Inside MapContainer to access map context */}
         <div className="absolute top-4 right-4 z-[1000]" style={{ pointerEvents: 'auto' }}>
@@ -383,6 +424,37 @@ export function TyphoonMap({
         >
           <Gauge className="w-5 h-5" />
           <span className="text-sm font-medium">Pressure</span>
+        </button>
+
+        {/* Divider */}
+        <div className="border-t border-gray-300 mx-2" style={{ pointerEvents: 'none' }}></div>
+
+        <button
+          onClick={() => toggleWeatherLayer('lightning')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all ${
+            activeWeatherLayers.lightning
+              ? 'bg-yellow-500 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
+          }`}
+          title="Real-time Lightning Strikes"
+          style={{ minWidth: '100px', pointerEvents: 'auto', cursor: 'pointer' }}
+        >
+          <Zap className="w-5 h-5" />
+          <span className="text-sm font-medium">Lightning</span>
+        </button>
+
+        <button
+          onClick={() => toggleWeatherLayer('stormCells')}
+          className={`flex items-center gap-2 px-3 py-2 rounded-lg shadow-lg transition-all ${
+            activeWeatherLayers.stormCells
+              ? 'bg-orange-500 text-white'
+              : 'bg-white text-gray-700 hover:bg-gray-100'
+          }`}
+          title="Storm Cell Detection"
+          style={{ minWidth: '100px', pointerEvents: 'auto', cursor: 'pointer' }}
+        >
+          <Zap className="w-5 h-5" />
+          <span className="text-sm font-medium">Cells</span>
         </button>
       </div>
 

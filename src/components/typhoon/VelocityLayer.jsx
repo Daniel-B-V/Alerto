@@ -1,10 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
 import L from 'leaflet';
-// Note: leaflet-velocity may not be needed for this implementation
-// Commenting out to avoid import errors
-// import 'leaflet-velocity/dist/leaflet-velocity.css';
-// import 'leaflet-velocity';
+import 'leaflet-velocity/dist/leaflet-velocity.css';
+import 'leaflet-velocity';
 import { getSampleWindData } from '../../services/windDataService';
 
 /**
