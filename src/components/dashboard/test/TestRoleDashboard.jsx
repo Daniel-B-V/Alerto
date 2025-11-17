@@ -525,39 +525,45 @@ export function TestRoleDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Top Section - Current Day + Week Cards + Chance of Rain (Horizontal) */}
+                    {/* Today/Tomorrow View */}
                     {(activeTab === 'today' || activeTab === 'tomorrow') && weatherData && (
-                      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_300px] gap-4">
-                        {/* Left: Large Current Day Card */}
-                        <CurrentDayCard data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
+                      <>
+                        {/* Top Section - Current Day + Week Cards + Chance of Rain */}
+                        <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr_280px] gap-4">
+                          {/* Left: Large Current Day Card */}
+                          <CurrentDayCard data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
 
-                        {/* Center: Week Cards in Horizontal Row */}
-                        {weatherData.week && (
-                          <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
-                            {weatherData.week.slice(0, 6).map((day, index) => (
-                              <WeekDayCardHorizontal key={index} day={day} />
-                            ))}
-                          </div>
-                        )}
+                          {/* Center: Week Cards (6 cards in grid) */}
+                          {weatherData.week && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 content-start">
+                              {weatherData.week.slice(0, 6).map((day, index) => (
+                                <WeekDayCardCompact key={index} day={day} />
+                              ))}
+                            </div>
+                          )}
 
-                        {/* Right: Chance of Rain */}
-                        <ChanceOfRainChart data={weatherData.hourlyRain} />
-                      </div>
+                          {/* Right: Chance of Rain */}
+                          <ChanceOfRainChart data={weatherData.hourlyRain} />
+                        </div>
+
+                        {/* Today's Overview Section */}
+                        <TodaysOverview data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
+
+                        {/* Bottom Section - Map + Other Cities */}
+                        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+                          {/* Left: Map */}
+                          <PhilippinesWeatherMap />
+
+                          {/* Right: Other Cities */}
+                          <BatangasCitiesPanel cities={weatherData?.batangasCities || []} />
+                        </div>
+                      </>
                     )}
 
                     {/* Week View - Full 7 days */}
                     {activeTab === 'week' && weatherData && (
                       <WeekForecast days={weatherData.week} />
                     )}
-
-                    {/* Bottom Section - Map + Cities */}
-                    <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-6">
-                      {/* Left: Map */}
-                      <PhilippinesWeatherMap />
-
-                      {/* Right: Cities */}
-                      <BatangasCitiesPanel cities={weatherData?.batangasCities || []} />
-                    </div>
                   </div>
                 )}
               </>
@@ -1019,6 +1025,42 @@ function WeekDayCardHorizontal({ day }) {
   );
 }
 
+// Week Day Card Compact - Even more compact for the reference design layout
+function WeekDayCardCompact({ day }) {
+  const getWeatherIcon = (condition) => {
+    switch (condition) {
+      case 'clear':
+      case 'sunny':
+        return <Sun className="w-12 h-12 text-yellow-400" />;
+      case 'clouds':
+      case 'cloudy':
+        return <Cloud className="w-12 h-12 text-gray-400" />;
+      case 'rain':
+      case 'rainy':
+        return <CloudRain className="w-12 h-12 text-blue-400" />;
+      default:
+        return <Cloud className="w-12 h-12 text-gray-400" />;
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center">
+      <div className="text-center w-full">
+        <div className="font-bold text-gray-800 text-xs uppercase mb-3">{day.day}</div>
+        <div className="flex justify-center mb-3">
+          {getWeatherIcon(day.condition)}
+        </div>
+        <div className="text-2xl font-bold text-gray-900 mb-1">{day.temp}°</div>
+        <div className="text-[10px] text-gray-500">
+          <span className="text-red-500 font-semibold">{day.high}°</span>
+          <span className="mx-1">/</span>
+          <span className="text-blue-500 font-semibold">{day.low}°</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function WeatherDetailCard({ icon: Icon, label, value, subtitle }) {
   return (
     <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-5 border border-gray-200 hover:shadow-md transition-all duration-200">
@@ -1373,13 +1415,223 @@ function PhilippinesWeatherMap() {
   );
 }
 
+// Today's Overview Component - Wind, UV Index, Humidity, Visibility
+function TodaysOverview({ data }) {
+  // Calculate UV Index (0-11 scale) - simulated from current weather data
+  const calculateUVIndex = (temp, humidity) => {
+    // Simple simulation: higher temp and lower humidity = higher UV
+    const baseUV = ((temp - 20) / 5) * 2;
+    const humidityFactor = (100 - humidity) / 20;
+    const uvIndex = Math.min(11, Math.max(0, baseUV + humidityFactor));
+    return Math.round(uvIndex * 10) / 10;
+  };
+
+  // Calculate visibility based on humidity and weather condition
+  const calculateVisibility = (humidity, condition) => {
+    const baseVisibility = 10; // km
+    if (condition.toLowerCase().includes('rain')) return 5;
+    if (condition.toLowerCase().includes('fog') || condition.toLowerCase().includes('mist')) return 2;
+    if (humidity > 80) return 6;
+    if (humidity > 60) return 8;
+    return baseVisibility;
+  };
+
+  const uvIndex = calculateUVIndex(data.temp, data.humidity);
+  const visibility = calculateVisibility(data.humidity, data.condition);
+
+  // UV Level categorization
+  const getUVLevel = (uv) => {
+    if (uv <= 2) return { level: 'Low', color: 'text-green-600', bg: 'bg-green-100' };
+    if (uv <= 5) return { level: 'Moderate', color: 'text-yellow-600', bg: 'bg-yellow-100' };
+    if (uv <= 7) return { level: 'High', color: 'text-orange-600', bg: 'bg-orange-100' };
+    if (uv <= 10) return { level: 'Very High', color: 'text-red-600', bg: 'bg-red-100' };
+    return { level: 'Extreme', color: 'text-purple-600', bg: 'bg-purple-100' };
+  };
+
+  const uvLevel = getUVLevel(uvIndex);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6">
+      <h3 className="text-xl font-bold text-gray-900 mb-6">Today's Overview</h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Wind Status */}
+        <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-5 border border-blue-100">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Wind className="w-5 h-5 text-blue-600" />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Wind Status</span>
+          </div>
+
+          {/* Wind Speed Bar */}
+          <div className="mb-3">
+            <div className="flex items-end justify-center h-24 gap-1">
+              {[...Array(8)].map((_, i) => {
+                const height = Math.random() * data.wind_speed + 10;
+                return (
+                  <div
+                    key={i}
+                    className="flex-1 bg-blue-400 rounded-t"
+                    style={{ height: `${Math.min(100, height)}%` }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="text-center">
+            <div className="text-3xl font-bold text-gray-900">{data.wind_speed}</div>
+            <div className="text-sm text-gray-600">km/h</div>
+            <div className="text-xs text-gray-500 mt-1">Direction: {data.wind_direction}</div>
+          </div>
+        </div>
+
+        {/* UV Index */}
+        <div className="bg-gradient-to-br from-orange-50 to-yellow-50 rounded-xl p-5 border border-orange-100">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <Sun className="w-5 h-5 text-orange-600" />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">UV Index</span>
+          </div>
+
+          {/* UV Gauge - Semicircle */}
+          <div className="flex justify-center mb-3">
+            <div className="relative w-32 h-16">
+              <svg viewBox="0 0 100 50" className="w-full h-full">
+                {/* Background arc */}
+                <path
+                  d="M 10,50 A 40,40 0 0,1 90,50"
+                  fill="none"
+                  stroke="#e5e7eb"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                />
+                {/* Progress arc */}
+                <path
+                  d="M 10,50 A 40,40 0 0,1 90,50"
+                  fill="none"
+                  stroke="#f59e0b"
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  strokeDasharray={`${(uvIndex / 11) * 125.6} 125.6`}
+                />
+              </svg>
+              <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 text-center">
+                <div className="text-2xl font-bold text-gray-900">{uvIndex}</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <div className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${uvLevel.bg} ${uvLevel.color}`}>
+              {uvLevel.level}
+            </div>
+            <div className="text-xs text-gray-500 mt-2">
+              {uvIndex >= 3 ? 'Protection recommended' : 'No protection needed'}
+            </div>
+          </div>
+        </div>
+
+        {/* Humidity */}
+        <div className="bg-gradient-to-br from-cyan-50 to-blue-50 rounded-xl p-5 border border-cyan-100">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 bg-cyan-100 rounded-lg">
+              <Droplets className="w-5 h-5 text-cyan-600" />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Humidity</span>
+          </div>
+
+          {/* Humidity Droplet Visual */}
+          <div className="flex justify-center mb-3">
+            <div className="relative w-20 h-24">
+              <svg viewBox="0 0 50 60" className="w-full h-full">
+                {/* Droplet shape */}
+                <path
+                  d="M 25,5 C 25,5 5,25 5,40 C 5,52 13,60 25,60 C 37,60 45,52 45,40 C 45,25 25,5 25,5 Z"
+                  fill="#e0f2fe"
+                  stroke="#06b6d4"
+                  strokeWidth="2"
+                />
+                {/* Water level */}
+                <rect
+                  x="5"
+                  y={60 - (data.humidity / 100) * 45}
+                  width="40"
+                  height={(data.humidity / 100) * 45}
+                  fill="#06b6d4"
+                  opacity="0.6"
+                />
+              </svg>
+            </div>
+          </div>
+
+          <div className="text-center">
+            <div className="text-3xl font-bold text-gray-900">{data.humidity}%</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {data.humidity > 70 ? 'High' : data.humidity > 40 ? 'Moderate' : 'Low'}
+            </div>
+          </div>
+        </div>
+
+        {/* Visibility */}
+        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-5 border border-purple-100">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Eye className="w-5 h-5 text-purple-600" />
+            </div>
+            <span className="text-sm font-semibold text-gray-700">Visibility</span>
+          </div>
+
+          {/* Visibility Gauge */}
+          <div className="flex justify-center mb-3">
+            <div className="relative w-full h-16">
+              {/* Horizon visualization */}
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-300 rounded"></div>
+              {/* Buildings/objects at different distances */}
+              <div className="absolute bottom-1 left-0 flex items-end justify-between w-full px-2 h-12">
+                {[...Array(5)].map((_, i) => {
+                  const opacity = i < (visibility / 2) ? 1 : 0.3;
+                  const height = 20 + (i * 5);
+                  return (
+                    <div
+                      key={i}
+                      className="bg-purple-400 rounded-t"
+                      style={{
+                        width: '12%',
+                        height: `${height}px`,
+                        opacity: opacity
+                      }}
+                    />
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mt-4">
+            <div className="text-3xl font-bold text-gray-900">{visibility}</div>
+            <div className="text-sm text-gray-600">km</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {visibility >= 10 ? 'Excellent' : visibility >= 5 ? 'Good' : 'Poor'}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Batangas Cities Panel - Displays weather for major Batangas municipalities
 function BatangasCitiesPanel({ cities }) {
   return (
     <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-      <div className="p-5 border-b border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900">Batangas Province Weather</h3>
-        <p className="text-sm text-gray-500 mt-1">Major municipalities and cities</p>
+      <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+        <h3 className="text-lg font-bold text-gray-900">Other Cities</h3>
+        <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          See All
+        </button>
       </div>
 
       <div className="max-h-[450px] overflow-y-auto p-4 space-y-2">
