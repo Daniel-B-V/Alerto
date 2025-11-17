@@ -187,8 +187,7 @@ export function PredictiveAnalysisCard({ citiesWeather }) {
         reasoning,
         riskTrend,
         peakRiskPeriod: `${peakHourFormatted} - ${endHourFormatted}`,
-        highRiskCount: highRiskCities,
-        affectedAreas: topRiskCities.slice(0, 3).map(c => c.city).join(', ')
+        highRiskCount: highRiskCities
       });
 
       setLoading(false);
@@ -346,17 +345,6 @@ export function PredictiveAnalysisCard({ citiesWeather }) {
                     <span className="font-bold text-gray-700">
                       {predictiveData.topRiskCities[0].windSpeed.toFixed(1)} km/h
                     </span>
-                  </div>
-                </div>
-
-                {/* Affected Areas */}
-                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                  <div className="flex items-center gap-2 mb-2">
-                    <MapPin className="w-4 h-4 text-purple-600" />
-                    <span className="text-sm font-semibold text-purple-900">Affected Areas:</span>
-                  </div>
-                  <div className="text-sm text-purple-700">
-                    {predictiveData.affectedAreas} + {predictiveData.highRiskCount - 3} more cities
                   </div>
                 </div>
               </div>
