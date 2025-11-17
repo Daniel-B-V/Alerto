@@ -12,6 +12,12 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
   try {
 
     if (!imageUrls || imageUrls.length === 0) {
+    // Validate reportData parameter
+    if (!reportData || typeof reportData !== 'object') {
+      console.warn('⚠️ Image analysis: reportData is missing or invalid, using default values');
+      reportData = { hazardType: 'other' };
+    }
+
       return {
         credible: true,
         confidence: 50,
@@ -37,7 +43,7 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
       'other': 'disaster, emergency, hazard, damage'
     };
 
-    const reportedHazard = reportData.hazardType || 'other';
+    const reportedHazard = reportData?.hazardType || 'other';
     const expectedLabel = hazardLabels[reportedHazard] || hazardLabels['other'];
 
     // Also check for common spam/unrelated images

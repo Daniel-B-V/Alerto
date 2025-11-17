@@ -4,6 +4,31 @@
  */
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const API_TIMEOUT = 5000; // 5 seconds timeout
+
+/**
+ * Fetch with timeout
+ */
+const fetchWithTimeout = async (url, options, timeout = API_TIMEOUT) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Request timeout');
+    }
+    throw error;
+  }
+};
+
 const HF_API_KEY = import.meta.env.VITE_HUGGING_FACE_API_KEY;
 
 /**
@@ -226,7 +251,7 @@ export const analyzeReportTextWithProtocol = async (reportData) => {
 async function classifyText(text, hypothesis) {
   try {
     // Use backend proxy to avoid CORS issues
-    const response = await fetch(`${BACKEND_URL}/api/huggingface/text-sentiment`, {
+    const response = await fetchWithTimeout(`${BACKEND_URL}/api/huggingface/text-sentiment`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

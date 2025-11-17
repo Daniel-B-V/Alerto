@@ -63,10 +63,10 @@ function StormCard({ typhoon, isSelected, onClick }) {
       } ${isNearPhilippines ? 'border-red-400' : 'border-gray-200'}`}
       onClick={onClick}
     >
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-2 pt-3 px-3">
         <div className="flex items-start justify-between">
           <div className="flex-1">
-            <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
+            <CardTitle className="text-base flex items-center gap-2 flex-wrap">
               {name}
               {isNearPhilippines && (
                 <Badge className="bg-red-500 text-white text-xs">
@@ -75,7 +75,7 @@ function StormCard({ typhoon, isSelected, onClick }) {
                 </Badge>
               )}
             </CardTitle>
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-2 mt-1">
               <Badge
                 className="text-xs font-semibold text-white"
                 style={{ backgroundColor: current.categoryColor }}
@@ -87,14 +87,14 @@ function StormCard({ typhoon, isSelected, onClick }) {
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-2 px-3 pb-3">
         {/* Wind Speed - Most Important Metric */}
-        <div className="flex items-center gap-3 bg-orange-50 border border-orange-200 rounded-lg p-3">
-          <Wind className="w-6 h-6 text-orange-600 flex-shrink-0" />
+        <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 rounded-lg p-2">
+          <Wind className="w-5 h-5 text-orange-600 flex-shrink-0" />
           <div className="flex-1">
             <div className="text-xs text-orange-700 font-medium">Wind Speed</div>
-            <div className="text-xl font-bold text-orange-900">
-              {current.windSpeed} <span className="text-sm font-normal">km/h</span>
+            <div className="text-lg font-bold text-orange-900">
+              {current.windSpeed} <span className="text-xs font-normal">km/h</span>
             </div>
           </div>
         </div>
@@ -125,13 +125,13 @@ function StormCard({ typhoon, isSelected, onClick }) {
 
         {/* Proximity Warning - Only if near Philippines */}
         {landfallInfo && (
-          <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-3 mt-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+          <div className="flex items-start gap-2 bg-yellow-50 border border-yellow-200 rounded-lg p-2 mt-2">
+            <AlertTriangle className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
             <div className="flex-1">
-              <div className="text-sm font-semibold text-yellow-900">
+              <div className="text-xs font-semibold text-yellow-900">
                 {landfallInfo.title}
               </div>
-              <div className="text-xs text-yellow-700 mt-1">
+              <div className="text-xs text-yellow-700 mt-0.5">
                 {landfallInfo.message}
               </div>
             </div>

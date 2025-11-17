@@ -2,7 +2,24 @@
 import { getSeverityConfig } from '../constants/categorization';
 
 const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyDDL3nl6cR3xsIQ8Ilv046_7xjIa-iIo0E';
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
+// Use v1 API endpoint with gemini-1.5-flash-latest (more stable)
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent';
+
+// API health tracking to prevent console spam
+let apiFailureCount = 0;
+let apiDisabled = false;
+const MAX_FAILURES = 3;
+const ERROR_LOG_INTERVAL = 60000; // Log errors max once per minute
+let lastErrorLog = 0;
+
+const logError = (message, error) => {
+  const now = Date.now();
+  if (now - lastErrorLog > ERROR_LOG_INTERVAL) {
+    console.error(message, error);
+    lastErrorLog = now;
+  }
+};
+
 
 /**
  * Analyze multiple community reports and compile them into a single executive summary
@@ -38,21 +55,16 @@ Analyze these ${reports.length} community reports and provide:
    - Medium: Moderate weather conditions, some disruption
    - Low: Light rain, minor issues
 
-2. **Confidence Score**: Percentage (0-100%) based on:
-   - Number of reports from the same location
-   - Consistency of descriptions
-   - Severity of reported conditions
-
-3. **Compiled Summary**: Create a concise, professional summary (100-150 words) that:
+2. **Compiled Summary**: Create a concise, professional summary (100-150 words) that:
    - Highlights the main weather issue
    - Mentions the affected location(s)
    - Notes the number of sources/reports
    - Describes the impact (road conditions, flooding, etc.)
    - Is written for government officials to make quick decisions
 
-4. **Key Points**: List 3-5 bullet points of the most critical information
+3. **Key Points**: List 3-5 bullet points of the most critical information
 
-5. **Recommendation**: Brief recommendation for the LGU (e.g., "Recommend class suspension", "Monitor situation", "No action needed")
+4. **Recommendation**: Brief recommendation for the LGU (e.g., "Recommend class suspension", "Monitor situation", "No action needed")
 
 Reports to analyze:
 ${reportsText}
@@ -60,7 +72,6 @@ ${reportsText}
 Respond in JSON format:
 {
   "severity": "critical|high|medium|low",
-  "confidence": 85,
   "summary": "Your compiled summary here...",
   "keyPoints": ["point 1", "point 2", "point 3"],
   "recommendation": "Your recommendation",
@@ -104,10 +115,9 @@ Respond in JSON format:
       compiledData = JSON.parse(jsonText);
     } catch (parseError) {
       console.error('Failed to parse AI response:', parseError);
-      // Fallback parsing
+      // Fallback parsing - no confidence score, just summarization
       compiledData = {
         severity: 'medium',
-        confidence: 70,
         summary: aiResponse,
         keyPoints: ['Manual review recommended'],
         recommendation: 'Review reports manually',
@@ -124,11 +134,10 @@ Respond in JSON format:
       return images;
     }, []);
 
-    // Return compiled report
+    // Return compiled report (no confidence score - use weather/HF verification instead)
     return {
       id: `compiled_${Date.now()}`,
       severity: compiledData.severity,
-      confidence: compiledData.confidence,
       summary: compiledData.summary,
       keyPoints: compiledData.keyPoints || [],
       recommendation: compiledData.recommendation,
@@ -152,11 +161,16 @@ Respond in JSON format:
 };
 
 /**
+ * @deprecated This function is deprecated. Use separate services instead:
+ * - Weather verification: Use client-side calculation comparing weather API data
+ * - Image analysis: Use Hugging Face CLIP service (imageAnalysisService.js)
+ * - Text spam detection: Use Hugging Face NLI (textSpamDetection.js)
+ *
  * Analyze a single report with images for severity and authenticity
  * Uses current weather data to verify credibility
  * @param {Object} report - Single report with text and images
  * @param {Object} weatherData - Current weather data from OpenWeather API
- * @returns {Object} Analysis results
+ * @returns {Object} Analysis results (without confidence scores)
  */
 export const analyzeReportWithImages = async (report, weatherData = null) => {
   try {
@@ -250,24 +264,25 @@ Respond in JSON:
     const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : aiResponse;
     const analysis = JSON.parse(jsonText);
 
+    // Note: No confidence scores - use weather API comparison and Hugging Face instead
     return {
       severity: analysis.severity || 'medium',
-      confidence: analysis.confidence || 50,
       assessment: analysis.assessment || 'Report analyzed',
       isAuthentic: analysis.isAuthentic !== false,
       isCredible: analysis.isCredible !== false,
-      credibilityReason: analysis.credibilityReason || analysis.assessment
+      credibilityReason: analysis.credibilityReason || analysis.assessment,
+      note: 'This function is deprecated. Use weather verification and image analysis services separately.'
     };
 
   } catch (error) {
     console.error('Error analyzing report with images:', error);
     return {
       severity: 'medium',
-      confidence: 50,
       assessment: 'Unable to analyze report',
       isAuthentic: true,
       isCredible: true,
-      credibilityReason: 'Analysis unavailable - manual review required'
+      credibilityReason: 'Analysis unavailable - use weather API and Hugging Face verification instead',
+      note: 'This function is deprecated.'
     };
   }
 };
@@ -776,8 +791,10 @@ const fallbackSuspensionAdvisory = (weatherData, reports) => {
  * @returns {Promise<Object>} Comprehensive AI analysis with credibility, severity, patterns, and recommendations
  */
 export const analyzeCompiledLocationReports = async (locationData) => {
-  if (!GEMINI_API_KEY) {
-    console.warn('Gemini API key not configured. Using fallback analysis.');
+  if (!GEMINI_API_KEY || apiDisabled) {
+    if (!GEMINI_API_KEY) {
+      logError('Gemini API key not configured. Using fallback analysis.');
+    }
     return fallbackLocationAnalysis(locationData);
   }
 
@@ -829,31 +846,21 @@ Your task is to analyze ALL these reports comprehensively and provide:
 
    BAD EXAMPLE: "The city has received reports with critical incidents requiring attention based on volume and severity."
 
-2. **CREDIBILITY SCORE (0-100)**: Assess how credible these reports are based on:
-   - Consistency between reports (do they corroborate each other?)
-   - Quality of descriptions (specific details vs vague claims)
-   - Verification status
-   - Presence of evidence (images)
-   - Potential duplicates or fake reports
-   - Contradictory information
+2. **ACTUAL SEVERITY**: Based on ALL reports combined, determine the real threat level (CRITICAL, HIGH, MEDIUM, or LOW)
 
-3. **ACTUAL SEVERITY**: Based on ALL reports combined, determine the real threat level (CRITICAL, HIGH, MEDIUM, or LOW)
-
-4. **PATTERN DETECTION**: Identify:
+3. **PATTERN DETECTION**: Identify:
    - Timeline of events (when did incidents start/peak?)
    - Common themes across reports
    - Geographic patterns within the location
    - Correlations between different report types
 
-5. **INCONSISTENCIES**: Flag any suspicious, contradictory, or potentially fake reports
+4. **INCONSISTENCIES**: Flag any suspicious, contradictory, or potentially fake reports
 
-6. **ACTIONABLE RECOMMENDATIONS**: What should the admin DO with this information?
+5. **ACTIONABLE RECOMMENDATIONS**: What should the admin DO with this information?
 
 Respond in JSON format ONLY (no markdown, no extra text):
 {
   "compiledSummary": "Your 3-4 sentence compiled narrative of the situation",
-  "credibilityScore": 75,
-  "credibilityAssessment": "Detailed explanation of the credibility score with specific evidence",
   "actualSeverity": "CRITICAL|HIGH|MEDIUM|LOW",
   "severityReasoning": "Why you assigned this severity level based on all reports",
   "patterns": [
@@ -926,12 +933,12 @@ Respond in JSON format ONLY (no markdown, no extra text):
     const analysis = JSON.parse(jsonText.trim());
 
     // Validate and normalize the response
+    // Note: No credibility scores - Gemini focuses on summarization and patterns
+    // Use weather API + Hugging Face for factual verification instead
     return {
       success: true,
       analysis: {
         compiledSummary: analysis.compiledSummary || "Unable to generate summary",
-        credibilityScore: Math.min(100, Math.max(0, analysis.credibilityScore || 50)),
-        credibilityAssessment: analysis.credibilityAssessment || "No assessment available",
         actualSeverity: analysis.actualSeverity || "MEDIUM",
         severityReasoning: analysis.severityReasoning || "No reasoning available",
         patterns: Array.isArray(analysis.patterns) ? analysis.patterns : [],
@@ -947,24 +954,25 @@ Respond in JSON format ONLY (no markdown, no extra text):
     };
 
   } catch (error) {
-    console.error('Gemini AI location analysis error:', error);
+    logError('Gemini AI location analysis error:', error);
+    apiFailureCount++;
+
+    if (apiFailureCount >= MAX_FAILURES) {
+      apiDisabled = true;
+    }
+
     return fallbackLocationAnalysis(locationData);
   }
 };
 
 /**
  * Fallback analysis when Gemini API is unavailable
+ * Note: No credibility scoring - focuses on pattern detection and summarization
  */
 const fallbackLocationAnalysis = (locationData) => {
   const reports = locationData.reports || [];
 
-  // Calculate basic credibility score
-  let credibilityScore = 50;
-  if (locationData.verifiedReports > locationData.totalReports * 0.5) credibilityScore += 20;
-  if (locationData.totalReports >= 5) credibilityScore += 15;
-  if (reports.some(r => r.images?.length > 0)) credibilityScore += 10;
-
-  // Determine severity
+  // Determine severity based on report counts (not credibility)
   let actualSeverity = 'LOW';
   if (locationData.criticalReports >= 3) actualSeverity = 'CRITICAL';
   else if (locationData.criticalReports >= 1 || locationData.highReports >= 3) actualSeverity = 'HIGH';
@@ -1023,8 +1031,6 @@ const fallbackLocationAnalysis = (locationData) => {
     success: true,
     analysis: {
       compiledSummary: summaryText,
-      credibilityScore: Math.min(100, credibilityScore),
-      credibilityAssessment: `Based on ${locationData.verifiedReports} verified reports out of ${locationData.totalReports} total reports. Credibility assessment uses basic heuristics.`,
       actualSeverity,
       severityReasoning: `Severity determined by ${locationData.criticalReports} critical and ${locationData.highReports} high-priority reports.`,
       patterns: topCategories.length > 0 ? [`Primary incident types: ${topCategories.join(', ')}`] : ['Insufficient data for pattern detection'],
@@ -1037,7 +1043,7 @@ const fallbackLocationAnalysis = (locationData) => {
       recommendations: [
         actualSeverity === 'CRITICAL' ? 'Immediate response required - dispatch emergency teams' : 'Monitor situation closely',
         locationData.pendingReports > 0 ? `Verify ${locationData.pendingReports} pending reports` : 'Continue standard verification procedures',
-        'Use AI-powered analysis for more detailed insights'
+        'Check weather data and image analysis for factual verification'
       ],
       affectedAreas: [locationData.city],
       estimatedImpact: `Potentially affecting multiple areas within ${locationData.city}`,
@@ -1056,7 +1062,12 @@ const fallbackLocationAnalysis = (locationData) => {
  * @returns {Promise<Object>} Credibility analysis with spam detection
  */
 export const analyzeIndividualReportCredibility = async (report, otherReportsFromCity) => {
-  if (!GEMINI_API_KEY) {
+  // Check if API is disabled or key is missing
+  if (!GEMINI_API_KEY || apiDisabled) {
+    if (apiDisabled && apiFailureCount === MAX_FAILURES) {
+      logError('⚠️ Gemini API temporarily disabled due to repeated failures. Using fallback analysis.');
+      apiFailureCount++; // Increment to prevent this log from repeating
+    }
     return fallbackIndividualCredibility(report, otherReportsFromCity);
   }
 
@@ -1188,7 +1199,16 @@ Respond in JSON format ONLY:
     };
 
   } catch (error) {
-    console.error('Individual report credibility analysis error:', error);
+    apiFailureCount++;
+
+    // Disable API temporarily after MAX_FAILURES
+    if (apiFailureCount >= MAX_FAILURES) {
+      apiDisabled = true;
+      logError('⚠️ Gemini API disabled after repeated failures. Using fallback analysis.', error);
+    } else {
+      logError(`Individual report credibility analysis error (${apiFailureCount}/${MAX_FAILURES}):`, error);
+    }
+
     return fallbackIndividualCredibility(report, otherReportsFromCity);
   }
 };

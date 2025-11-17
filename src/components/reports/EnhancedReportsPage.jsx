@@ -14,6 +14,7 @@ import {
   Shield,
   X,
   ChevronLeft,
+  ChevronRight,
   ChevronDown,
   ChevronUp,
   Sparkles,
@@ -48,6 +49,9 @@ export function EnhancedReportsPage() {
   const [reportCredibility, setReportCredibility] = useState({});  // Store credibility for each report
   const [credibilityLoading, setCredibilityLoading] = useState(false);
   const [expandedReports, setExpandedReports] = useState({});  // Track expanded state for each report
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImages, setLightboxImages] = useState([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [locationFilters, setLocationFilters] = useState({
     minReports: 'all',
     credibilityStatus: 'all',
@@ -423,6 +427,27 @@ export function EnhancedReportsPage() {
     }
   };
 
+  // Lightbox functions
+  const openLightbox = (images, index = 0) => {
+    setLightboxImages(images);
+    setCurrentImageIndex(index);
+    setLightboxOpen(true);
+  };
+
+  const closeLightbox = () => {
+    setLightboxOpen(false);
+    setLightboxImages([]);
+    setCurrentImageIndex(0);
+  };
+
+  const nextImage = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % lightboxImages.length);
+  };
+
+  const prevImage = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + lightboxImages.length) % lightboxImages.length);
+  };
+
   // Handle issue suspension
   const handleIssueSuspension = () => {
     setShowSuspensionModal(true);
@@ -622,8 +647,8 @@ export function EnhancedReportsPage() {
               <SelectContent>
                 <SelectItem value="reports-desc">Most Reports First</SelectItem>
                 <SelectItem value="reports-asc">Least Reports First</SelectItem>
-                <SelectItem value="confidence-desc">Highest Confidence</SelectItem>
-                <SelectItem value="confidence-asc">Lowest Confidence</SelectItem>
+                <SelectItem value="confidence-desc">Most Verified</SelectItem>
+                <SelectItem value="confidence-asc">Needs Verification</SelectItem>
                 <SelectItem value="critical-desc">Most Critical</SelectItem>
                 <SelectItem value="city-asc">City (A-Z)</SelectItem>
               </SelectContent>
@@ -806,6 +831,70 @@ export function EnhancedReportsPage() {
             </div>
 
             <div className="overflow-y-auto p-4 space-y-4 flex-1">
+              {/* Factual Verification Section */}
+              <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-2 border-green-300 shadow-lg">
+                <CardHeader className="p-4 pb-3 bg-gradient-to-r from-green-100 to-emerald-100 border-b border-green-200">
+                  <CardTitle className="text-lg flex items-center gap-2 text-green-900">
+                    <Shield className="w-5 h-5 text-green-600" />
+                    Factual Verification
+                    <Badge className="ml-auto bg-green-600 text-white text-xs">
+                      Multi-Source
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                  {/* Verification Summary */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="bg-white rounded-lg p-3 border border-green-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">🤖</span>
+                        <span className="text-xs font-semibold text-gray-700">AI Text Check</span>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-700">
+                          {selectedLocation.reports.filter(r => r.status === 'verified').length}
+                        </div>
+                        <div className="text-xs text-gray-600">Authenticated</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-3 border border-green-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">📷</span>
+                        <span className="text-xs font-semibold text-gray-700">Image Match</span>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-green-700">
+                          {selectedLocation.reports.filter(r => r.images && r.images.length > 0).length}
+                        </div>
+                        <div className="text-xs text-gray-600">With Evidence</div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg p-3 border border-green-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-2xl">🌤️</span>
+                        <span className="text-xs font-semibold text-gray-700">Weather Data</span>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-lg font-bold text-gray-700">
+                          {selectedLocation.aiConfidence}%
+                        </div>
+                        <div className="text-xs text-gray-600">Match Score</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white rounded-lg p-3 border border-green-200">
+                    <p className="text-xs text-gray-700">
+                      <strong>Verification Methods:</strong> Reports are validated using AI spam detection (Hugging Face NLI),
+                      image authenticity analysis (Hugging Face CLIP), and weather data correlation (OpenWeather API).
+                      The match score represents consistency between reported conditions and actual weather data.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
               {/* Gemini AI Compiled Summary */}
               {aiLoading && (
                 <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200">
@@ -825,13 +914,13 @@ export function EnhancedReportsPage() {
                   <CardHeader className="p-4 pb-3 bg-gradient-to-r from-purple-100 to-blue-100 border-b border-purple-200">
                     <CardTitle className="text-lg flex items-center gap-2 text-purple-900">
                       <Sparkles className="w-5 h-5 text-purple-600" />
-                      AI Analysis
+                      AI Insights
                       <Badge className="ml-auto bg-purple-600 text-white text-xs">
-                        Credibility: {aiAnalysis.credibilityScore}%
+                        Powered by Gemini
                       </Badge>
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-4">
+                  <CardContent className="p-4 space-y-3">
                     {/* Executive Summary */}
                     <div className="bg-white rounded-lg p-4 border border-purple-200">
                       <h4 className="font-semibold text-base text-purple-900 mb-3 flex items-center gap-2">
@@ -842,6 +931,78 @@ export function EnhancedReportsPage() {
                         {aiAnalysis.compiledSummary}
                       </p>
                     </div>
+
+                    {/* Patterns Detected */}
+                    {aiAnalysis.patterns && aiAnalysis.patterns.length > 0 && (
+                      <div className="bg-white rounded-lg p-4 border border-purple-200">
+                        <h4 className="font-semibold text-base text-purple-900 mb-3 flex items-center gap-2">
+                          <Target className="w-5 h-5" />
+                          Patterns Detected
+                        </h4>
+                        <ul className="space-y-2">
+                          {aiAnalysis.patterns.map((pattern, idx) => (
+                            <li key={idx} className="text-sm text-gray-800 flex items-start gap-2">
+                              <span className="text-purple-600">•</span>
+                              <span>{pattern}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Key Findings */}
+                    {aiAnalysis.keyFindings && aiAnalysis.keyFindings.length > 0 && (
+                      <div className="bg-white rounded-lg p-4 border border-purple-200">
+                        <h4 className="font-semibold text-base text-purple-900 mb-3 flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5" />
+                          Key Findings
+                        </h4>
+                        <ul className="space-y-2">
+                          {aiAnalysis.keyFindings.map((finding, idx) => (
+                            <li key={idx} className="text-sm text-gray-800 flex items-start gap-2">
+                              <span className="text-purple-600">→</span>
+                              <span>{finding}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Recommendations */}
+                    {aiAnalysis.recommendations && aiAnalysis.recommendations.length > 0 && (
+                      <div className="bg-white rounded-lg p-4 border border-purple-200">
+                        <h4 className="font-semibold text-base text-purple-900 mb-3 flex items-center gap-2">
+                          <CheckCircle className="w-5 h-5" />
+                          Recommendations
+                        </h4>
+                        <ul className="space-y-2">
+                          {aiAnalysis.recommendations.map((rec, idx) => (
+                            <li key={idx} className="text-sm text-gray-800 flex items-start gap-2">
+                              <span className="text-purple-600">✓</span>
+                              <span>{rec}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Inconsistencies (if any) */}
+                    {aiAnalysis.inconsistencies && aiAnalysis.inconsistencies.length > 0 && (
+                      <div className="bg-white rounded-lg p-4 border border-orange-200">
+                        <h4 className="font-semibold text-base text-orange-900 mb-3 flex items-center gap-2">
+                          <AlertCircle className="w-5 h-5 text-orange-600" />
+                          Inconsistencies Detected
+                        </h4>
+                        <ul className="space-y-2">
+                          {aiAnalysis.inconsistencies.map((issue, idx) => (
+                            <li key={idx} className="text-sm text-gray-800 flex items-start gap-2">
+                              <span className="text-orange-600">⚠</span>
+                              <span>{issue}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               )}
@@ -884,7 +1045,7 @@ export function EnhancedReportsPage() {
                   {credibilityLoading && (
                     <span className="text-xs text-purple-600 flex items-center gap-1">
                       <Loader2 className="w-3 h-3 animate-spin" />
-                      Analyzing credibility...
+                      Detecting spam patterns...
                     </span>
                   )}
                 </h3>
@@ -915,7 +1076,7 @@ export function EnhancedReportsPage() {
                             {isExpanded ? report.description : (report.description?.length > 100 ? report.description.substring(0, 100) + '...' : report.description)}
                           </p>
 
-                          {/* AI Credibility Badge */}
+                          {/* AI Spam Detection Badge */}
                           {credibility && (
                             <div className="mt-2 mb-2">
                               <div className="flex items-center gap-2 flex-wrap">
@@ -934,11 +1095,11 @@ export function EnhancedReportsPage() {
                                   {credibility.category === 'SPAM' && '🚫 SPAM'}
                                   {credibility.category === 'LIKELY_SPAM' && '⚠️ Likely Spam'}
                                   {credibility.category === 'SUSPICIOUS' && '❓ Suspicious'}
-                                  {credibility.category === 'LIKELY_CREDIBLE' && '✓ Likely Credible'}
-                                  {credibility.category === 'CREDIBLE' && '✓ Credible'}
+                                  {credibility.category === 'LIKELY_CREDIBLE' && '✓ Likely Authentic'}
+                                  {credibility.category === 'CREDIBLE' && '✓ Authentic'}
                                 </Badge>
                                 <span className="text-xs text-gray-600">
-                                  {credibility.credibilityScore}% credible
+                                  🤖 AI Pattern Analysis
                                 </span>
                               </div>
                               <p className="text-xs text-gray-600 mt-1 italic">
@@ -985,6 +1146,7 @@ export function EnhancedReportsPage() {
                                       src={typeof image === 'string' ? image : image.url}
                                       alt={`Report image ${imgIdx + 1}`}
                                       className="w-16 h-16 object-cover rounded border border-gray-300 cursor-pointer hover:opacity-80 transition-opacity"
+                                      onClick={() => openLightbox(report.images, imgIdx)}
                                     />
                                   ))}
                                 </div>
@@ -1297,6 +1459,55 @@ export function EnhancedReportsPage() {
               )}
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Image Lightbox Modal */}
+      {lightboxOpen && (
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center">
+          {/* Close Button */}
+          <button
+            onClick={closeLightbox}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10"
+          >
+            <X className="w-8 h-8" />
+          </button>
+
+          {/* Image Counter */}
+          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-white text-sm font-medium bg-black/50 px-3 py-1 rounded-full">
+            {currentImageIndex + 1} / {lightboxImages.length}
+          </div>
+
+          {/* Previous Button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={prevImage}
+              className="absolute left-4 text-white hover:text-gray-300 transition-colors bg-black/50 hover:bg-black/70 rounded-full p-3"
+            >
+              <ChevronLeft className="w-8 h-8" />
+            </button>
+          )}
+
+          {/* Image Display */}
+          <div className="max-w-[90vw] max-h-[90vh] flex items-center justify-center">
+            <img
+              src={typeof lightboxImages[currentImageIndex] === 'string'
+                ? lightboxImages[currentImageIndex]
+                : lightboxImages[currentImageIndex]?.url}
+              alt={`Image ${currentImageIndex + 1}`}
+              className="max-w-full max-h-full object-contain rounded-lg"
+            />
+          </div>
+
+          {/* Next Button */}
+          {lightboxImages.length > 1 && (
+            <button
+              onClick={nextImage}
+              className="absolute right-4 text-white hover:text-gray-300 transition-colors bg-black/50 hover:bg-black/70 rounded-full p-3"
+            >
+              <ChevronRight className="w-8 h-8" />
+            </button>
+          )}
         </div>
       )}
     </div>

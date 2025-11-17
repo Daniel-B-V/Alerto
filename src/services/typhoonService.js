@@ -3,6 +3,20 @@ import { generateTestTyphoonsLocal } from './typhoonTestData';
 
 const API_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
+// Suppress axios network errors in console
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    // Suppress console logging for network errors
+    if (error.code === 'ERR_NETWORK' || error.code === 'ECONNREFUSED' || error.message?.includes('ERR_CONNECTION_REFUSED')) {
+      // Silently reject
+      return Promise.reject({ ...error, logged: true });
+    }
+    return Promise.reject(error);
+  }
+);
+
+
 /**
  * Typhoon Service
  * Frontend service for fetching typhoon data from backend API
@@ -41,7 +55,7 @@ export async function getPhilippinesTyphoons() {
 
     throw new Error('Failed to fetch Philippines typhoons');
   } catch (error) {
-    console.error('Error fetching Philippines typhoons:', error);
+    console.warn('Backend unavailable for Philippines typhoons:', error);
 
     // Return empty array instead of test data fallback
     // This allows the UI to show "No Active Typhoons" state
