@@ -525,44 +525,45 @@ export function TestRoleDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    {/* Top Section - Current Day + Week Cards + Chance of Rain (Horizontal) */}
+                    {/* Today/Tomorrow View */}
                     {(activeTab === 'today' || activeTab === 'tomorrow') && weatherData && (
-                      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_300px] gap-4">
-                        {/* Left: Large Current Day Card */}
-                        <CurrentDayCard data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
+                      <>
+                        {/* Top Section - Current Day + Week Cards + Chance of Rain */}
+                        <div className="grid grid-cols-1 lg:grid-cols-[250px_1fr_280px] gap-4">
+                          {/* Left: Large Current Day Card */}
+                          <CurrentDayCard data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
 
-                        {/* Center: Week Cards in Horizontal Row */}
-                        {weatherData.week && (
-                          <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
-                            {weatherData.week.slice(0, 6).map((day, index) => (
-                              <WeekDayCardHorizontal key={index} day={day} />
-                            ))}
-                          </div>
-                        )}
+                          {/* Center: Week Cards (6 cards in grid) */}
+                          {weatherData.week && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-6 gap-3 content-start">
+                              {weatherData.week.slice(0, 6).map((day, index) => (
+                                <WeekDayCardCompact key={index} day={day} />
+                              ))}
+                            </div>
+                          )}
 
-                        {/* Right: Chance of Rain */}
-                        <ChanceOfRainChart data={weatherData.hourlyRain} />
-                      </div>
+                          {/* Right: Chance of Rain */}
+                          <ChanceOfRainChart data={weatherData.hourlyRain} />
+                        </div>
+
+                        {/* Today's Overview Section */}
+                        <TodaysOverview data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
+
+                        {/* Bottom Section - Map + Other Cities */}
+                        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
+                          {/* Left: Map */}
+                          <PhilippinesWeatherMap />
+
+                          {/* Right: Other Cities */}
+                          <BatangasCitiesPanel cities={weatherData?.batangasCities || []} />
+                        </div>
+                      </>
                     )}
 
                     {/* Week View - Full 7 days */}
                     {activeTab === 'week' && weatherData && (
                       <WeekForecast days={weatherData.week} />
                     )}
-
-                    {/* Today's Overview Section */}
-                    {(activeTab === 'today' || activeTab === 'tomorrow') && weatherData && (
-                      <TodaysOverview data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
-                    )}
-
-                    {/* Bottom Section - Map + Cities */}
-                    <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-6">
-                      {/* Left: Map */}
-                      <PhilippinesWeatherMap />
-
-                      {/* Right: Cities */}
-                      <BatangasCitiesPanel cities={weatherData?.batangasCities || []} />
-                    </div>
                   </div>
                 )}
               </>
@@ -1015,6 +1016,42 @@ function WeekDayCardHorizontal({ day }) {
         </div>
         <div className="text-3xl font-bold text-gray-900 mb-2">{day.temp}°</div>
         <div className="text-xs text-gray-500">
+          <span className="text-red-500 font-semibold">{day.high}°</span>
+          <span className="mx-1">/</span>
+          <span className="text-blue-500 font-semibold">{day.low}°</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Week Day Card Compact - Even more compact for the reference design layout
+function WeekDayCardCompact({ day }) {
+  const getWeatherIcon = (condition) => {
+    switch (condition) {
+      case 'clear':
+      case 'sunny':
+        return <Sun className="w-12 h-12 text-yellow-400" />;
+      case 'clouds':
+      case 'cloudy':
+        return <Cloud className="w-12 h-12 text-gray-400" />;
+      case 'rain':
+      case 'rainy':
+        return <CloudRain className="w-12 h-12 text-blue-400" />;
+      default:
+        return <Cloud className="w-12 h-12 text-gray-400" />;
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl shadow-sm border border-gray-200 p-4 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center">
+      <div className="text-center w-full">
+        <div className="font-bold text-gray-800 text-xs uppercase mb-3">{day.day}</div>
+        <div className="flex justify-center mb-3">
+          {getWeatherIcon(day.condition)}
+        </div>
+        <div className="text-2xl font-bold text-gray-900 mb-1">{day.temp}°</div>
+        <div className="text-[10px] text-gray-500">
           <span className="text-red-500 font-semibold">{day.high}°</span>
           <span className="mx-1">/</span>
           <span className="text-blue-500 font-semibold">{day.low}°</span>
@@ -1590,9 +1627,11 @@ function TodaysOverview({ data }) {
 function BatangasCitiesPanel({ cities }) {
   return (
     <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-      <div className="p-5 border-b border-gray-200">
-        <h3 className="text-lg font-bold text-gray-900">Batangas Province Weather</h3>
-        <p className="text-sm text-gray-500 mt-1">Major municipalities and cities</p>
+      <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+        <h3 className="text-lg font-bold text-gray-900">Other Cities</h3>
+        <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+          See All
+        </button>
       </div>
 
       <div className="max-h-[450px] overflow-y-auto p-4 space-y-2">
