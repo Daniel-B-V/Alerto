@@ -10,7 +10,15 @@ import { ViewModeToggle } from './ViewModeToggle';
 import { ErrorBoundary } from '../shared/ErrorBoundary';
 
 // Lazy load 3D globe for better performance
-const Globe3DView = lazy(() => import('./Globe3DView').then(module => ({ default: module.Globe3DView })));
+const Globe3DView = lazy(() =>
+  import('./Globe3DView')
+    .then(module => ({ default: module.Globe3DView }))
+    .catch(err => {
+      console.error('Failed to load Globe3DView:', err);
+      // Return a fallback component
+      return { default: () => <div className="text-red-500">Failed to load 3D view. Please refresh.</div> };
+    })
+);
 
 /**
  * TyphoonTracker Component
