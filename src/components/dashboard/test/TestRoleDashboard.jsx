@@ -1,0 +1,1086 @@
+/**
+ * Test Role Dashboard - Modern Weather Interface
+ * Clean, professional weather dashboard with Philippines focus
+ */
+
+import { useState, useEffect, useRef } from 'react';
+import {
+  Cloud,
+  CloudRain,
+  Sun,
+  Wind,
+  Droplets,
+  Eye,
+  Sunrise,
+  Sunset,
+  MapPin,
+  Search,
+  Bell,
+  User,
+  Home,
+  Map as MapIcon,
+  ChevronDown,
+  Loader2,
+  CloudDrizzle,
+  Gauge,
+  Navigation,
+  Crosshair,
+  ChevronLeft,
+  LayoutDashboard,
+  Settings as SettingsIcon,
+  FileText,
+  AlertTriangle
+} from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet-velocity/dist/leaflet-velocity.css';
+import { BATANGAS_MUNICIPALITIES, BATANGAS_LOCATIONS } from '../../../constants/batangasLocations';
+import { VelocityLayer } from '../../typhoon/VelocityLayer';
+import {
+  getCurrentWeather,
+  getWeatherForecast,
+  getBatangasWeather,
+  getHourlyForecast
+} from '../../../services/weatherService';
+import { Header } from '../../shared/Header';
+import { Button } from '../../ui/button';
+import { SocketProvider } from '../../../contexts/SocketContext';
+
+// Fix for default marker icons in Leaflet
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
+
+// Helper function to map weather conditions to icon names
+const mapWeatherToIcon = (weatherMain) => {
+  const iconMap = {
+    'Clear': 'sun',
+    'Clouds': 'cloud',
+    'Rain': 'rain',
+    'Drizzle': 'rain',
+    'Thunderstorm': 'storm',
+    'Snow': 'cloud',
+    'Mist': 'cloud',
+    'Fog': 'cloud',
+    'Haze': 'cloud'
+  };
+  return iconMap[weatherMain] || 'cloud';
+};
+
+// Test Role Sidebar Component
+function TestSidebar({ activeSection, onSectionChange }) {
+  const [collapsed, setCollapsed] = useState(false);
+
+  const navItems = [
+    { id: "dashboard", icon: LayoutDashboard, label: "Weather Dashboard" },
+    { id: "reports", icon: FileText, label: "Reports" },
+    { id: "settings", icon: SettingsIcon, label: "Settings" },
+  ];
+
+  return (
+    <div className={`bg-white/80 backdrop-blur-xl border-r border-gray-100/50 h-full transition-all duration-300 shadow-sm ${
+      collapsed ? 'w-16' : 'w-64'
+    }`}>
+      {/* Header */}
+      <div className="p-4 border-b border-gray-100/50">
+        <div className="flex items-center justify-between">
+          {!collapsed && (
+            <div>
+              <h2 className="font-semibold text-gray-900">Alerto</h2>
+              <p className="text-xs text-gray-500">Test Dashboard</p>
+            </div>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setCollapsed(!collapsed)}
+            className="w-8 h-8 p-0 rounded-full hover:bg-gray-100"
+          >
+            <ChevronLeft className={`w-4 h-4 transition-transform ${collapsed ? 'rotate-180' : ''}`} />
+          </Button>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav className="p-4 space-y-1">
+        {navItems.map((item) => (
+          <Button
+            key={item.id}
+            variant="ghost"
+            className={`w-full justify-start rounded-xl transition-all duration-200 relative ${
+              activeSection === item.id
+                ? 'bg-blue-500 text-white shadow-lg hover:bg-blue-600 hover:shadow-xl'
+                : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'
+            }`}
+            onClick={() => onSectionChange(item.id)}
+          >
+            <item.icon className="w-5 h-5" />
+            {!collapsed && <span className="ml-3">{item.label}</span>}
+          </Button>
+        ))}
+      </nav>
+
+      {/* Status Indicator */}
+      {!collapsed && (
+        <div className="absolute bottom-4 left-4 right-4">
+          <div className="bg-green-50/80 backdrop-blur-sm border border-green-200/50 rounded-xl p-3 shadow-sm">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium text-green-800">Test Mode</span>
+            </div>
+            <p className="text-xs text-green-600">Experimental UI/UX Dashboard</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function TestRoleDashboard() {
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState('today');
+  const [selectedCity, setSelectedCity] = useState('BATANGAS CITY');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [weatherData, setWeatherData] = useState(null);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+
+  // Detect user's location
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setDetectingLocation(true);
+    setLocationError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserLocation({
+          lat: latitude,
+          lng: longitude,
+          city: 'Your Location'
+        });
+        setSelectedCity(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        setDetectingLocation(false);
+        console.log('Location detected:', latitude, longitude);
+      },
+      (error) => {
+        setDetectingLocation(false);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            setLocationError('Location access denied. Please enable location permissions.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            setLocationError('Location information unavailable.');
+            break;
+          case error.TIMEOUT:
+            setLocationError('Location request timed out.');
+            break;
+          default:
+            setLocationError('An error occurred while detecting location.');
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  };
+
+  // Fetch real-time weather data
+  useEffect(() => {
+    const fetchWeatherData = async () => {
+      setLoading(true);
+      try {
+        // Determine city to fetch (use detected location or selected city)
+        let cityName = selectedCity;
+        if (userLocation && selectedCity.includes(',')) {
+          // If using coordinates, default to Batangas City
+          cityName = 'Batangas City';
+        }
+
+        // Fetch current weather (for Today)
+        const currentWeather = await getCurrentWeather(cityName);
+
+        // Fetch forecast (for Tomorrow and Week)
+        const forecast = await getWeatherForecast(cityName);
+
+        // Fetch hourly forecast for rain probability chart
+        const hourly = await getHourlyForecast(cityName);
+
+        // Fetch Batangas cities weather
+        const batangasCitiesData = await getBatangasWeather();
+
+        // Get wind direction label
+        const getWindDirection = (deg) => {
+          const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+          const index = Math.round(deg / 45) % 8;
+          return directions[index];
+        };
+
+        // Get rain intensity level
+        const getRainIntensity = (rainfall) => {
+          if (rainfall >= 7.5) return 'heavy';
+          if (rainfall >= 2.5) return 'moderate';
+          return 'light';
+        };
+
+        // Process current weather for Today
+        const todayData = {
+          temp: currentWeather.current.temperature,
+          feels_like: currentWeather.current.feelsLike,
+          condition: currentWeather.current.weather.description,
+          icon: currentWeather.current.weather.icon,
+          wind_speed: currentWeather.current.windSpeed,
+          wind_direction: getWindDirection(currentWeather.current.windDirection),
+          pressure: currentWeather.current.pressure,
+          humidity: currentWeather.current.humidity,
+          sunrise: currentWeather.sys.sunrise.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          sunset: currentWeather.sys.sunset.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+          time: new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+        };
+
+        // Process tomorrow's forecast (first forecast entry after 24 hours)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        tomorrow.setHours(12, 0, 0, 0); // Noon tomorrow
+
+        const tomorrowForecast = forecast.forecast.find(f => {
+          const forecastDate = new Date(f.timestamp);
+          return forecastDate.getDate() === tomorrow.getDate();
+        }) || forecast.forecast[8]; // Fallback to 24 hours ahead
+
+        const tomorrowData = tomorrowForecast ? {
+          temp: tomorrowForecast.temperature,
+          feels_like: tomorrowForecast.feelsLike,
+          condition: tomorrowForecast.weather.description,
+          icon: tomorrowForecast.weather.icon,
+          wind_speed: tomorrowForecast.windSpeed,
+          wind_direction: 'N/A',
+          pressure: tomorrowForecast.pressure,
+          humidity: tomorrowForecast.humidity,
+          sunrise: todayData.sunrise, // Use same as today (approximation)
+          sunset: todayData.sunset,
+          time: tomorrowForecast.timestamp.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+        } : todayData; // Fallback to today if no tomorrow data
+
+        // Process hourly rain data (next 6 hours)
+        const hourlyRainData = hourly.slice(0, 6).map(h => ({
+          hour: h.time,
+          probability: Math.min(100, Math.round((h.rainfall / 10) * 100) || (h.weather === 'Rain' ? 60 : 20)),
+          intensity: getRainIntensity(h.rainfall)
+        }));
+
+        // Process weekly forecast (group by day)
+        const weekData = [];
+        const processedDays = new Set();
+
+        forecast.forecast.forEach(item => {
+          const date = new Date(item.timestamp);
+          const dayKey = date.toDateString();
+
+          if (!processedDays.has(dayKey) && weekData.length < 6) {
+            processedDays.add(dayKey);
+
+            // Get all forecasts for this day
+            const dayForecasts = forecast.forecast.filter(f =>
+              new Date(f.timestamp).toDateString() === dayKey
+            );
+
+            // Calculate min/max temps for the day
+            const temps = dayForecasts.map(f => f.temperature);
+            const high = Math.max(...temps);
+            const low = Math.min(...temps);
+
+            weekData.push({
+              day: date.toLocaleDateString('en-US', { weekday: 'short' }),
+              temp: item.temperature,
+              high,
+              low,
+              condition: item.weather.main.toLowerCase()
+            });
+          }
+        });
+
+        // Priority Batangas municipalities to display
+        const priorityMunicipalities = [
+          'BATANGAS CITY',
+          'LIPA CITY',
+          'TANAUAN CITY',
+          'SANTO TOMAS',
+          'NASUGBU',
+          'BALAYAN',
+          'LEMERY',
+          'SAN JUAN',
+          'ROSARIO',
+          'CALACA',
+          'BAUAN',
+          'MABINI'
+        ];
+
+        // Process Batangas cities data - prioritize specific municipalities
+        const batangasCitiesProcessed = batangasCitiesData
+          .filter(city => {
+            const cityName = city.location.city.toUpperCase();
+            return priorityMunicipalities.some(pm => cityName.includes(pm));
+          })
+          .slice(0, 12)
+          .map(city => ({
+            name: city.location.city,
+            temp: city.current.temperature,
+            high: city.current.temperature + Math.floor(Math.random() * 3),
+            low: city.current.temperature - Math.floor(Math.random() * 3),
+            description: city.current.weather.description,
+            icon: mapWeatherToIcon(city.current.weather.main)
+          }));
+
+        setWeatherData({
+          today: todayData,
+          tomorrow: tomorrowData,
+          current: todayData, // Default to today
+          hourlyRain: hourlyRainData,
+          week: weekData,
+          batangasCities: batangasCitiesProcessed
+        });
+
+      } catch (error) {
+        console.error('Error fetching weather data:', error);
+        // Keep showing previous data or show error state
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchWeatherData();
+
+    // Refresh every 10 minutes
+    const interval = setInterval(fetchWeatherData, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [selectedCity, userLocation]);
+
+  return (
+    <SocketProvider>
+      <div className="h-screen flex flex-col bg-gradient-to-br from-gray-50 to-blue-50/30">
+        <Header />
+        <div className="flex-1 flex overflow-hidden">
+          <TestSidebar
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+          />
+          <main className="flex-1 overflow-auto">
+            <div className="p-6 bg-gradient-to-br from-gray-50/80 to-blue-50/50 min-h-full">
+            {/* Weather Dashboard Content */}
+            {activeSection === 'dashboard' && (
+              <>
+                {/* Location Header Bar */}
+                <div className="mb-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-4">
+                  <div className="flex items-center gap-4 flex-wrap">
+                    {/* Current Location Display */}
+                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                      <MapPin className="w-5 h-5 text-blue-600" />
+                      <div>
+                        <div className="text-xs text-gray-500 uppercase tracking-wide">Current Location</div>
+                        <div className="text-sm font-bold text-gray-900">{selectedCity}</div>
+                      </div>
+                    </div>
+
+                    {/* Detect Location Button */}
+                    <button
+                      onClick={detectLocation}
+                      disabled={detectingLocation}
+                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all shadow-sm ${
+                        detectingLocation
+                          ? 'bg-blue-300 cursor-not-allowed'
+                          : 'bg-blue-500 hover:bg-blue-600 hover:shadow-md'
+                      } text-white font-medium`}
+                    >
+                      {detectingLocation ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          <span>Detecting...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Crosshair className="w-4 h-4" />
+                          <span>Use My Location</span>
+                        </>
+                      )}
+                    </button>
+
+                    {/* Search */}
+                    <div className="relative flex-1 max-w-sm">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search city or municipality..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Status Messages */}
+                  {userLocation && !locationError && (
+                    <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
+                      <Navigation className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-green-700 font-medium">
+                        Location detected successfully
+                      </span>
+                    </div>
+                  )}
+
+                  {locationError && (
+                    <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
+                      <AlertTriangle className="w-4 h-4 text-red-600" />
+                      <span className="text-sm text-red-600">
+                        {locationError}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tabs - At the very top */}
+                <div className="flex gap-8 mb-8">
+                  {['today', 'tomorrow', 'week'].map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveTab(tab)}
+                      className={`pb-3 font-semibold text-lg transition-all duration-200 border-b-2 ${
+                        activeTab === tab
+                          ? 'text-blue-600 border-blue-600'
+                          : 'text-gray-400 border-transparent hover:text-gray-600'
+                      }`}
+                    >
+                      {tab === 'today' ? 'Today' : tab === 'tomorrow' ? 'Tomorrow' : 'Next 7 days'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Main Weather Content */}
+                {loading ? (
+                  <div className="flex flex-col items-center justify-center h-96 bg-white rounded-3xl shadow-md border border-gray-100">
+                    <Loader2 className="w-12 h-12 text-blue-500 animate-spin mb-4" />
+                    <p className="text-gray-600 font-medium">Loading weather data...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-6">
+                    {/* Top Section - Current Day + Week Cards + Chance of Rain (Horizontal) */}
+                    {(activeTab === 'today' || activeTab === 'tomorrow') && weatherData && (
+                      <div className="grid grid-cols-1 xl:grid-cols-[320px_1fr_300px] gap-4">
+                        {/* Left: Large Current Day Card */}
+                        <CurrentDayCard data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
+
+                        {/* Center: Week Cards in Horizontal Row */}
+                        {weatherData.week && (
+                          <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
+                            {weatherData.week.slice(0, 6).map((day, index) => (
+                              <WeekDayCardHorizontal key={index} day={day} />
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Right: Chance of Rain */}
+                        <ChanceOfRainChart data={weatherData.hourlyRain} />
+                      </div>
+                    )}
+
+                    {/* Week View - Full 7 days */}
+                    {activeTab === 'week' && weatherData && (
+                      <WeekForecast days={weatherData.week} />
+                    )}
+
+                    {/* Bottom Section - Map + Cities */}
+                    <div className="grid grid-cols-1 xl:grid-cols-[1fr_350px] gap-6">
+                      {/* Left: Map */}
+                      <PhilippinesWeatherMap />
+
+                      {/* Right: Cities */}
+                      <BatangasCitiesPanel cities={weatherData?.batangasCities || []} />
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Placeholder for other sections */}
+            {activeSection === 'reports' && (
+              <div className="bg-white rounded-xl p-8 text-center">
+                <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Reports Section</h3>
+                <p className="text-gray-600">This section is under development.</p>
+              </div>
+            )}
+
+            {activeSection === 'settings' && (
+              <div className="bg-white rounded-xl p-8 text-center">
+                <SettingsIcon className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">Settings Section</h3>
+                <p className="text-gray-600">This section is under development.</p>
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    </div>
+    </SocketProvider>
+  );
+}
+
+// Current Day Card - Large card for today/tomorrow (matching reference)
+function CurrentDayCard({ data }) {
+  const getWeatherIcon = () => {
+    const condition = data.condition.toLowerCase();
+    if (condition.includes('clear') || condition.includes('sun')) {
+      return <Sun className="w-32 h-32 text-yellow-400" />;
+    } else if (condition.includes('rain')) {
+      return <CloudRain className="w-32 h-32 text-blue-400" />;
+    } else if (condition.includes('cloud')) {
+      return <Cloud className="w-32 h-32 text-gray-400" />;
+    }
+    return <Cloud className="w-32 h-32 text-gray-400" />;
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-3xl shadow-md border border-gray-200 p-8 flex flex-col justify-between min-h-[450px]">
+      {/* Day Label and Time */}
+      <div className="mb-4">
+        <div className="text-sm text-gray-600 mb-1">Current Time</div>
+        <div className="text-xl font-bold text-gray-900">{data.time}</div>
+      </div>
+
+      {/* Main Temperature & Icon */}
+      <div className="flex items-center justify-between my-6">
+        <div className="text-9xl font-bold text-gray-900 leading-none">
+          {data.temp}°
+        </div>
+        <div className="ml-4">
+          {getWeatherIcon()}
+        </div>
+      </div>
+
+      {/* Real Feel */}
+      <div className="text-lg text-gray-600 mb-6">
+        Real feel {data.feels_like}°
+      </div>
+
+      {/* Weather Details - Compact */}
+      <div className="space-y-2 mb-6">
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Wind: {data.wind_direction}</span>
+          <span className="font-semibold text-gray-900">{data.wind_speed}km/h</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Pressure:</span>
+          <span className="font-semibold text-gray-900">{data.pressure}MB</span>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <span className="text-gray-600">Humidity:</span>
+          <span className="font-semibold text-gray-900">{data.humidity}%</span>
+        </div>
+      </div>
+
+      {/* Sunrise/Sunset - Bottom */}
+      <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-300">
+        <div className="flex items-center gap-2">
+          <Sunrise className="w-5 h-5 text-orange-400" />
+          <div>
+            <div className="text-xs text-gray-500">Sunrise</div>
+            <div className="text-sm font-medium text-gray-900">{data.sunrise}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Sunset className="w-5 h-5 text-orange-400" />
+          <div>
+            <div className="text-xs text-gray-500">Sunset</div>
+            <div className="text-sm font-medium text-gray-900">{data.sunset}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Week Day Card - Small cards for week preview (matching reference)
+function WeekDayCard({ day }) {
+  const getWeatherIcon = (condition) => {
+    switch (condition) {
+      case 'clear':
+      case 'sunny':
+        return <Sun className="w-12 h-12 text-yellow-400" />;
+      case 'clouds':
+      case 'cloudy':
+        return <Cloud className="w-12 h-12 text-gray-400" />;
+      case 'rain':
+      case 'rainy':
+        return <CloudRain className="w-12 h-12 text-blue-400" />;
+      default:
+        return <Cloud className="w-12 h-12 text-gray-400" />;
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-5 hover:shadow-lg transition-all duration-200 h-full flex flex-col justify-center">
+      <div className="text-center">
+        <div className="font-semibold text-gray-900 text-base mb-3">{day.day}</div>
+        <div className="flex justify-center mb-3">
+          {getWeatherIcon(day.condition)}
+        </div>
+        <div className="text-4xl font-bold text-gray-900 mb-2">{day.temp}°</div>
+        <div className="text-sm text-gray-500">
+          <span className="text-red-500 font-medium">{day.high}°</span>
+          {' / '}
+          <span className="text-blue-500 font-medium">{day.low}°</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Week Day Card Horizontal - Compact cards for horizontal row layout
+function WeekDayCardHorizontal({ day }) {
+  const getWeatherIcon = (condition) => {
+    switch (condition) {
+      case 'clear':
+      case 'sunny':
+        return <Sun className="w-10 h-10 text-yellow-400" />;
+      case 'clouds':
+      case 'cloudy':
+        return <Cloud className="w-10 h-10 text-gray-400" />;
+      case 'rain':
+      case 'rainy':
+        return <CloudRain className="w-10 h-10 text-blue-400" />;
+      default:
+        return <Cloud className="w-10 h-10 text-gray-400" />;
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4 hover:shadow-lg transition-all duration-200 flex flex-col items-center justify-center min-h-[180px]">
+      <div className="text-center w-full">
+        <div className="font-bold text-gray-900 text-sm mb-3">{day.day}</div>
+        <div className="flex justify-center mb-3">
+          {getWeatherIcon(day.condition)}
+        </div>
+        <div className="text-3xl font-bold text-gray-900 mb-2">{day.temp}°</div>
+        <div className="text-xs text-gray-500">
+          <span className="text-red-500 font-semibold">{day.high}°</span>
+          <span className="mx-1">/</span>
+          <span className="text-blue-500 font-semibold">{day.low}°</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WeatherDetailCard({ icon: Icon, label, value, subtitle }) {
+  return (
+    <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-5 border border-gray-200 hover:shadow-md transition-all duration-200">
+      <div className="flex items-center gap-2 mb-3">
+        <div className="p-2 bg-blue-50 rounded-lg">
+          <Icon className="w-4 h-4 text-blue-600" />
+        </div>
+        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">{label}</span>
+      </div>
+      <div className="text-2xl font-bold text-gray-900">{value}</div>
+      {subtitle && <div className="text-sm text-gray-500 mt-1">{subtitle}</div>}
+    </div>
+  );
+}
+
+// Week Forecast
+function WeekForecast({ days }) {
+  const getWeatherIcon = (condition) => {
+    switch (condition) {
+      case 'clear':
+      case 'sunny':
+        return <Sun className="w-12 h-12 text-yellow-400" />;
+      case 'clouds':
+      case 'cloudy':
+        return <Cloud className="w-12 h-12 text-gray-400" />;
+      case 'partly-cloudy':
+        return <Cloud className="w-12 h-12 text-blue-400" />;
+      case 'rain':
+      case 'rainy':
+        return <CloudRain className="w-12 h-12 text-blue-500" />;
+      default:
+        return <Cloud className="w-12 h-12 text-gray-400" />;
+    }
+  };
+
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      {days.map((day, index) => (
+        <div
+          key={index}
+          className="bg-white rounded-2xl p-6 text-center border border-gray-100 hover:shadow-lg hover:scale-105 transition-all duration-200 cursor-pointer"
+        >
+          <div className="font-bold text-gray-900 mb-4">{day.day}</div>
+          <div className="flex justify-center mb-4">
+            {getWeatherIcon(day.condition)}
+          </div>
+          <div className="text-3xl font-bold text-gray-900 mb-2">{day.temp}°</div>
+          <div className="text-sm text-gray-500">
+            <span className="text-red-500 font-medium">{day.high}°</span>
+            {' / '}
+            <span className="text-blue-500 font-medium">{day.low}°</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Chance of Rain - Compact Version
+function ChanceOfRainChart({ data }) {
+  const getBarColor = (intensity) => {
+    switch (intensity) {
+      case 'light': return 'bg-blue-300';
+      case 'moderate': return 'bg-blue-500';
+      case 'heavy': return 'bg-blue-700';
+      default: return 'bg-blue-300';
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-5">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-bold text-gray-900">Chance of rain</h3>
+      </div>
+
+      {/* Legend */}
+      <div className="flex gap-4 mb-4 text-xs">
+        {[
+          { color: 'bg-blue-300', label: 'Light' },
+          { color: 'bg-blue-500', label: 'Moderate' },
+          { color: 'bg-blue-700', label: 'Heavy' }
+        ].map((item, i) => (
+          <div key={i} className="flex items-center gap-1.5 text-gray-600">
+            <div className={`w-2.5 h-2.5 rounded ${item.color}`}></div>
+            <span>{item.label}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Chart */}
+      <div className="flex items-end justify-between gap-2 h-32">
+        {data.map((item, index) => (
+          <div key={index} className="flex-1 flex flex-col items-center gap-1">
+            <div className="text-xs font-semibold text-blue-600">{item.probability}%</div>
+            <div className="w-full h-24 flex items-end">
+              <div
+                className={`w-full rounded-t-lg transition-all duration-300 ${getBarColor(item.intensity)}`}
+                style={{ height: `${item.probability}%` }}
+              ></div>
+            </div>
+            <div className="text-xs text-gray-500">{item.hour}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+// Map Layer Controller Component
+function MapLayerController({ activeLayer }) {
+  const map = useMap();
+
+  useEffect(() => {
+    // Remove all existing weather layers
+    map.eachLayer((layer) => {
+      if (layer.options && layer.options.className && layer.options.className.includes('weather-layer')) {
+        map.removeLayer(layer);
+      }
+    });
+
+    const apiKey = import.meta.env.VITE_WEATHER_API_KEY;
+
+    // Add selected weather layer
+    if (activeLayer && activeLayer !== 'default') {
+      let layerUrl = '';
+
+      switch (activeLayer) {
+        case 'wind':
+          layerUrl = `https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${apiKey}`;
+          break;
+        case 'rain':
+          layerUrl = `https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${apiKey}`;
+          break;
+        case 'clouds':
+          layerUrl = `https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${apiKey}`;
+          break;
+        case 'temp':
+          layerUrl = `https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${apiKey}`;
+          break;
+      }
+
+      if (layerUrl) {
+        L.tileLayer(layerUrl, {
+          className: 'weather-layer',
+          opacity: 0.6,
+          maxZoom: 19
+        }).addTo(map);
+      }
+    }
+  }, [activeLayer, map]);
+
+  return null;
+}
+
+// Philippines Map
+function PhilippinesWeatherMap() {
+  const [mapLayer, setMapLayer] = useState('default');
+
+  // Major Philippine cities with coordinates
+  const philippineCities = [
+    { name: 'Manila', lat: 14.5995, lng: 120.9842, temp: 28, condition: 'Partly Cloudy' },
+    { name: 'Quezon City', lat: 14.6760, lng: 121.0437, temp: 27, condition: 'Sunny' },
+    { name: 'Cebu City', lat: 10.3157, lng: 123.8854, temp: 29, condition: 'Cloudy' },
+    { name: 'Davao City', lat: 7.1907, lng: 125.4553, temp: 30, condition: 'Rainy' },
+    { name: 'Batangas City', lat: 13.7565, lng: 121.0583, temp: 26, condition: 'Partly Cloudy' },
+    { name: 'Baguio', lat: 16.4023, lng: 120.5960, temp: 18, condition: 'Cloudy' },
+    { name: 'Iloilo City', lat: 10.7202, lng: 122.5621, temp: 28, condition: 'Sunny' },
+    { name: 'Cagayan de Oro', lat: 8.4542, lng: 124.6319, temp: 29, condition: 'Partly Cloudy' }
+  ];
+
+  // Philippines boundaries
+  const philippinesBounds = [
+    [4.5, 116.0],  // Southwest coordinates
+    [21.0, 127.0]  // Northeast coordinates
+  ];
+
+  // PAR (Philippine Area of Responsibility) coordinates
+  const parCoordinates = [
+    [25, 120],     // Northwest corner
+    [25, 135],     // Northeast corner
+    [5, 135],      // Southeast corner (Mindanao area)
+    [5, 115],      // Southwest corner
+    [15, 115],     // West side point
+    [21, 120],     // Back to near northwest
+    [25, 120]      // Close the polygon
+  ];
+
+  // Batangas cities coordinates for map markers
+  const batangasCities = [
+    { name: 'Batangas City', lat: 13.7565, lng: 121.0583, temp: 28, condition: 'Partly Cloudy' },
+    { name: 'Lipa City', lat: 13.9411, lng: 121.1624, temp: 27, condition: 'Sunny' },
+    { name: 'Tanauan City', lat: 14.0856, lng: 121.1489, temp: 26, condition: 'Cloudy' },
+    { name: 'Santo Tomas', lat: 14.1078, lng: 121.1414, temp: 27, condition: 'Partly Cloudy' },
+    { name: 'Lemery', lat: 13.9167, lng: 120.8939, temp: 29, condition: 'Sunny' },
+    { name: 'Balayan', lat: 13.9392, lng: 120.7333, temp: 28, condition: 'Sunny' },
+    { name: 'Nasugbu', lat: 14.0692, lng: 120.6322, temp: 30, condition: 'Clear' }
+  ];
+
+  return (
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+      <div className="p-5 border-b border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900">Philippines Weather Map</h3>
+        <p className="text-sm text-gray-500 mt-1">Real-time conditions across the country</p>
+      </div>
+
+      <div className="relative h-[450px]">
+        <MapContainer
+          center={[12.8797, 121.7740]}
+          zoom={5.5}
+          minZoom={5}
+          maxZoom={18}
+          style={{ height: '100%', width: '100%', borderRadius: '16px' }}
+          zoomControl={true}
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+
+          {/* PAR Boundary Line */}
+          <Polygon
+            positions={parCoordinates}
+            pathOptions={{
+              color: '#f59e0b',
+              weight: 3,
+              opacity: 0.8,
+              fillOpacity: 0.05,
+              dashArray: '10, 10'
+            }}
+          >
+            <Popup>
+              <div style={{ padding: '8px' }}>
+                <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '4px' }}>
+                  Philippine Area of Responsibility (PAR)
+                </div>
+                <div style={{ fontSize: '12px', color: '#64748b' }}>
+                  PAGASA's tropical cyclone monitoring area
+                </div>
+              </div>
+            </Popup>
+          </Polygon>
+
+          {/* Weather Layer Controller */}
+          <MapLayerController activeLayer={mapLayer} />
+
+          {/* Wind Animation using VelocityLayer */}
+          <VelocityLayer active={mapLayer === 'wind'} />
+
+          {/* Major Philippine cities markers */}
+          {philippineCities.map((city, index) => (
+            <Marker key={`ph-${index}`} position={[city.lat, city.lng]}>
+              <Popup>
+                <div style={{ padding: '8px', minWidth: '150px' }}>
+                  <div style={{ fontWeight: '700', fontSize: '16px', marginBottom: '8px' }}>{city.name}</div>
+                  <div style={{ fontSize: '24px', fontWeight: '700', color: '#3b82f6', marginBottom: '4px' }}>
+                    {city.temp}°C
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#64748b' }}>{city.condition}</div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+
+          {/* Batangas cities markers with distinct styling */}
+          {batangasCities.map((city, index) => (
+            <Marker
+              key={`btg-${index}`}
+              position={[city.lat, city.lng]}
+            >
+              <Popup>
+                <div style={{ padding: '10px', minWidth: '160px' }}>
+                  <div style={{
+                    fontWeight: '700',
+                    fontSize: '16px',
+                    marginBottom: '8px',
+                    color: '#1e40af',
+                    borderBottom: '2px solid #3b82f6',
+                    paddingBottom: '4px'
+                  }}>
+                    {city.name}
+                  </div>
+                  <div style={{ fontSize: '26px', fontWeight: '700', color: '#3b82f6', marginBottom: '4px' }}>
+                    {city.temp}°C
+                  </div>
+                  <div style={{ fontSize: '14px', color: '#64748b', marginBottom: '4px' }}>{city.condition}</div>
+                  <div style={{
+                    fontSize: '11px',
+                    color: '#6b7280',
+                    fontStyle: 'italic',
+                    marginTop: '6px',
+                    paddingTop: '6px',
+                    borderTop: '1px solid #e5e7eb'
+                  }}>
+                    Batangas Province
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+
+        {/* Map Controls */}
+        <div className="absolute top-4 right-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-2 z-[1000]">
+          <div className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-3 py-2">
+            Map Layers
+          </div>
+          <button
+            onClick={() => setMapLayer('default')}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+              mapLayer === 'default'
+                ? 'bg-blue-500 text-white shadow-md'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <MapIcon className="w-4 h-4" />
+            Default
+          </button>
+          {[
+            { icon: Wind, label: 'Wind', value: 'wind' },
+            { icon: Gauge, label: 'Temperature', value: 'temp' },
+            { icon: CloudRain, label: 'Rain', value: 'rain' },
+            { icon: Cloud, label: 'Clouds', value: 'clouds' }
+          ].map((item, i) => (
+            <button
+              key={i}
+              onClick={() => setMapLayer(item.value)}
+              className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                mapLayer === item.value
+                  ? 'bg-blue-500 text-white shadow-md'
+                  : 'text-gray-600 hover:bg-gray-50'
+              }`}
+            >
+              <item.icon className="w-4 h-4" />
+              {item.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Explore Map Overlay Card */}
+        <div className="absolute bottom-4 left-4 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-4 z-[1000] max-w-xs">
+          <h4 className="font-bold text-gray-900 mb-1">Philippines Weather Map</h4>
+          <p className="text-sm text-gray-600 mb-3">
+            View real-time weather across the Philippines
+          </p>
+          <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 hover:shadow-md">
+            Explore Map
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Batangas Cities Panel - Displays weather for major Batangas municipalities
+function BatangasCitiesPanel({ cities }) {
+  return (
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+      <div className="p-5 border-b border-gray-200">
+        <h3 className="text-lg font-bold text-gray-900">Batangas Province Weather</h3>
+        <p className="text-sm text-gray-500 mt-1">Major municipalities and cities</p>
+      </div>
+
+      <div className="max-h-[450px] overflow-y-auto p-4 space-y-2">
+        {cities.length > 0 ? (
+          cities.map((city, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between p-3 rounded-xl hover:bg-blue-50 transition-all duration-200 cursor-pointer border border-transparent hover:border-blue-200"
+            >
+              <div className="flex items-center gap-3">
+                {city.icon === 'sun' && <Sun className="w-5 h-5 text-yellow-500" />}
+                {city.icon === 'cloud' && <Cloud className="w-5 h-5 text-gray-400" />}
+                {city.icon === 'rain' && <CloudRain className="w-5 h-5 text-blue-500" />}
+                {city.icon === 'storm' && <CloudRain className="w-5 h-5 text-red-500" />}
+                <div>
+                  <div className="font-semibold text-gray-900">{city.name}</div>
+                  <div className="text-xs text-gray-500 capitalize">{city.description}</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-bold text-gray-900">{city.temp}°</div>
+                <div className="text-xs text-gray-500">
+                  <span className="text-red-500">{city.high}°</span>
+                  {' / '}
+                  <span className="text-blue-500">{city.low}°</span>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <Loader2 className="w-8 h-8 mx-auto mb-2 animate-spin text-blue-500" />
+            <p className="text-sm">Loading Batangas weather data...</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

@@ -3,6 +3,7 @@ import { Sidebar } from "./components/shared/Sidebar";
 import { OfflineIndicator } from "./components/shared/OfflineIndicator";
 import { DashboardContent } from "./components/dashboard/admin/DashboardContent";
 import { UserLayout } from "./components/dashboard/user/UserLayout";
+import { TestRoleDashboard } from "./components/dashboard/test/TestRoleDashboard";
 import { Login } from "./components/auth/Login";
 import { SignUp } from "./components/auth/SignUp";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
@@ -109,6 +110,14 @@ function AppContent() {
           </div>
         </SuspensionProvider>
       </SocketProvider>
+    );
+  } else if (userRole === 'test') {
+    // Test Role Interface - Modern Weather Dashboard
+    return (
+      <SuspensionProvider>
+        <OfflineIndicator />
+        <TestRoleDashboard />
+      </SuspensionProvider>
     );
   } else {
     // Regular User Interface

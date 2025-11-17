@@ -16,7 +16,8 @@ import {
   MapPin,
   RefreshCw,
   Check,
-  Info
+  Info,
+  FlaskConical
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { setUserRole } from '../../firebase/firestore';
@@ -38,7 +39,7 @@ const Settings = () => {
       const result = await setUserRole(user.uid, role, city);
 
       if (result.success) {
-        const roleLabel = role === 'governor' ? 'Governor' : role === 'mayor' ? `Mayor of ${city}` : 'User';
+        const roleLabel = role === 'governor' ? 'Governor' : role === 'mayor' ? `Mayor of ${city}` : role === 'test' ? 'Test Role' : 'User';
         setMessage({
           type: 'success',
           text: `✅ Successfully switched to ${roleLabel}! Refreshing...`
@@ -102,12 +103,16 @@ const Settings = () => {
                 ? 'bg-purple-100 text-purple-800'
                 : currentRole === 'mayor'
                 ? 'bg-blue-100 text-blue-800'
+                : currentRole === 'test'
+                ? 'bg-green-100 text-green-800'
                 : 'bg-gray-100 text-gray-800'
             }>
               {currentRole === 'governor' || currentRole === 'admin' || currentRole === 'super_admin'
                 ? '👑 Governor/Admin'
                 : currentRole === 'mayor'
                 ? `🏛️ Mayor${user?.assignedCity ? ` of ${user.assignedCity}` : ''}`
+                : currentRole === 'test'
+                ? '🧪 Test Role'
                 : '👤 User'}
             </Badge>
           </div>
@@ -291,6 +296,48 @@ const Settings = () => {
                   'Current Role'
                 ) : (
                   'Switch to User'
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Test Role Option */}
+          <div className="border-2 rounded-lg p-5 hover:border-green-300 hover:bg-green-50/30 transition-all">
+            <div className="flex items-center mb-3">
+              <FlaskConical className="w-5 h-5 text-green-600 mr-2" />
+              <h3 className="font-bold text-lg">Test Role</h3>
+              {currentRole === 'test' && (
+                <Badge className="ml-2 bg-green-100 text-green-800">
+                  <Check className="w-3 h-3 mr-1" />
+                  Current
+                </Badge>
+              )}
+            </div>
+            <p className="text-sm text-gray-600 mb-3">
+              Same permissions as regular user, designed for UI/UX experimentation and testing.
+            </p>
+            <ul className="text-xs text-gray-500 space-y-1 mb-4">
+              <li>✓ View active suspensions</li>
+              <li>✓ Submit community reports</li>
+              <li>✓ View weather information</li>
+              <li>✓ Test UI/UX changes safely</li>
+            </ul>
+            <div className="pt-3 border-t mt-4">
+              <button
+                onClick={() => handleSwitchRole('test')}
+                disabled={switching || currentRole === 'test'}
+                className="w-full !bg-green-600 hover:!bg-green-700 disabled:!bg-gray-400 disabled:cursor-not-allowed !text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                style={{ backgroundColor: switching || currentRole === 'test' ? '#9ca3af' : '#16a34a', color: 'white' }}
+              >
+                {switching ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Switching...
+                  </>
+                ) : currentRole === 'test' ? (
+                  'Current Role'
+                ) : (
+                  'Switch to Test Role'
                 )}
               </button>
             </div>

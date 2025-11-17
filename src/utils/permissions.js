@@ -16,6 +16,12 @@ export const isMayor = (user) => {
   return user.role?.toLowerCase() === 'mayor';
 };
 
+// Check if user is Test Role (same as regular user, for UI/UX testing)
+export const isTestRole = (user) => {
+  if (!user) return false;
+  return user.role?.toLowerCase() === 'test';
+};
+
 // Governor can issue suspensions directly
 export const canIssueSuspension = (user) => {
   return isGovernor(user);
@@ -192,6 +198,14 @@ export const getRoleBadge = (user) => {
       icon: '🏛️',
       color: 'blue',
       fullLabel: `Mayor • ${city || 'Unassigned'}`
+    };
+  }
+  if (isTestRole(user)) {
+    return {
+      label: 'Test',
+      icon: '🧪',
+      color: 'green',
+      fullLabel: 'Test Role • UI/UX Testing'
     };
   }
   return {
