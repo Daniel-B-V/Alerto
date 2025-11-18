@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Wind, AlertCircle, TestTube } from 'lucide-react';
+import { RefreshCw, Wind, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { getPhilippinesTyphoons, getTestTyphoons } from '../../services/typhoonService';
+import { getPhilippinesTyphoons } from '../../services/typhoonService';
 import TyphoonMap from './TyphoonMap';
 import StormDetailsPanel from './StormDetailsPanel';
 import TyphoonTimeline from './TyphoonTimeline';
@@ -18,8 +18,6 @@ export function TyphoonTracker() {
   const [error, setError] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [useTestData, setUseTestData] = useState(false);
-  const [isTestDataMode, setIsTestDataMode] = useState(false);
   const [selectedTimelineDate, setSelectedTimelineDate] = useState(null);
 
   // Auto-refresh interval (10 minutes)
@@ -28,33 +26,15 @@ export function TyphoonTracker() {
   /**
    * Load typhoon data
    */
-  const loadTyphoonData = useCallback(async (showLoading = true, forceTestData = false) => {
+  const loadTyphoonData = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) {
         setIsRefreshing(true);
       }
       setError(null);
 
-      let data;
-      let isTest = forceTestData || useTestData;
-
-      if (isTest) {
-        console.log('🧪 Loading TEST typhoon data...');
-        const result = await getTestTyphoons();
-        data = result.data;
-        setIsTestDataMode(true);
-      } else {
-        console.log('🌀 Loading REAL typhoon data from backend...');
-        data = await getPhilippinesTyphoons();
-
-        // Check if data is actually test data (auto-fallback from service)
-        if (data.length > 0 && data[0].isTestData) {
-          console.log('⚠️ Backend unavailable, auto-loaded test data');
-          setIsTestDataMode(true);
-        } else {
-          setIsTestDataMode(false);
-        }
-      }
+      console.log('🌀 Loading typhoon data...');
+      const data = await getPhilippinesTyphoons();
 
       setTyphoons(data);
       setLastUpdate(new Date());
@@ -64,7 +44,7 @@ export function TyphoonTracker() {
         setSelectedTyphoon(data[0]);
       }
 
-      console.log(`✅ Loaded ${data.length} typhoon(s) ${isTest || (data.length > 0 && data[0].isTestData) ? '(TEST DATA)' : '(REAL DATA)'}`);
+      console.log(`✅ Loaded ${data.length} typhoon(s)`);
 
       // Clear any previous errors since we have data
       setError(null);
@@ -78,7 +58,7 @@ export function TyphoonTracker() {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, [selectedTyphoon, useTestData]);
+  }, [selectedTyphoon]);
 
   /**
    * Initial load
@@ -114,16 +94,6 @@ export function TyphoonTracker() {
   };
 
   /**
-   * Toggle between real and test data
-   */
-  const handleToggleTestData = () => {
-    const newTestDataState = !useTestData;
-    setUseTestData(newTestDataState);
-    setSelectedTyphoon(null); // Reset selection
-    loadTyphoonData(true, newTestDataState);
-  };
-
-  /**
    * Handle timeline date change
    */
   const handleTimelineDateChange = (date) => {
@@ -153,12 +123,6 @@ export function TyphoonTracker() {
               <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
                 <Wind className="w-7 h-7 text-red-500" />
                 Real-Time Typhoon Tracker
-                {isTestDataMode && (
-                  <Badge className="bg-yellow-500 text-white flex items-center gap-1">
-                    <TestTube className="w-3 h-3" />
-                    TEST MODE
-                  </Badge>
-                )}
               </h2>
               <p className="text-gray-600 text-sm mt-1">
                 Live tracking of tropical cyclones affecting the Philippines
@@ -171,17 +135,6 @@ export function TyphoonTracker() {
                   Last updated: {lastUpdate.toLocaleTimeString()}
                 </div>
               )}
-              <button
-                onClick={handleToggleTestData}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                  useTestData
-                    ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                }`}
-              >
-                <TestTube className="w-4 h-4" />
-                {useTestData ? 'Using Test Data' : 'Use Test Data'}
-              </button>
               <button
                 onClick={handleRefresh}
                 disabled={isRefreshing}
@@ -245,63 +198,33 @@ export function TyphoonTracker() {
                             The Western Pacific basin is currently clear.
                           </p>
                         </div>
-                        <button
-                          onClick={handleToggleTestData}
-                          className="flex items-center gap-2 px-3 py-2 bg-yellow-500 text-white text-sm rounded-lg hover:bg-yellow-600 transition-colors"
-                        >
-                          <TestTube className="w-4 h-4" />
-                          View Test Data for Demo
-                        </button>
                       </div>
                     </CardContent>
                   </Card>
                 )}
 
                 {/* Data Source Info - Always show */}
-                <Card className={isTestDataMode ? "bg-yellow-50 border-yellow-300" : "bg-blue-50 border-blue-200"}>
+                <Card className="bg-blue-50 border-blue-200">
                   <CardContent className="p-3">
                     <div className="text-xs space-y-2">
-                      {isTestDataMode ? (
-                        <>
-                          <div className="font-semibold text-yellow-900 flex items-center gap-2">
-                            <TestTube className="w-4 h-4" />
-                            Test Data Mode
-                          </div>
-                          <div className="text-yellow-700">
-                            Currently displaying synthetic test data for demonstration purposes.
-                          </div>
-                          <div className="text-yellow-600">
-                            Sample typhoon:
-                            <ul className="list-disc list-inside mt-1 ml-2">
-                              <li>UWAN (Usagi) - Recent Nov 2025 typhoon approaching Northern Luzon</li>
-                            </ul>
-                          </div>
-                          <div className="pt-2 border-t border-yellow-300 text-yellow-700 font-semibold">
-                            ⚠️ This is NOT real typhoon data!
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="font-semibold text-blue-900">Data Source</div>
-                          <div className="text-blue-700">
-                            NOAA ATCF (Automated Tropical Cyclone Forecasting System)
-                          </div>
-                          <div className="text-blue-600">
-                            Updates every 10 minutes • Western Pacific Basin
-                          </div>
-                          <div className="pt-2 border-t border-blue-200 text-blue-600">
-                            For official warnings, please monitor{' '}
-                            <a
-                              href="https://www.pagasa.dost.gov.ph"
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="font-semibold underline hover:text-blue-800"
-                            >
-                              PAGASA
-                            </a>
-                          </div>
-                        </>
-                      )}
+                      <div className="font-semibold text-blue-900">Data Source</div>
+                      <div className="text-blue-700">
+                        NOAA ATCF (Automated Tropical Cyclone Forecasting System)
+                      </div>
+                      <div className="text-blue-600">
+                        Updates every 10 minutes • Western Pacific Basin
+                      </div>
+                      <div className="pt-2 border-t border-blue-200 text-blue-600">
+                        For official warnings, please monitor{' '}
+                        <a
+                          href="https://www.pagasa.dost.gov.ph"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold underline hover:text-blue-800"
+                        >
+                          PAGASA
+                        </a>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

@@ -22,7 +22,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { getReports } from '../../../firebase/firestore';
 import { useSuspensions } from '../../../hooks/useSuspensions';
 import { getBatangasWeatherWithSuspensionCriteria } from '../../../services/weatherService';
-import { BATANGAS_LOCATIONS } from '../../../constants/suspensionCriteria';
+import { BATANGAS_MUNICIPALITIES } from '../../../constants/batangasLocations';
 
 const CityGridView = ({ onCitySelect }) => {
   const { user } = useAuth();
@@ -31,6 +31,62 @@ const CityGridView = ({ onCitySelect }) => {
   const [loading, setLoading] = useState(true);
   const [weatherData, setWeatherData] = useState([]);
   const [reports, setReports] = useState([]);
+
+  // Helper function to format city name for display
+  const formatCityName = (name) => {
+    return name.split(' ').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
+  // Process data for each city
+  const processCityData = (weather, allReports, suspensions) => {
+    const cityStats = BATANGAS_MUNICIPALITIES.map(cityName => {
+      // Get weather data for this city (case-insensitive match)
+      const cityWeather = weather.find(w =>
+        w.city?.toLowerCase() === cityName.toLowerCase()
+      );
+
+      // Get reports for this city (case-insensitive match)
+      const cityReports = allReports.filter(
+        r => r.location?.city?.toLowerCase() === cityName.toLowerCase() ||
+             r.city?.toLowerCase() === cityName.toLowerCase()
+      );
+
+      // Count critical reports
+      const criticalReports = cityReports.filter(
+        r => r.severity === 'critical' || r.severity === 'high'
+      ).length;
+
+      // Check if city has active suspension (case-insensitive match)
+      const suspension = suspensions.find(s =>
+        s.city?.toLowerCase() === cityName.toLowerCase()
+      );
+
+      // Determine alert level based on weather and reports
+      const alertLevel = getAlertLevel(cityWeather, criticalReports, suspension);
+
+      return {
+        name: formatCityName(cityName),
+        weather: cityWeather,
+        totalReports: cityReports.length,
+        criticalReports,
+        suspension,
+        alertLevel,
+        recentReports: cityReports.slice(0, 5)
+      };
+    });
+
+    // Sort by alert level (highest first), then by critical reports
+    cityStats.sort((a, b) => {
+      if (a.alertLevel !== b.alertLevel) {
+        return b.alertLevel - a.alertLevel;
+      }
+      return b.criticalReports - a.criticalReports;
+    });
+
+    setCitiesData(cityStats);
+  };
 
   // Load weather and reports data
   useEffect(() => {
@@ -51,7 +107,7 @@ const CityGridView = ({ onCitySelect }) => {
         setReports(batangasReports);
 
         // Process city data
-        processCityData(weather, batangasReports);
+        processCityData(weather, batangasReports, activeSuspensions);
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -64,51 +120,7 @@ const CityGridView = ({ onCitySelect }) => {
     // Refresh every 5 minutes
     const interval = setInterval(loadData, 5 * 60 * 1000);
     return () => clearInterval(interval);
-  }, []);
-
-  // Process data for each city
-  const processCityData = (weather, allReports) => {
-    const cityStats = BATANGAS_LOCATIONS.map(cityName => {
-      // Get weather data for this city
-      const cityWeather = weather.find(w => w.city === cityName);
-
-      // Get reports for this city
-      const cityReports = allReports.filter(
-        r => r.location?.city === cityName || r.city === cityName
-      );
-
-      // Count critical reports
-      const criticalReports = cityReports.filter(
-        r => r.severity === 'critical' || r.severity === 'high'
-      ).length;
-
-      // Check if city has active suspension
-      const suspension = activeSuspensions.find(s => s.city === cityName);
-
-      // Determine alert level based on weather and reports
-      const alertLevel = getAlertLevel(cityWeather, criticalReports, suspension);
-
-      return {
-        name: cityName,
-        weather: cityWeather,
-        totalReports: cityReports.length,
-        criticalReports,
-        suspension,
-        alertLevel,
-        recentReports: cityReports.slice(0, 5)
-      };
-    });
-
-    // Sort by alert level (highest first), then by critical reports
-    cityStats.sort((a, b) => {
-      if (a.alertLevel !== b.alertLevel) {
-        return b.alertLevel - a.alertLevel;
-      }
-      return b.criticalReports - a.criticalReports;
-    });
-
-    setCitiesData(cityStats);
-  };
+  }, [activeSuspensions]);
 
   // Determine alert level (0-3)
   const getAlertLevel = (weather, criticalReports, suspension) => {

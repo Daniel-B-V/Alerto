@@ -23,6 +23,7 @@ import {
 import { getBatangasWeather, getClimateForecast } from "../../services/weatherService";
 import { getReports } from "../../firebase/firestore";
 import { calculateWeatherSeverity, getSeverityConfig, CATEGORY_CONFIG } from "../../constants/categorization";
+import { BATANGAS_MUNICIPALITIES } from "../../constants/batangasLocations";
 
 export function AnalyticsPanel() {
   const [loading, setLoading] = useState(true);
@@ -43,19 +44,52 @@ export function AnalyticsPanel() {
       // Fetch weather data
       const weatherData = await getBatangasWeather();
 
-      // Remove duplicate cities (keep only the first occurrence of each city)
-      const uniqueCities = [];
-      const seenCities = new Set();
+      // Helper function to format city name for display
+      const formatCityName = (name) => {
+        return name.split(' ').map(word =>
+          word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+        ).join(' ');
+      };
 
-      weatherData.forEach(city => {
-        const cityName = city.location?.city || 'Unknown';
-        if (!seenCities.has(cityName)) {
-          seenCities.add(cityName);
-          uniqueCities.push(city);
+      console.log('BATANGAS_MUNICIPALITIES count:', BATANGAS_MUNICIPALITIES.length);
+      console.log('Weather data from API count:', weatherData?.length || 0);
+
+      // Create weather data for all municipalities
+      const allCitiesWeather = BATANGAS_MUNICIPALITIES.map(cityName => {
+        // Find existing weather data for this city (case-insensitive match)
+        const existingData = (weatherData || []).find(w =>
+          w.location?.city?.toLowerCase() === cityName.toLowerCase()
+        );
+
+        if (existingData) {
+          return {
+            ...existingData,
+            hasData: true
+          };
         }
+
+        // Create placeholder data for cities without weather data
+        return {
+          location: {
+            city: formatCityName(cityName),
+            province: 'Batangas'
+          },
+          current: {
+            temperature: '--',
+            rainfall: 0,
+            windSpeed: 0,
+            humidity: '--',
+            weather: {
+              description: 'No data available'
+            }
+          },
+          alerts: [],
+          hasData: false
+        };
       });
 
-      setCitiesWeather(uniqueCities);
+      console.log('Total cities to display:', allCitiesWeather.length);
+      setCitiesWeather(allCitiesWeather);
 
       // Fetch 4-day climate forecast (optional, don't fail the entire page if this fails)
       try {
@@ -247,35 +281,39 @@ export function AnalyticsPanel() {
                 `}</style>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pr-2">
                   {citiesWeather.map((city, index) => {
+              // Check if city has actual weather data
+              const hasData = city.hasData !== false;
+
               // Check if weather data has alerts array with risk level
               const alertLevel = city.alerts && city.alerts.length > 0 ? city.alerts[0].level : null;
 
               // Calculate risk level using centralized function
-              const riskLevel = alertLevel || calculateWeatherSeverity(
-                city.current.rainfall,
-                city.current.windSpeed
-              );
+              const riskLevel = hasData
+                ? (alertLevel || calculateWeatherSeverity(city.current.rainfall, city.current.windSpeed))
+                : 'low';
 
               // Get severity configuration
               const severityConfig = getSeverityConfig(riskLevel);
 
               return (
-                <Card key={index} className="bg-white border border-gray-200 shadow-sm">
+                <Card key={index} className={`bg-white border border-gray-200 shadow-sm ${!hasData ? 'opacity-60' : ''}`}>
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-lg">{city.location.city}</CardTitle>
                       <Badge
                         className="text-xs text-white"
-                        style={{ backgroundColor: severityConfig.color }}
+                        style={{ backgroundColor: hasData ? severityConfig.color : '#9CA3AF' }}
                       >
-                        {severityConfig.label.toUpperCase()}
+                        {hasData ? severityConfig.label.toUpperCase() : 'NO DATA'}
                       </Badge>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex items-center gap-2 pb-3 border-b border-gray-200">
                       <Cloud className="w-4 h-4 text-gray-600" />
-                      <span className="text-2xl font-bold">{city.current.temperature}°C</span>
+                      <span className="text-2xl font-bold">
+                        {hasData ? `${city.current.temperature}°C` : '--'}
+                      </span>
                       <span className="text-sm text-gray-600">{city.current.weather.description}</span>
                     </div>
 
@@ -286,11 +324,11 @@ export function AnalyticsPanel() {
                           <span>Rainfall</span>
                         </span>
                         <span className={`font-semibold ${
-                          city.current.rainfall > 10 ? 'text-red-600' :
-                          city.current.rainfall > 5 ? 'text-orange-600' :
+                          hasData && city.current.rainfall > 10 ? 'text-red-600' :
+                          hasData && city.current.rainfall > 5 ? 'text-orange-600' :
                           'text-gray-700'
                         }`}>
-                          {city.current.rainfall} mm/h
+                          {hasData ? `${city.current.rainfall} mm/h` : '-- mm/h'}
                         </span>
                       </div>
 
@@ -300,11 +338,11 @@ export function AnalyticsPanel() {
                           <span>Wind Speed</span>
                         </span>
                         <span className={`font-semibold ${
-                          city.current.windSpeed > 40 ? 'text-red-600' :
-                          city.current.windSpeed > 30 ? 'text-orange-600' :
+                          hasData && city.current.windSpeed > 40 ? 'text-red-600' :
+                          hasData && city.current.windSpeed > 30 ? 'text-orange-600' :
                           'text-gray-700'
                         }`}>
-                          {city.current.windSpeed} km/h
+                          {hasData ? `${city.current.windSpeed} km/h` : '-- km/h'}
                         </span>
                       </div>
 
@@ -313,7 +351,9 @@ export function AnalyticsPanel() {
                           <Droplets className="w-4 h-4 text-blue-600" />
                           <span>Humidity</span>
                         </span>
-                        <span className="font-semibold text-gray-700">{city.current.humidity}%</span>
+                        <span className="font-semibold text-gray-700">
+                          {hasData ? `${city.current.humidity}%` : '--%'}
+                        </span>
                       </div>
                     </div>
                   </CardContent>

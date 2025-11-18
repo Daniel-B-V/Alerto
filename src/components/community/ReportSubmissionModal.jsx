@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, Upload, MapPin, AlertTriangle, Loader, Plus } from "lucide-react";
+import { X, Upload, MapPin, AlertTriangle, Loader, Plus, CheckCircle } from "lucide-react";
 import { createReport } from "../../firebase/firestore";
 import { uploadMultipleImagesToCloudinary } from "../../services/cloudinaryService";
 import { analyzeReportImages } from "../../services/imageAnalysisService";
@@ -22,6 +22,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -69,6 +70,14 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
     setImagePreview(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleSuccessClose = () => {
+    setShowSuccessModal(false);
+    if (onSubmitSuccess) {
+      onSubmitSuccess();
+    }
+    onClose();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -93,7 +102,11 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
       let aiAnalysis = null;
       if (imageUrls.length > 0) {
-        aiAnalysis = await analyzeReportImages(imageUrls);
+        aiAnalysis = await analyzeReportImages(imageUrls, {
+          hazardType: formData.hazardType,
+          title: formData.title,
+          description: formData.description
+        });
       }
 
       // Helper function to remove undefined values from objects
@@ -127,6 +140,25 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         }
       });
 
+      // Calculate combined AI credibility score
+      let aiCredibility = 50; // Default neutral score
+
+      if (aiAnalysis && textAnalysis) {
+        // Combine image and text analysis scores (weighted average)
+        const imageScore = aiAnalysis.confidence || 50;
+        const textScore = textAnalysis.confidence || 50;
+        aiCredibility = Math.round((imageScore * 0.6) + (textScore * 0.4));
+      } else if (aiAnalysis) {
+        aiCredibility = aiAnalysis.confidence || 50;
+      } else if (textAnalysis) {
+        aiCredibility = textAnalysis.confidence || 50;
+      }
+
+      // Reduce credibility if spam detected
+      if (textSpamResult?.isSpam) {
+        aiCredibility = Math.min(aiCredibility, 30);
+      }
+
       const reportData = cleanObject({
         title: formData.title || `${formData.hazardType} Report`,
         description: formData.description,
@@ -139,9 +171,9 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         images: imageUrls || [],
         aiAnalysis: aiAnalysis || null,
         textAnalysis: textAnalysis || null,
+        aiCredibility: aiCredibility,
         spamScore: textSpamResult?.spamScore ?? 0,
         isSpam: textSpamResult?.isSpam ?? false,
-        status: (textSpamResult?.isSpam ?? false) ? 'rejected' : 'pending',
         userId: user?.uid || 'anonymous',
         userName: user?.displayName || 'Anonymous',
         userEmail: user?.email || 'anonymous@alerto.com',
@@ -149,7 +181,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         createdAt: new Date()
       });
 
-      await createReport(reportData);
+      await createReport(reportData, user?.uid);
 
       setFormData({
         title: '',
@@ -162,21 +194,54 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
       setImagePreview([]);
       setUploadProgress(0);
 
-      if (onSubmitSuccess) {
-        onSubmitSuccess();
-      }
-
-      onClose();
-      alert('Report submitted successfully!');
+      setShowSuccessModal(true);
     } catch (error) {
       console.error('Error submitting report:', error);
-      alert('Failed to submit report. Please try again.');
+
+      // Provide more specific error messages
+      let errorMessage = 'Failed to submit report. ';
+
+      if (error.message?.includes('Cloudinary')) {
+        errorMessage += 'Image upload failed. Please try again or submit without images.';
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage += 'Network error. Please check your internet connection.';
+      } else if (error.message?.includes('permission') || error.message?.includes('PERMISSION_DENIED')) {
+        errorMessage += 'Permission denied. Please sign in again.';
+      } else if (error.code === 'permission-denied') {
+        errorMessage += 'You do not have permission to submit reports.';
+      } else {
+        errorMessage += error.message || 'Please try again.';
+      }
+
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
   };
 
   if (!isOpen) return null;
+
+  // Success Modal
+  if (showSuccessModal) {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-xl shadow-2xl p-6 text-center" style={{ width: '360px', maxWidth: '90%' }}>
+          <div className="flex justify-center mb-4">
+            <CheckCircle className="w-16 h-16 text-green-500" />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">Report Submitted Successfully</h3>
+          <p className="text-gray-600 mb-6">Thank you for helping your community stay informed and safe.</p>
+          <button
+            onClick={handleSuccessClose}
+            style={{ backgroundColor: '#2563EB', color: '#FFFFFF' }}
+            className="w-full px-6 py-3 hover:bg-blue-700 font-semibold rounded-lg transition-colors"
+          >
+            OK
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">

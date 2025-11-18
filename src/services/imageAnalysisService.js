@@ -10,14 +10,13 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
  */
 export const analyzeReportImages = async (imageUrls, reportData, weatherData = null) => {
   try {
-
-    if (!imageUrls || imageUrls.length === 0) {
     // Validate reportData parameter
     if (!reportData || typeof reportData !== 'object') {
       console.warn('⚠️ Image analysis: reportData is missing or invalid, using default values');
       reportData = { hazardType: 'other' };
     }
 
+    if (!imageUrls || imageUrls.length === 0) {
       return {
         credible: true,
         confidence: 50,

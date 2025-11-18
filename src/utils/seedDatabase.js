@@ -3,6 +3,7 @@
 import { collection, addDoc, getDocs, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { generateAllDummyData, getTestScenarios } from './dummyData';
+import { BATANGAS_MUNICIPALITIES } from '../constants/batangasLocations';
 
 // Clear all existing reports from database
 export const clearAllReports = async () => {
@@ -67,97 +68,98 @@ export const clearAllSuspensions = async () => {
   }
 };
 
-// Generate weather data based on scenario
+// Generate weather data based on scenario for ALL 34 municipalities
 const generateWeatherData = (scenario = 'critical') => {
   const now = new Date();
 
-  // Scenario configurations
-  const scenarios = {
+  // Helper to format city name
+  const formatCityName = (name) => {
+    return name.split(' ').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
+  };
+
+  // Coordinates for all municipalities
+  const cityCoordinates = {
+    'Agoncillo': { lat: 13.9333, lon: 120.9167 },
+    'Alitagtag': { lat: 13.8667, lon: 121.0167 },
+    'Balayan': { lat: 13.9333, lon: 120.7333 },
+    'Balete': { lat: 13.7833, lon: 121.0833 },
+    'Batangas City': { lat: 13.7565, lon: 121.0583 },
+    'Bauan': { lat: 13.7917, lon: 121.0083 },
+    'Calaca': { lat: 13.9333, lon: 120.8000 },
+    'Calatagan': { lat: 13.8333, lon: 120.6333 },
+    'Cuenca': { lat: 13.9000, lon: 121.0500 },
+    'Ibaan': { lat: 13.8167, lon: 121.1333 },
+    'Laurel': { lat: 14.0500, lon: 120.9167 },
+    'Lemery': { lat: 13.9167, lon: 120.8833 },
+    'Lian': { lat: 14.0333, lon: 120.6500 },
+    'Lipa City': { lat: 13.9411, lon: 121.1650 },
+    'Lobo': { lat: 13.6500, lon: 121.2167 },
+    'Mabini': { lat: 13.7333, lon: 120.9000 },
+    'Malvar': { lat: 14.0333, lon: 121.1500 },
+    'Mataas Na Kahoy': { lat: 13.9667, lon: 121.0833 },
+    'Nasugbu': { lat: 14.0667, lon: 120.6333 },
+    'Padre Garcia': { lat: 13.8833, lon: 121.2167 },
+    'Rosario': { lat: 13.8500, lon: 121.2000 },
+    'San Jose': { lat: 13.8667, lon: 121.1000 },
+    'San Juan': { lat: 13.8333, lon: 121.4000 },
+    'San Luis': { lat: 13.8500, lon: 121.0167 },
+    'San Nicolas': { lat: 13.9333, lon: 121.0500 },
+    'San Pascual': { lat: 13.8000, lon: 121.0333 },
+    'Santa Teresita': { lat: 13.8500, lon: 120.9833 },
+    'Santo Tomas': { lat: 14.1078, lon: 121.1411 },
+    'Taal': { lat: 13.8833, lon: 120.9333 },
+    'Talisay': { lat: 13.9500, lon: 120.9333 },
+    'Tanauan City': { lat: 14.0857, lon: 121.1503 },
+    'Taysan': { lat: 13.7833, lon: 121.2000 },
+    'Tingloy': { lat: 13.6333, lon: 120.8667 },
+    'Tuy': { lat: 14.0167, lon: 120.7333 }
+  };
+
+  // Specific weather for key cities based on scenario
+  const scenarioConfigs = {
     critical: {
-      // High confidence - multiple cities in crisis
-      cities: {
-        'Lipa City': { temp: 24, humidity: 95, windSpeed: 65, rainfall: 45, condition: 'Thunderstorm', desc: 'heavy thunderstorm with heavy rain', alert: 'critical', alertType: 'typhoon', alertMsg: 'Signal No. 2 - Severe weather conditions' },
-        'Batangas City': { temp: 25, humidity: 92, windSpeed: 58, rainfall: 38, condition: 'Rain', desc: 'heavy intensity rain', alert: 'high', alertType: 'heavy_rain', alertMsg: 'Heavy rainfall advisory in effect' },
-        'Tanauan City': { temp: 23, humidity: 90, windSpeed: 52, rainfall: 32, condition: 'Rain', desc: 'heavy rain with strong winds', alert: 'high', alertType: 'storm', alertMsg: 'Severe thunderstorm warning' },
-        'Santo Tomas': { temp: 24, humidity: 88, windSpeed: 45, rainfall: 25, condition: 'Rain', desc: 'moderate to heavy rain', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall advisory' },
-        'Rosario': { temp: 24, humidity: 87, windSpeed: 42, rainfall: 22, condition: 'Rain', desc: 'moderate rain', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall warning' },
-        'Ibaan': { temp: 25, humidity: 84, windSpeed: 38, rainfall: 16, condition: 'Rain', desc: 'light to moderate rain', alert: 'low', alertType: null, alertMsg: null },
-        'Taal': { temp: 25, humidity: 85, windSpeed: 38, rainfall: 18, condition: 'Rain', desc: 'moderate rain', alert: 'low', alertType: null, alertMsg: null },
-        'Lemery': { temp: 26, humidity: 82, windSpeed: 35, rainfall: 15, condition: 'Rain', desc: 'light to moderate rain', alert: 'low', alertType: null, alertMsg: null },
-        'Balayan': { temp: 26, humidity: 80, windSpeed: 32, rainfall: 12, condition: 'Clouds', desc: 'overcast clouds with light rain', alert: 'low', alertType: null, alertMsg: null },
-        'Nasugbu': { temp: 27, humidity: 78, windSpeed: 28, rainfall: 8, condition: 'Clouds', desc: 'partly cloudy', alert: 'low', alertType: null, alertMsg: null },
-        'Mabini': { temp: 27, humidity: 78, windSpeed: 30, rainfall: 5, condition: 'Clouds', desc: 'scattered clouds', alert: 'low', alertType: null, alertMsg: null },
-        'San Juan': { temp: 26, humidity: 80, windSpeed: 33, rainfall: 8, condition: 'Rain', desc: 'light rain', alert: 'low', alertType: null, alertMsg: null },
-        'Bauan': { temp: 27, humidity: 76, windSpeed: 28, rainfall: 3, condition: 'Clouds', desc: 'broken clouds', alert: 'low', alertType: null, alertMsg: null },
-        'San Pascual': { temp: 26, humidity: 79, windSpeed: 31, rainfall: 7, condition: 'Rain', desc: 'light rain showers', alert: 'low', alertType: null, alertMsg: null },
-        'Calaca': { temp: 27, humidity: 75, windSpeed: 26, rainfall: 2, condition: 'Clouds', desc: 'partly cloudy', alert: 'low', alertType: null, alertMsg: null }
-      }
+      'Lipa City': { temp: 24, humidity: 95, windSpeed: 65, rainfall: 45, condition: 'Thunderstorm', desc: 'heavy thunderstorm with heavy rain', alert: 'critical', alertType: 'typhoon', alertMsg: 'Signal No. 2 - Severe weather conditions' },
+      'Batangas City': { temp: 25, humidity: 92, windSpeed: 58, rainfall: 38, condition: 'Rain', desc: 'heavy intensity rain', alert: 'high', alertType: 'heavy_rain', alertMsg: 'Heavy rainfall advisory in effect' },
+      'Tanauan City': { temp: 23, humidity: 90, windSpeed: 52, rainfall: 32, condition: 'Rain', desc: 'heavy rain with strong winds', alert: 'high', alertType: 'storm', alertMsg: 'Severe thunderstorm warning' },
+      'Santo Tomas': { temp: 24, humidity: 88, windSpeed: 45, rainfall: 25, condition: 'Rain', desc: 'moderate to heavy rain', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall advisory' },
+      'Rosario': { temp: 24, humidity: 87, windSpeed: 42, rainfall: 22, condition: 'Rain', desc: 'moderate rain', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall warning' }
     },
     moderate: {
-      // Medium confidence - one city with moderate conditions
-      cities: {
-        'Lipa City': { temp: 26, humidity: 78, windSpeed: 25, rainfall: 8, condition: 'Rain', desc: 'light rain', alert: 'low', alertType: null, alertMsg: null },
-        'Batangas City': { temp: 27, humidity: 75, windSpeed: 22, rainfall: 5, condition: 'Clouds', desc: 'scattered clouds', alert: 'low', alertType: null, alertMsg: null },
-        'Tanauan City': { temp: 25, humidity: 85, windSpeed: 38, rainfall: 20, condition: 'Rain', desc: 'moderate rain', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall advisory' },
-        'Santo Tomas': { temp: 27, humidity: 72, windSpeed: 20, rainfall: 3, condition: 'Clouds', desc: 'partly cloudy', alert: 'low', alertType: null, alertMsg: null },
-        'Rosario': { temp: 28, humidity: 70, windSpeed: 18, rainfall: 2, condition: 'Clouds', desc: 'few clouds', alert: 'low', alertType: null, alertMsg: null },
-        'Ibaan': { temp: 27, humidity: 73, windSpeed: 19, rainfall: 4, condition: 'Clouds', desc: 'partly cloudy', alert: 'low', alertType: null, alertMsg: null },
-        'Taal': { temp: 28, humidity: 71, windSpeed: 17, rainfall: 1, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Lemery': { temp: 28, humidity: 72, windSpeed: 18, rainfall: 2, condition: 'Clouds', desc: 'scattered clouds', alert: 'low', alertType: null, alertMsg: null },
-        'Balayan': { temp: 29, humidity: 69, windSpeed: 16, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Nasugbu': { temp: 29, humidity: 68, windSpeed: 15, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Mabini': { temp: 28, humidity: 70, windSpeed: 17, rainfall: 1, condition: 'Clouds', desc: 'few clouds', alert: 'low', alertType: null, alertMsg: null },
-        'San Juan': { temp: 27, humidity: 74, windSpeed: 20, rainfall: 3, condition: 'Clouds', desc: 'scattered clouds', alert: 'low', alertType: null, alertMsg: null },
-        'Bauan': { temp: 28, humidity: 71, windSpeed: 18, rainfall: 1, condition: 'Clouds', desc: 'few clouds', alert: 'low', alertType: null, alertMsg: null },
-        'San Pascual': { temp: 27, humidity: 73, windSpeed: 19, rainfall: 2, condition: 'Clouds', desc: 'partly cloudy', alert: 'low', alertType: null, alertMsg: null },
-        'Calaca': { temp: 29, humidity: 68, windSpeed: 15, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null }
-      }
+      'Tanauan City': { temp: 25, humidity: 85, windSpeed: 38, rainfall: 20, condition: 'Rain', desc: 'moderate rain', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall advisory' }
     },
-    normal: {
-      // Low confidence - mostly clear/good weather
-      cities: {
-        'Lipa City': { temp: 29, humidity: 68, windSpeed: 15, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Batangas City': { temp: 30, humidity: 65, windSpeed: 12, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Tanauan City': { temp: 28, humidity: 70, windSpeed: 14, rainfall: 0, condition: 'Clouds', desc: 'few clouds', alert: 'low', alertType: null, alertMsg: null },
-        'Santo Tomas': { temp: 29, humidity: 67, windSpeed: 13, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Rosario': { temp: 29, humidity: 66, windSpeed: 13, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Ibaan': { temp: 28, humidity: 69, windSpeed: 14, rainfall: 1, condition: 'Clouds', desc: 'few clouds', alert: 'low', alertType: null, alertMsg: null },
-        'Taal': { temp: 30, humidity: 64, windSpeed: 11, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Lemery': { temp: 30, humidity: 65, windSpeed: 12, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Balayan': { temp: 31, humidity: 62, windSpeed: 10, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Nasugbu': { temp: 31, humidity: 61, windSpeed: 10, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'Mabini': { temp: 30, humidity: 64, windSpeed: 11, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'San Juan': { temp: 29, humidity: 67, windSpeed: 13, rainfall: 0, condition: 'Clouds', desc: 'few clouds', alert: 'low', alertType: null, alertMsg: null },
-        'Bauan': { temp: 30, humidity: 65, windSpeed: 12, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null },
-        'San Pascual': { temp: 29, humidity: 66, windSpeed: 13, rainfall: 0, condition: 'Clouds', desc: 'few clouds', alert: 'low', alertType: null, alertMsg: null },
-        'Calaca': { temp: 31, humidity: 62, windSpeed: 10, rainfall: 0, condition: 'Clear', desc: 'clear sky', alert: 'low', alertType: null, alertMsg: null }
-      }
-    }
+    normal: {}
   };
 
-  const cityCoordinates = {
-    'Lipa City': { lat: 13.9411, lon: 121.1650 },
-    'Batangas City': { lat: 13.7565, lon: 121.0583 },
-    'Tanauan City': { lat: 14.0857, lon: 121.1503 },
-    'Santo Tomas': { lat: 14.1078, lon: 121.1411 },
-    'Rosario': { lat: 13.8500, lon: 121.2000 },
-    'Ibaan': { lat: 13.8167, lon: 121.1333 },
-    'Taal': { lat: 13.8833, lon: 120.9333 },
-    'Lemery': { lat: 13.9167, lon: 120.8833 },
-    'Balayan': { lat: 13.9333, lon: 120.7333 },
-    'Nasugbu': { lat: 14.0667, lon: 120.6333 },
-    'Mabini': { lat: 13.7333, lon: 120.9000 },
-    'San Juan': { lat: 13.8333, lon: 121.4000 },
-    'Bauan': { lat: 13.7917, lon: 121.0083 },
-    'San Pascual': { lat: 13.8000, lon: 121.0333 },
-    'Calaca': { lat: 13.9333, lon: 120.8000 }
-  };
-
-  const selectedScenario = scenarios[scenario] || scenarios.critical;
+  const selectedConfig = scenarioConfigs[scenario] || scenarioConfigs.critical;
   const weatherDataArray = [];
 
-  Object.entries(selectedScenario.cities).forEach(([cityName, config]) => {
-    const coords = cityCoordinates[cityName] || { lat: 13.9411, lon: 121.1650 };
+  // Generate weather for all municipalities
+  BATANGAS_MUNICIPALITIES.forEach(municipality => {
+    const cityName = formatCityName(municipality);
+    const coords = cityCoordinates[cityName] || { lat: 13.8500, lon: 121.0000 };
+
+    // Check if city has specific scenario config
+    const specificConfig = selectedConfig[cityName];
+
+    // Default weather (varies slightly per city for realism)
+    const baseTemp = 28 + Math.floor(Math.random() * 4);
+    const baseHumidity = 65 + Math.floor(Math.random() * 15);
+    const baseWindSpeed = 10 + Math.floor(Math.random() * 15);
+    const baseRainfall = scenario === 'critical' ? Math.floor(Math.random() * 10) : 0;
+
+    const config = specificConfig || {
+      temp: baseTemp,
+      humidity: baseHumidity,
+      windSpeed: baseWindSpeed,
+      rainfall: baseRainfall,
+      condition: baseRainfall > 5 ? 'Rain' : baseRainfall > 0 ? 'Clouds' : 'Clear',
+      desc: baseRainfall > 5 ? 'light rain' : baseRainfall > 0 ? 'scattered clouds' : 'clear sky',
+      alert: 'low',
+      alertType: null,
+      alertMsg: null
+    };
 
     const weatherData = {
       location: {

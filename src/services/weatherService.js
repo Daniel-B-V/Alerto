@@ -7,9 +7,48 @@ import {
   checkAutoSuspendCriteria,
   PAGASA_WARNINGS
 } from '../constants/suspensionCriteria';
+import { BATANGAS_MUNICIPALITIES } from '../constants/batangasLocations';
 
 const WEATHER_API_KEY = import.meta.env.VITE_WEATHER_API_KEY;
 const WEATHER_API_URL = import.meta.env.VITE_WEATHER_API_URL || 'https://api.openweathermap.org/data/2.5';
+
+// Coordinates for all 34 Batangas municipalities
+const MUNICIPALITY_COORDINATES = {
+  'AGONCILLO': { lat: 13.9333, lon: 120.9167 },
+  'ALITAGTAG': { lat: 13.8667, lon: 121.0167 },
+  'BALAYAN': { lat: 13.9333, lon: 120.7333 },
+  'BALETE': { lat: 13.7833, lon: 121.0833 },
+  'BATANGAS CITY': { lat: 13.7565, lon: 121.0583 },
+  'BAUAN': { lat: 13.7917, lon: 121.0083 },
+  'CALACA': { lat: 13.9333, lon: 120.8000 },
+  'CALATAGAN': { lat: 13.8333, lon: 120.6333 },
+  'CUENCA': { lat: 13.9000, lon: 121.0500 },
+  'IBAAN': { lat: 13.8167, lon: 121.1333 },
+  'LAUREL': { lat: 14.0500, lon: 120.9167 },
+  'LEMERY': { lat: 13.9167, lon: 120.8833 },
+  'LIAN': { lat: 14.0333, lon: 120.6500 },
+  'LIPA CITY': { lat: 13.9411, lon: 121.1650 },
+  'LOBO': { lat: 13.6500, lon: 121.2167 },
+  'MABINI': { lat: 13.7333, lon: 120.9000 },
+  'MALVAR': { lat: 14.0333, lon: 121.1500 },
+  'MATAAS NA KAHOY': { lat: 13.9667, lon: 121.0833 },
+  'NASUGBU': { lat: 14.0667, lon: 120.6333 },
+  'PADRE GARCIA': { lat: 13.8833, lon: 121.2167 },
+  'ROSARIO': { lat: 13.8500, lon: 121.2000 },
+  'SAN JOSE': { lat: 13.8667, lon: 121.1000 },
+  'SAN JUAN': { lat: 13.8333, lon: 121.4000 },
+  'SAN LUIS': { lat: 13.8500, lon: 121.0167 },
+  'SAN NICOLAS': { lat: 13.9333, lon: 121.0500 },
+  'SAN PASCUAL': { lat: 13.8000, lon: 121.0333 },
+  'SANTA TERESITA': { lat: 13.8500, lon: 120.9833 },
+  'SANTO TOMAS': { lat: 14.1078, lon: 121.1411 },
+  'TAAL': { lat: 13.8833, lon: 120.9333 },
+  'TALISAY': { lat: 13.9500, lon: 120.9333 },
+  'TANAUAN CITY': { lat: 14.0857, lon: 121.1503 },
+  'TAYSAN': { lat: 13.7833, lon: 121.2000 },
+  'TINGLOY': { lat: 13.6333, lon: 120.8667 },
+  'TUY': { lat: 14.0167, lon: 120.7333 }
+};
 
 // Default location: Batangas, Philippines
 const DEFAULT_LOCATION = {
@@ -23,6 +62,62 @@ const DEFAULT_LOCATION = {
 const handleApiError = (error, context) => {
   console.error(`Weather API Error (${context}):`, error);
   throw new Error(`Failed to fetch ${context}: ${error.message}`);
+};
+
+// Helper to format city name for display
+const formatCityName = (name) => {
+  return name.split(' ').map(word =>
+    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+  ).join(' ');
+};
+
+// Get current weather by coordinates (more reliable than city name)
+export const getWeatherByCoordinates = async (lat, lon, cityName) => {
+  try {
+    const response = await fetch(
+      `${WEATHER_API_URL}/weather?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric`
+    );
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      location: {
+        city: formatCityName(cityName),
+        country: 'PH',
+        lat: lat,
+        lon: lon,
+      },
+      current: {
+        temperature: Math.round(data.main.temp),
+        feelsLike: Math.round(data.main.feels_like),
+        humidity: data.main.humidity,
+        pressure: data.main.pressure,
+        windSpeed: Math.round(data.wind.speed * 3.6),
+        windDirection: data.wind.deg,
+        cloudiness: data.clouds.all,
+        visibility: data.visibility / 1000,
+        weather: {
+          main: data.weather[0].main,
+          description: data.weather[0].description,
+          icon: data.weather[0].icon,
+          iconUrl: `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`,
+        },
+        rainfall: data.rain?.['1h'] || 0,
+        timestamp: new Date(data.dt * 1000),
+      },
+      sys: {
+        sunrise: new Date(data.sys.sunrise * 1000),
+        sunset: new Date(data.sys.sunset * 1000),
+      },
+    };
+  } catch (error) {
+    console.error(`Failed to fetch weather for ${cityName}:`, error);
+    return null;
+  }
 };
 
 // Get current weather for a specific location
@@ -121,19 +216,41 @@ export const getWeatherForecast = async (city = DEFAULT_LOCATION.city) => {
 };
 
 // Get weather for multiple cities in Batangas Province
-export const getBatangasWeather = async () => {
+export const getBatangasWeather = async (useRealTimeApi = true) => {
   try {
-    // First, try to fetch from Firestore (seeded data)
+    // Option to use real-time API data
+    if (useRealTimeApi) {
+      console.log('🌐 Fetching real-time weather data from OpenWeather API for all 34 municipalities...');
+
+      // Fetch weather for all municipalities using coordinates
+      const weatherPromises = BATANGAS_MUNICIPALITIES.map(municipality => {
+        const coords = MUNICIPALITY_COORDINATES[municipality];
+        if (coords) {
+          return getWeatherByCoordinates(coords.lat, coords.lon, municipality);
+        }
+        return null;
+      });
+
+      const results = await Promise.all(weatherPromises);
+      const validResults = results.filter(result => result !== null);
+
+      if (validResults.length > 0) {
+        console.log(`✅ Successfully fetched real-time weather data for ${validResults.length} municipalities`);
+        return validResults;
+      }
+
+      console.warn('⚠️ Real-time API failed, falling back to Firestore...');
+    }
+
+    // Fall back to Firestore (seeded data)
     const weatherRef = collection(db, 'weather');
     const snapshot = await getDocs(weatherRef);
 
     if (!snapshot.empty) {
-      // We have seeded data in Firestore, use it
       console.log('📊 Using seeded weather data from Firestore');
       const weatherData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
-        // Convert Firestore Timestamps to JS Dates
         current: {
           ...doc.data().current,
           timestamp: doc.data().current.timestamp?.toDate ? doc.data().current.timestamp.toDate() : new Date()
@@ -144,84 +261,32 @@ export const getBatangasWeather = async () => {
       return weatherData;
     }
 
-    // If no Firestore data, fall back to OpenWeather API
-    console.log('🌐 No seeded data found. Fetching weather data from OpenWeather API...');
-    const batangasCities = [
-      'Batangas City',
-      'Lipa City',
-      'Tanauan City',
-      'Santo Tomas',
-      'Rosario',
-      'Ibaan',
-      'Taal',
-      'Lemery',
-      'Balayan',
-      'Nasugbu',
-      'Mabini',
-      'San Juan',
-      'Bauan',
-      'San Pascual',
-      'Calaca',
-    ];
-
-    const weatherPromises = batangasCities.map(city =>
-      getCurrentWeather(city).catch(err => {
-        console.error(`Failed to fetch weather for ${city}:`, err);
-        return null;
-      })
-    );
-
-    const results = await Promise.all(weatherPromises);
-
-    // Filter out any failed requests
-    const validResults = results.filter(result => result !== null);
-
-    if (validResults.length === 0) {
-      console.warn('⚠️ No weather data available from API');
-    } else {
-      console.log(`✅ Successfully fetched weather data for ${validResults.length} cities from API`);
-    }
-
-    return validResults;
+    console.warn('⚠️ No weather data available');
+    return [];
   } catch (error) {
     console.error('Error fetching Batangas weather:', error);
-    // If Firestore fails, try API as fallback
-    try {
-      console.log('🔄 Firestore error, attempting API fallback...');
-      const batangasCities = [
-        'Batangas City',
-        'Lipa City',
-        'Tanauan City',
-        'Santo Tomas',
-        'Rosario',
-        'Ibaan',
-        'Taal',
-        'Lemery',
-        'Balayan',
-        'Nasugbu',
-        'Mabini',
-        'San Juan',
-        'Bauan',
-        'San Pascual',
-        'Calaca',
-      ];
 
-      const weatherPromises = batangasCities.map(city =>
-        getCurrentWeather(city).catch(err => {
-          console.error(`Failed to fetch weather for ${city}:`, err);
-          return null;
-        })
-      );
+    // Try API as final fallback
+    try {
+      console.log('🔄 Error occurred, attempting API fallback...');
+
+      const weatherPromises = BATANGAS_MUNICIPALITIES.map(municipality => {
+        const coords = MUNICIPALITY_COORDINATES[municipality];
+        if (coords) {
+          return getWeatherByCoordinates(coords.lat, coords.lon, municipality);
+        }
+        return null;
+      });
 
       const results = await Promise.all(weatherPromises);
       const validResults = results.filter(result => result !== null);
 
-      if (validResults.length === 0) {
-        console.error('❌ No weather data available from API fallback');
-        return [];
+      if (validResults.length > 0) {
+        console.log(`✅ API fallback successful: ${validResults.length} municipalities`);
+        return validResults;
       }
 
-      return validResults;
+      return [];
     } catch (apiError) {
       console.error('❌ API fallback failed:', apiError);
       return [];

@@ -405,18 +405,18 @@ export function WeatherPanel({ showAnnouncement = false }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Weather Map */}
-        <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-sm hover:shadow-md transition-all duration-200">
-          <CardHeader>
+        <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-sm hover:shadow-md transition-all duration-200 flex flex-col">
+          <CardHeader className="flex-shrink-0">
             <CardTitle className="flex items-center gap-2">
               <MapPin className="w-5 h-5 text-blue-500" />
               Alert Areas
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 overflow-hidden">
             {/* Alert Areas */}
-            <div className="space-y-2">
+            <div className="space-y-2 overflow-y-auto pr-2 pb-4 h-full" style={{ maxHeight: '480px', scrollbarWidth: 'thin' }}>
               {alertAreas.length > 0 ? (
-                alertAreas.slice(0, 10).map((area, index) => (
+                alertAreas.map((area, index) => (
                   <div key={`${area.location}-${index}`} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                     <div className="flex items-center gap-2">
                       <Badge
