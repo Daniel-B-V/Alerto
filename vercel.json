@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "alerto-frontend",
   "builds": [
     {
       "src": "package.json",
@@ -12,11 +11,8 @@
   ],
   "routes": [
     {
-      "handle": "filesystem"
-    },
-    {
       "src": "/(.*)",
-      "dest": "/index.html"
+      "dest": "/build/$1"
     }
   ]
 }
