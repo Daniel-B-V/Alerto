@@ -27,7 +27,7 @@ export function QuickSuspendModal({
   aiRecommendation,
   isLoading = false
 }) {
-  const [selectedLevels, setSelectedLevels] = useState(['k12']);
+  const [selectedLevels, setSelectedLevels] = useState(['elementary', 'high_school']);
   const [durationHours, setDurationHours] = useState(12);
   const [customDuration, setCustomDuration] = useState('');
   const [customMessage, setCustomMessage] = useState('');
@@ -139,7 +139,8 @@ export function QuickSuspendModal({
                   <div className="flex flex-wrap gap-2">
                     {selectedLevels.map(level => (
                       <Badge key={level} className="bg-red-100 text-red-700 border-red-300">
-                        {level === 'k12' && 'K-12'}
+                        {level === 'elementary' && 'Elementary'}
+                        {level === 'high_school' && 'High School'}
                         {level === 'preschool' && 'Preschool'}
                         {level === 'college' && 'College'}
                       </Badge>
@@ -249,24 +250,23 @@ export function QuickSuspendModal({
                 </label>
                 <div className="space-y-2">
                   {[
-                    { value: 'k12', label: 'K-12 (Kindergarten to Grade 12)', icon: School },
-                    { value: 'preschool', label: 'Preschool & Day Care', icon: School },
-                    { value: 'college', label: 'College & Universities', icon: School }
+                    { value: 'preschool', label: 'Preschool', icon: School },
+                    { value: 'elementary', label: 'Elementary', icon: School },
+                    { value: 'high_school', label: 'High School', icon: School },
+                    { value: 'college', label: 'College', icon: School }
                   ].map(({ value, label, icon: Icon }) => (
                     <label
                       key={value}
-                      className={`flex items-center gap-3 p-3 border-2 rounded-lg cursor-pointer transition-all ${
-                        selectedLevels.includes(value)
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                      }`}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      <Checkbox
+                      <input
+                        type="checkbox"
                         checked={selectedLevels.includes(value)}
-                        onCheckedChange={() => handleLevelToggle(value)}
+                        onChange={() => handleLevelToggle(value)}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                       />
                       <Icon className="w-5 h-5 text-gray-600" />
-                      <span className="font-medium text-gray-900">{label}</span>
+                      <span className="flex-1 text-sm font-medium text-gray-900">{label}</span>
                     </label>
                   ))}
                 </div>

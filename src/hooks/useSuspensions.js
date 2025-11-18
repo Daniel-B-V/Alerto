@@ -171,7 +171,8 @@ export const useSuspensionStats = () => {
     },
     byLevel: {
       preschool: activeSuspensions.filter(s => s.levels.includes('preschool')).length,
-      k12: activeSuspensions.filter(s => s.levels.includes('k12')).length,
+      elementary: activeSuspensions.filter(s => s.levels.includes('elementary')).length,
+      high_school: activeSuspensions.filter(s => s.levels.includes('high_school')).length,
       college: activeSuspensions.filter(s => s.levels.includes('college')).length,
       work: activeSuspensions.filter(s => s.levels.includes('work')).length,
       activities: activeSuspensions.filter(s => s.levels.includes('activities')).length,

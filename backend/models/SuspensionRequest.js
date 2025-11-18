@@ -23,7 +23,7 @@ const suspensionRequestSchema = new mongoose.Schema({
   // Request details
   requestedLevels: [{
     type: String,
-    enum: ['preschool', 'k12', 'college', 'work', 'activities', 'all']
+    enum: ['preschool', 'elementary', 'high_school', 'college', 'work', 'activities', 'all']
   }],
 
   requestedDuration: {

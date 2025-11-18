@@ -32,7 +32,7 @@ export const submitSuspensionRequest = async (requestData) => {
         name: requestData.userName,
         role: 'mayor'
       },
-      requestedLevels: requestData.levels || ['k12'],
+      requestedLevels: requestData.levels || ['elementary', 'high_school'],
       requestedDuration: requestData.durationHours || 12,
       reason: requestData.reason || '',
       weatherData: requestData.weatherData || {},

@@ -62,7 +62,7 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
   };
 
   const handleIssueSuspension = (candidate) => {
-    const levels = selectedCities[candidate.city]?.levels || ['k12'];
+    const levels = selectedCities[candidate.city]?.levels || ['elementary', 'high_school'];
 
     onIssueSuspension({
       city: candidate.city,

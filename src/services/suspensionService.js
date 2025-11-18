@@ -37,7 +37,7 @@ export const createSuspension = async (suspensionData) => {
       city: suspensionData.city,
       province: suspensionData.province || 'Batangas',
       status: suspensionData.status || 'active',
-      levels: suspensionData.levels || ['k12'],
+      levels: suspensionData.levels || ['elementary', 'high_school'],
 
       issuedBy: {
         name: suspensionData.issuedBy.name,
@@ -497,7 +497,7 @@ export const generateSuspensionRecommendation = async (city, reports = []) => {
         shouldSuspend: weatherAssessment.autoSuspend.shouldAutoSuspend || aiAdvisory.suspensionRecommended,
         confidence: aiAdvisory.combinedScore || 0,
         riskLevel: aiAdvisory.overallRiskLevel || 'moderate',
-        affectedLevels: weatherAssessment.autoSuspend.affectedLevels || ['k12'],
+        affectedLevels: weatherAssessment.autoSuspend.affectedLevels || ['elementary', 'high_school'],
         reason: weatherAssessment.autoSuspend.triggers.map(t => t.description).join(', ') || aiAdvisory.advisory,
         justification: aiAdvisory.advisory,
         criticalReports: reports.filter(r => r.severity === 'critical').length,

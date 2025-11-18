@@ -28,7 +28,8 @@ export function DashboardAnnouncementCard({ className = '' }) {
   const getLevelsDisplay = (levels) => {
     const levelMap = {
       preschool: 'Preschool',
-      k12: 'K-12',
+      elementary: 'Elementary',
+      high_school: 'High School',
       college: 'College',
       work: 'Gov Work',
       activities: 'Activities',

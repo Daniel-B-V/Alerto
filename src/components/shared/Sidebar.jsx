@@ -137,7 +137,9 @@ export function Sidebar({ activeSection, onSectionChange }) {
           <div key={item.id}>
             <Button
               variant="ghost"
-              className={`w-full justify-start rounded-xl transition-all duration-200 relative ${
+              className={`w-full rounded-xl transition-all duration-200 relative ${
+                collapsed ? 'justify-center' : 'justify-start'
+              } ${
                 activeSection === item.id
                   ? 'bg-blue-500 text-white shadow-lg hover:bg-blue-600 hover:shadow-xl'
                   : 'hover:bg-gray-100 text-gray-600 hover:text-gray-900'

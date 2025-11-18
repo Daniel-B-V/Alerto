@@ -34,14 +34,14 @@ const SuspensionPanel = () => {
 
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState(null);
-  const [selectedLevels, setSelectedLevels] = useState(['k12']);
+  const [selectedLevels, setSelectedLevels] = useState(['elementary', 'high_school']);
   const [customMessage, setCustomMessage] = useState('');
   const [durationHours, setDurationHours] = useState(12);
   const [issuing, setIssuing] = useState(false);
 
   const handleIssueSuspension = (candidateData) => {
     setSelectedCandidate(candidateData);
-    setSelectedLevels(candidateData.levels || ['k12']);
+    setSelectedLevels(candidateData.levels || ['elementary', 'high_school']);
     setCustomMessage('');
     setDurationHours(12);
     setIssueDialogOpen(true);
@@ -314,26 +314,24 @@ const SuspensionPanel = () => {
               <label className="block text-xs font-semibold text-gray-700 mb-2">
                 Select Suspension Levels *
               </label>
-              <div className="flex flex-wrap gap-2">
+              <div className="space-y-2">
                 {SUSPENSION_LEVELS.slice(0, 3).map((level) => (
-                  <button
+                  <label
                     key={level.id}
-                    type="button"
-                    onClick={() => handleLevelToggle(level.id)}
-                    className={`px-5 py-2 rounded-full text-sm font-bold transition-all border-2 whitespace-nowrap ${
-                      selectedLevels.includes(level.id)
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                    }`}
-                    title={level.description}
+                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
                   >
-                    {level.shortLabel}
-                  </button>
+                    <input
+                      type="checkbox"
+                      checked={selectedLevels.includes(level.id)}
+                      onChange={() => handleLevelToggle(level.id)}
+                      className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                    <span className="flex-1 text-sm font-medium text-gray-700">
+                      {level.shortLabel}
+                    </span>
+                  </label>
                 ))}
               </div>
-              <p className="text-xs text-gray-500 mt-1.5">
-                Click to select/deselect levels
-              </p>
             </div>
 
             {/* Duration */}

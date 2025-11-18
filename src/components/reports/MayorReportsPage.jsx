@@ -61,7 +61,7 @@ export function MayorReportsPage() {
   // Suspension system integration
   const { issueSuspension } = useSuspensions();
   const [suspensionData, setSuspensionData] = useState(null);
-  const [selectedLevels, setSelectedLevels] = useState(['k12']);
+  const [selectedLevels, setSelectedLevels] = useState(['elementary', 'high_school']);
   const [suspensionMessage, setSuspensionMessage] = useState('');
   const [durationHours, setDurationHours] = useState(12);
   const [issuing, setIssuing] = useState(false);

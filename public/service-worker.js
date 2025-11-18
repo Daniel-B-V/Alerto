@@ -1,11 +1,11 @@
 /**
  * Alerto Service Worker
  * Provides offline functionality for the typhoon tracking app
- * Version: 1.0.0
+ * Version: 1.0.2
  */
 
-const CACHE_NAME = 'alerto-cache-v1';
-const DATA_CACHE_NAME = 'alerto-data-cache-v1';
+const CACHE_NAME = 'alerto-cache-v3';
+const DATA_CACHE_NAME = 'alerto-data-cache-v3';
 
 // Static assets to cache on install
 const STATIC_CACHE_URLS = [
@@ -75,6 +75,16 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Skip caching for localhost backend and external API calls
+  if (url.hostname === 'localhost' ||
+      url.hostname === '127.0.0.1' ||
+      url.hostname.includes('firebase') ||
+      url.hostname.includes('googleapis') ||
+      url.hostname.includes('cloudinary')) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   // Handle API requests separately
   if (isAPIRequest(url.pathname)) {
     event.respondWith(handleAPIRequest(request));
@@ -84,6 +94,12 @@ self.addEventListener('fetch', (event) => {
   // Handle navigation requests (HTML pages)
   if (request.mode === 'navigate') {
     event.respondWith(handleNavigationRequest(request));
+    return;
+  }
+
+  // Handle JavaScript/CSS with network-first strategy to avoid stale code
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.css')) {
+    event.respondWith(handleJSCSSRequest(request));
     return;
   }
 
@@ -178,6 +194,42 @@ async function handleNavigationRequest(request) {
 }
 
 /**
+ * Handle JS/CSS requests - Network first to avoid stale code
+ * Critical for preventing white screens from cached outdated code
+ */
+async function handleJSCSSRequest(request) {
+  try {
+    // Always try network first for JS/CSS
+    const networkResponse = await fetch(request);
+
+    // Cache the fresh response
+    if (networkResponse && networkResponse.status === 200) {
+      const cache = await caches.open(CACHE_NAME);
+      cache.put(request, networkResponse.clone());
+    }
+
+    return networkResponse;
+
+  } catch (error) {
+    console.log('[ServiceWorker] Network failed for JS/CSS, trying cache:', request.url);
+
+    // Fallback to cache only if network fails
+    const cachedResponse = await caches.match(request);
+
+    if (cachedResponse) {
+      console.warn('[ServiceWorker] Serving cached JS/CSS (may be outdated):', request.url);
+      return cachedResponse;
+    }
+
+    // No cached version available
+    return new Response('Resource unavailable offline', {
+      status: 503,
+      headers: new Headers({ 'Content-Type': 'text/plain' })
+    });
+  }
+}
+
+/**
  * Handle asset requests - Cache first, network fallback
  * Static assets don't change often, prioritize speed
  */
@@ -193,8 +245,9 @@ async function handleAssetRequest(request) {
   try {
     const networkResponse = await fetch(request);
 
-    // Cache successful responses
-    if (networkResponse && networkResponse.status === 200) {
+    // Cache successful responses - but only for GET requests
+    // POST, PUT, DELETE requests cannot be cached
+    if (networkResponse && networkResponse.status === 200 && request.method === 'GET') {
       const cache = await caches.open(CACHE_NAME);
       cache.put(request, networkResponse.clone());
     }

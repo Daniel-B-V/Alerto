@@ -239,7 +239,8 @@ const SuspensionAnalytics = () => {
               <PieChart>
                 <Pie
                   data={[
-                    { name: 'K-12', value: stats.byLevel.k12 },
+                    { name: 'Elementary', value: stats.byLevel.elementary || 0 },
+                    { name: 'High School', value: stats.byLevel.high_school || 0 },
                     { name: 'Preschool', value: stats.byLevel.preschool },
                     { name: 'College', value: stats.byLevel.college },
                     { name: 'All Levels', value: stats.byLevel.all }

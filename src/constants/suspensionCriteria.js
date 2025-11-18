@@ -11,7 +11,7 @@ export const PAGASA_WARNINGS = {
     threshold: 7.5, // mm/hour
     maxThreshold: 15, // mm/hour
     duration: 2, // hours
-    suspensionLevels: ['preschool', 'k12'], // Only ECCD and K-12
+    suspensionLevels: ['preschool', 'elementary', 'high_school'], // Preschool, Elementary, and High School
     color: '#FFA500',
     bgColor: '#FFF4E6',
     icon: '🟡',
@@ -101,38 +101,45 @@ export const TCWS_LEVELS = {
 export const SUSPENSION_LEVELS = [
   {
     id: 'preschool',
-    label: 'Preschool/ECCD',
+    label: 'Preschool',
     shortLabel: 'Preschool',
-    description: 'Early Childhood Care and Development programs',
+    description: 'Early childhood programs and daycare',
     order: 1
   },
   {
-    id: 'k12',
-    label: 'K-12 Basic Education',
-    shortLabel: 'K-12',
-    description: 'Kindergarten through Grade 12',
+    id: 'elementary',
+    label: 'Elementary',
+    shortLabel: 'Elementary',
+    description: 'Grades 1-6 (Primary education)',
     order: 2
   },
   {
-    id: 'college',
-    label: 'College/University',
-    shortLabel: 'College',
-    description: 'Higher education institutions',
+    id: 'high_school',
+    label: 'High School',
+    shortLabel: 'High School',
+    description: 'Grades 7-12 (Junior and Senior High)',
     order: 3
+  },
+  {
+    id: 'college',
+    label: 'College',
+    shortLabel: 'College',
+    description: 'Universities and higher education',
+    order: 4
   },
   {
     id: 'work',
     label: 'Government Work',
-    shortLabel: 'Work',
-    description: 'Government offices and services',
-    order: 4
+    shortLabel: 'Government Work',
+    description: 'Government offices and employees',
+    order: 5
   },
   {
     id: 'activities',
     label: 'Public Activities',
-    shortLabel: 'Activities',
+    shortLabel: 'Public Activities',
     description: 'Public gatherings and outdoor events',
-    order: 5
+    order: 6
   }
 ];
 
@@ -156,11 +163,11 @@ export const DEPED_AUTO_SUSPEND_CRITERIA = {
     description: 'Red Rainfall Warning (30+mm/h) triggers automatic suspension',
     levels: ['all']
   },
-  // Yellow warning only for ECCD and K-12
+  // Yellow warning only for preschool, elementary, and high school
   YELLOW_WARNING: {
     enabled: true,
-    description: 'Yellow Rainfall Warning (7.5-15mm/h) triggers suspension for ECCD and K-12 only',
-    levels: ['preschool', 'k12']
+    description: 'Yellow Rainfall Warning (7.5-15mm/h) triggers suspension for preschool, elementary, and high school',
+    levels: ['preschool', 'elementary', 'high_school']
   }
 };
 

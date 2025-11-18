@@ -26,7 +26,7 @@ const suspensionSchema = new mongoose.Schema({
   // Suspension Levels (What is suspended)
   levels: [{
     type: String,
-    enum: ['preschool', 'k12', 'college', 'work', 'activities', 'all'],
+    enum: ['preschool', 'elementary', 'high_school', 'college', 'work', 'activities', 'all'],
     required: true
   }],
 
@@ -290,8 +290,9 @@ suspensionSchema.virtual('timeRemaining').get(function() {
 // Virtual for formatted levels
 suspensionSchema.virtual('formattedLevels').get(function() {
   const levelMap = {
-    preschool: 'Preschool/ECCD',
-    k12: 'K-12',
+    preschool: 'Preschool',
+    elementary: 'Elementary',
+    high_school: 'High School',
     college: 'College',
     work: 'Government Work',
     activities: 'Public Activities',
