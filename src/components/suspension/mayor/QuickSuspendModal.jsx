@@ -93,7 +93,7 @@ export function QuickSuspendModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto" style={{ width: '600px', maxWidth: '90vw' }}>
         {/* Header */}
         <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
           <div>
@@ -196,14 +196,16 @@ export function QuickSuspendModal({
                   onClick={() => setShowConfirmation(false)}
                   variant="outline"
                   disabled={isLoading}
-                  className="flex-1 border-gray-300 hover:bg-gray-50"
+                  className="flex-1"
+                  style={{ backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}
                 >
                   Go Back
                 </Button>
                 <Button
                   onClick={handleConfirm}
                   disabled={isLoading}
-                  className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+                  className="flex-1"
+                  style={{ backgroundColor: '#dc2626', color: 'white' }}
                 >
                   {isLoading ? (
                     <span className="flex items-center gap-2">
@@ -336,14 +338,16 @@ export function QuickSuspendModal({
                   onClick={onClose}
                   variant="outline"
                   disabled={isLoading}
-                  className="flex-1 border-gray-300"
+                  className="flex-1"
+                  style={{ backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={isLoading || selectedLevels.length === 0 || hours <= 0}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex-1"
+                  style={{ backgroundColor: '#2563eb', color: 'white' }}
                 >
                   Continue to Review
                 </Button>
