@@ -96,10 +96,38 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         aiAnalysis = await analyzeReportImages(imageUrls);
       }
 
-      const textSpamResult = await detectSpamInText(formData.description);
-      const textAnalysis = await analyzeReportText(formData.description);
+      // Helper function to remove undefined values from objects
+      const cleanObject = (obj) => {
+        if (!obj || typeof obj !== 'object') return obj;
+        const cleaned = {};
+        Object.keys(obj).forEach(key => {
+          const value = obj[key];
+          if (value !== undefined) {
+            cleaned[key] = typeof value === 'object' && value !== null && !(value instanceof Date)
+              ? cleanObject(value)
+              : value;
+          }
+        });
+        return cleaned;
+      };
 
-      const reportData = {
+      const textSpamResult = await detectSpamInText({
+        title: formData.title,
+        description: formData.description,
+        hazardType: formData.hazardType
+      });
+      const textAnalysis = await analyzeReportText({
+        title: formData.title,
+        description: formData.description,
+        hazardType: formData.hazardType,
+        location: {
+          city: formData.city,
+          barangay: formData.barangay,
+          province: 'Batangas'
+        }
+      });
+
+      const reportData = cleanObject({
         title: formData.title || `${formData.hazardType} Report`,
         description: formData.description,
         category: formData.hazardType,
@@ -108,18 +136,18 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
           barangay: formData.barangay,
           province: 'Batangas'
         },
-        images: imageUrls,
-        aiAnalysis,
-        textAnalysis,
-        spamScore: textSpamResult.spamScore,
-        isSpam: textSpamResult.isSpam,
-        status: textSpamResult.isSpam ? 'rejected' : 'pending',
-        userId: user?.uid,
+        images: imageUrls || [],
+        aiAnalysis: aiAnalysis || null,
+        textAnalysis: textAnalysis || null,
+        spamScore: textSpamResult?.spamScore ?? 0,
+        isSpam: textSpamResult?.isSpam ?? false,
+        status: (textSpamResult?.isSpam ?? false) ? 'rejected' : 'pending',
+        userId: user?.uid || 'anonymous',
         userName: user?.displayName || 'Anonymous',
-        userEmail: user?.email,
+        userEmail: user?.email || 'anonymous@alerto.com',
         userPhotoURL: user?.photoURL || null,
         createdAt: new Date()
-      };
+      });
 
       await createReport(reportData);
 

@@ -30,12 +30,9 @@ import {
   Settings as SettingsIcon,
   FileText,
   AlertTriangle,
-<<<<<<< HEAD
   Thermometer,
-  Plus
-=======
+  Plus,
   BarChart3
->>>>>>> 82ffe01ec79dbeceb41d467d951151f1e856fef8
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet';
