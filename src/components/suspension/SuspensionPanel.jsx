@@ -402,19 +402,7 @@ const SuspensionPanel = () => {
                 {SUSPENSION_LEVELS.slice(0, 3).map((level) => (
                   <label
                     key={level.id}
-<<<<<<< HEAD
-                    type="button"
-                    onClick={() => handleLevelToggle(level.id)}
-                    className="px-5 py-2 rounded-full text-sm font-bold transition-all border-2 whitespace-nowrap focus:outline-none"
-                    style={
-                      selectedLevels.includes(level.id)
-                        ? { backgroundColor: '#2563eb', color: 'white', borderColor: '#2563eb' }
-                        : { backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }
-                    }
-                    title={level.description}
-=======
                     className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
->>>>>>> 280f370198563e5e26704c9ed3137f95c75990ee
                   >
                     <input
                       type="checkbox"
