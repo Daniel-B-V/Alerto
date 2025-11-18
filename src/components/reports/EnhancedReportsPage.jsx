@@ -794,11 +794,11 @@ export function EnhancedReportsPage() {
           onClick={() => setShowCompiledModal(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden"
-            style={{ width: '1000px', height: '85vh', maxWidth: '95vw', maxHeight: '90vh' }}
+            className="bg-white shadow-2xl flex flex-col overflow-hidden"
+            style={{ width: '1000px', height: '85vh', maxWidth: '95vw', maxHeight: '90vh', borderRadius: '24px' }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-4 flex-shrink-0 rounded-t-2xl">
+            <div className="border-b bg-gradient-to-r from-blue-50 to-indigo-50 p-4 flex-shrink-0" style={{ borderTopLeftRadius: '24px', borderTopRightRadius: '24px' }}>
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-semibold flex items-center gap-2">
