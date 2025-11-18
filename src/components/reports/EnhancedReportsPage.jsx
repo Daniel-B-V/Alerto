@@ -721,7 +721,6 @@ export function EnhancedReportsPage() {
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Number of Reports</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Attention Level</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Status</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">AI Confidence</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Last Report</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Actions</th>
                   </tr>
@@ -760,21 +759,6 @@ export function EnhancedReportsPage() {
                             <div className="text-xs text-gray-500">
                               {location.verifiedReports} verified{location.investigatingReports > 0 ? ` / ${location.investigatingReports} investigating` : ''}
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div
-                                className={`h-2 rounded-full ${
-                                  location.aiConfidence >= 85 ? 'bg-green-500' :
-                                  location.aiConfidence >= 60 ? 'bg-yellow-500' :
-                                  'bg-red-500'
-                                }`}
-                                style={{ width: `${location.aiConfidence}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-sm font-semibold">{location.aiConfidence}%</span>
                           </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
