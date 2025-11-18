@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { AlertCircle, Info, Clock, TrendingUp } from 'lucide-react';
+import { AlertCircle, Info, Clock, TrendingUp, CheckCircle, RefreshCw, AlertTriangle } from 'lucide-react';
 import SuspensionCandidateTable from './SuspensionCandidateTable';
 import ActiveSuspensionsTable from './ActiveSuspensionsTable';
 import { useSuspensions, useSuspensionStats } from '../../hooks/useSuspensions';
@@ -38,6 +38,11 @@ const SuspensionPanel = () => {
   const [customMessage, setCustomMessage] = useState('');
   const [durationHours, setDurationHours] = useState(12);
   const [issuing, setIssuing] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successCity, setSuccessCity] = useState('');
+  const [bulkSuspendDialogOpen, setBulkSuspendDialogOpen] = useState(false);
+  const [citiesToBulkSuspend, setCitiesToBulkSuspend] = useState([]);
+  const [bulkSuspending, setBulkSuspending] = useState(false);
 
   const handleIssueSuspension = (candidateData) => {
     setSelectedCandidate(candidateData);
@@ -106,10 +111,11 @@ const SuspensionPanel = () => {
 
       await issueSuspension(suspensionData);
       setIssueDialogOpen(false);
+      setSuccessCity(selectedCandidate.city);
       setSelectedCandidate(null);
 
-      // Show success message
-      alert(`Suspension issued successfully for ${selectedCandidate.city}`);
+      // Show success modal
+      setShowSuccessModal(true);
     } catch (err) {
       console.error('Failed to issue suspension:', err);
       alert(`Failed to issue suspension: ${err.message}`);
@@ -134,6 +140,84 @@ const SuspensionPanel = () => {
       }
       return [...prev, levelId];
     });
+  };
+
+  const handleSuspendAll = (cities) => {
+    setCitiesToBulkSuspend(cities);
+    setBulkSuspendDialogOpen(true);
+  };
+
+  const handleConfirmBulkSuspend = async () => {
+    setBulkSuspending(true);
+    let successCount = 0;
+
+    try {
+      for (const candidate of citiesToBulkSuspend) {
+        const now = new Date();
+        const effectiveUntil = new Date(now.getTime() + 12 * 60 * 60 * 1000); // Default 12 hours
+
+        const suspensionData = {
+          city: candidate.city,
+          province: 'Batangas',
+          status: 'active',
+          levels: candidate.levels || ['k12'],
+
+          issuedBy: {
+            name: 'Governor/Mayor',
+            title: 'Provincial Governor',
+            office: 'Office of the Governor',
+            role: 'governor'
+          },
+
+          criteria: {
+            pagasaWarning: candidate.pagasaWarning?.id || null,
+            tcws: candidate.tcws?.level || null,
+            rainfall: candidate.criteria.rainfall,
+            windSpeed: candidate.criteria.windSpeed,
+            temperature: candidate.criteria.temperature,
+            humidity: candidate.criteria.humidity,
+            conditions: candidate.criteria.conditions
+          },
+
+          aiAnalysis: {
+            recommendation: candidate.aiRecommendation?.shouldSuspend ? 'suspend' : 'monitor',
+            confidence: candidate.aiRecommendation?.confidence || 0,
+            reportCount: candidate.reportCount || 0,
+            criticalReports: candidate.criticalReports || 0,
+            summary: candidate.aiRecommendation?.justification || '',
+            justification: candidate.aiRecommendation?.reason || '',
+            riskLevel: candidate.aiRecommendation?.riskLevel || 'moderate'
+          },
+
+          issuedAt: now,
+          effectiveFrom: now,
+          effectiveUntil,
+          durationHours: 12,
+
+          message: generateDefaultMessage(candidate, candidate.levels || ['k12']),
+          reason: candidate.pagasaWarning?.description || 'Severe weather conditions',
+
+          isAutoSuspended: false,
+          isOverridden: false,
+
+          notificationSent: false,
+          notificationChannels: ['in_app']
+        };
+
+        await issueSuspension(suspensionData);
+        successCount++;
+      }
+
+      setBulkSuspendDialogOpen(false);
+      setCitiesToBulkSuspend([]);
+      setSuccessCity(`${successCount} cities`);
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error('Failed to issue bulk suspensions:', err);
+      alert(`Failed to issue suspensions. ${successCount} of ${citiesToBulkSuspend.length} succeeded.`);
+    } finally {
+      setBulkSuspending(false);
+    }
   };
 
   // If user is Mayor, show Mayor dashboard instead
@@ -241,7 +325,7 @@ const SuspensionPanel = () => {
             </div>
 
             <TabsContent value="candidates" className="m-0 p-0">
-              <SuspensionCandidateTable onIssueSuspension={handleIssueSuspension} />
+              <SuspensionCandidateTable onIssueSuspension={handleIssueSuspension} onSuspendAll={handleSuspendAll} />
             </TabsContent>
 
             <TabsContent value="active" className="m-0 p-0">
@@ -257,7 +341,7 @@ const SuspensionPanel = () => {
 
       {/* Issue Suspension Dialog */}
       <Dialog open={issueDialogOpen} onOpenChange={setIssueDialogOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto" style={{ maxWidth: '800px', width: '95vw' }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto" style={{ maxWidth: '600px', width: '90vw', borderRadius: '16px' }}>
           <DialogHeader>
             <DialogTitle className="text-xl font-bold">Issue Class Suspension</DialogTitle>
             <DialogDescription className="text-sm">
@@ -320,11 +404,12 @@ const SuspensionPanel = () => {
                     key={level.id}
                     type="button"
                     onClick={() => handleLevelToggle(level.id)}
-                    className={`px-5 py-2 rounded-full text-sm font-bold transition-all border-2 whitespace-nowrap ${
+                    className="px-5 py-2 rounded-full text-sm font-bold transition-all border-2 whitespace-nowrap focus:outline-none"
+                    style={
                       selectedLevels.includes(level.id)
-                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
-                    }`}
+                        ? { backgroundColor: '#2563eb', color: 'white', borderColor: '#2563eb' }
+                        : { backgroundColor: 'white', color: '#374151', borderColor: '#d1d5db' }
+                    }
                     title={level.description}
                   >
                     {level.shortLabel}
@@ -383,27 +468,118 @@ const SuspensionPanel = () => {
             </div>
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="gap-2 flex justify-end">
             <Button
               variant="outline"
               onClick={() => setIssueDialogOpen(false)}
               disabled={issuing}
               size="sm"
               className="text-sm"
+              style={{ backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}
             >
               Cancel
             </Button>
             <Button
               onClick={handleConfirmIssue}
               disabled={issuing || selectedLevels.length === 0}
-              className="bg-red-600 hover:bg-red-700 text-sm"
+              className="text-sm"
               size="sm"
+              style={{ backgroundColor: '#dc2626', color: 'white' }}
             >
               {issuing ? 'Issuing...' : 'Issue Suspension'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div
+            className="bg-white rounded-2xl shadow-2xl p-6 flex flex-col items-center"
+            style={{ width: '360px', maxWidth: '90vw' }}
+          >
+            <CheckCircle className="w-16 h-16 text-green-500 mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Success!</h3>
+            <p className="text-gray-600 text-center mb-6">
+              Suspension issued successfully for {successCity}
+            </p>
+            <button
+              onClick={() => setShowSuccessModal(false)}
+              className="w-full py-3 rounded-lg font-semibold"
+              style={{ backgroundColor: '#22c55e', color: 'white' }}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Suspend Confirmation Dialog */}
+      {bulkSuspendDialogOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div
+            className="bg-white rounded-2xl shadow-2xl overflow-hidden"
+            style={{ width: '500px', maxWidth: '90vw', maxHeight: '80vh' }}
+          >
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-red-500" />
+                Confirm Bulk Suspension
+              </h3>
+              <p className="text-sm text-gray-600 mt-2">
+                You are about to suspend {citiesToBulkSuspend.length} cities. This action will immediately notify schools and the public.
+              </p>
+            </div>
+
+            <div className="p-6 overflow-y-auto" style={{ maxHeight: '300px' }}>
+              <p className="text-sm font-semibold text-gray-700 mb-3">Cities to be suspended:</p>
+              <div className="space-y-2">
+                {citiesToBulkSuspend.map((city, index) => (
+                  <div key={index} className="flex items-center gap-2 text-sm">
+                    <span className="w-5 h-5 bg-red-100 text-red-600 rounded-full flex items-center justify-center text-xs font-bold">
+                      {index + 1}
+                    </span>
+                    <span className="font-medium">{city.city}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex gap-3 justify-end">
+              <button
+                onClick={() => {
+                  setBulkSuspendDialogOpen(false);
+                  setCitiesToBulkSuspend([]);
+                }}
+                disabled={bulkSuspending}
+                className="px-4 py-2 rounded-lg font-semibold"
+                style={{ backgroundColor: '#f3f4f6', color: '#374151' }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmBulkSuspend}
+                disabled={bulkSuspending}
+                className="px-4 py-2 rounded-lg font-semibold flex items-center gap-2"
+                style={{ backgroundColor: '#dc2626', color: 'white' }}
+              >
+                {bulkSuspending ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    Suspending...
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-4 h-4" />
+                    Suspend All {citiesToBulkSuspend.length} Cities
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

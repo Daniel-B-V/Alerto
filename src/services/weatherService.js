@@ -327,6 +327,11 @@ export const getWeatherAlerts = async () => {
   try {
     const batangasWeather = await getBatangasWeather();
 
+    if (!batangasWeather || batangasWeather.length === 0) {
+      console.warn('No weather data available for alerts');
+      return [];
+    }
+
     // Analyze weather data and create alerts
     const alerts = batangasWeather.map(data => {
       // First check if the weather data has alerts array from seeded data
@@ -374,7 +379,8 @@ export const getWeatherAlerts = async () => {
 
     return alerts;
   } catch (error) {
-    handleApiError(error, 'weather alerts');
+    console.error('Error fetching weather alerts:', error);
+    return [];
   }
 };
 
@@ -382,6 +388,25 @@ export const getWeatherAlerts = async () => {
 export const getWeatherStatistics = async () => {
   try {
     const batangasWeather = await getBatangasWeather();
+
+    if (!batangasWeather || batangasWeather.length === 0) {
+      console.warn('No weather data available for statistics');
+      return {
+        averageTemperature: 0,
+        averageHumidity: 0,
+        averageWindSpeed: 0,
+        totalRainfall: 0,
+        highRiskAreas: 0,
+        mediumRiskAreas: 0,
+        normalAreas: 0,
+        weatherConditions: {
+          clear: 0,
+          cloudy: 0,
+          rain: 0,
+          storm: 0,
+        },
+      };
+    }
 
     const stats = {
       averageTemperature: 0,
@@ -436,7 +461,23 @@ export const getWeatherStatistics = async () => {
 
     return stats;
   } catch (error) {
-    handleApiError(error, 'weather statistics');
+    console.error('Error fetching weather statistics:', error);
+    // Return default stats instead of throwing
+    return {
+      averageTemperature: 0,
+      averageHumidity: 0,
+      averageWindSpeed: 0,
+      totalRainfall: 0,
+      highRiskAreas: 0,
+      mediumRiskAreas: 0,
+      normalAreas: 0,
+      weatherConditions: {
+        clear: 0,
+        cloudy: 0,
+        rain: 0,
+        storm: 0,
+      },
+    };
   }
 };
 

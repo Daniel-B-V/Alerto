@@ -316,7 +316,7 @@ const ActiveSuspensionsTable = () => {
 
       {/* Lift Suspension Dialog */}
       <Dialog open={liftDialogOpen} onOpenChange={setLiftDialogOpen}>
-        <DialogContent>
+        <DialogContent style={{ maxWidth: '500px', width: '90vw', borderRadius: '16px' }}>
           <DialogHeader>
             <DialogTitle>Lift Suspension</DialogTitle>
             <DialogDescription>
@@ -337,18 +337,19 @@ const ActiveSuspensionsTable = () => {
             />
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 flex justify-end">
             <Button
               variant="outline"
               onClick={() => setLiftDialogOpen(false)}
               disabled={processing}
+              style={{ backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}
             >
               Cancel
             </Button>
             <Button
               onClick={handleLiftConfirm}
               disabled={processing}
-              className="bg-green-600 hover:bg-green-700"
+              style={{ backgroundColor: '#22c55e', color: 'white' }}
             >
               {processing ? 'Lifting...' : 'Confirm Lift'}
             </Button>
@@ -358,7 +359,7 @@ const ActiveSuspensionsTable = () => {
 
       {/* Extend Suspension Dialog */}
       <Dialog open={extendDialogOpen} onOpenChange={setExtendDialogOpen}>
-        <DialogContent>
+        <DialogContent style={{ maxWidth: '500px', width: '90vw', borderRadius: '16px' }}>
           <DialogHeader>
             <DialogTitle>Extend Suspension</DialogTitle>
             <DialogDescription>
@@ -405,18 +406,19 @@ const ActiveSuspensionsTable = () => {
             </div>
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-2 flex justify-end">
             <Button
               variant="outline"
               onClick={() => setExtendDialogOpen(false)}
               disabled={processing}
+              style={{ backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}
             >
               Cancel
             </Button>
             <Button
               onClick={handleExtendConfirm}
               disabled={processing}
-              className="bg-orange-600 hover:bg-orange-700"
+              style={{ backgroundColor: '#f97316', color: 'white' }}
             >
               {processing ? 'Extending...' : 'Confirm Extension'}
             </Button>

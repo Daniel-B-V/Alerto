@@ -23,7 +23,7 @@ import {
 import { useSuspensions } from '../../hooks/useSuspensions';
 import { SUSPENSION_LEVELS, AI_ACTIONS, SUSPENSION_STATUS } from '../../constants/suspensionCriteria';
 
-const SuspensionCandidateTable = ({ onIssueSuspension }) => {
+const SuspensionCandidateTable = ({ onIssueSuspension, onSuspendAll }) => {
   const { suspensionCandidates, loadSuspensionCandidates, candidatesLoading } = useSuspensions();
   const [selectedCities, setSelectedCities] = useState({});
   const [refreshing, setRefreshing] = useState(false);
@@ -85,10 +85,18 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
       return;
     }
 
-    if (window.confirm(`Are you sure you want to suspend ${citiesToSuspend.length} cities?`)) {
-      citiesToSuspend.forEach(candidate => {
-        handleIssueSuspension(candidate);
-      });
+    // Pass all cities to suspend to parent
+    if (onSuspendAll) {
+      onSuspendAll(citiesToSuspend.map(candidate => ({
+        city: candidate.city,
+        levels: selectedCities[candidate.city]?.levels || ['k12'],
+        criteria: candidate.criteria,
+        pagasaWarning: candidate.pagasaWarning,
+        tcws: candidate.tcws,
+        aiRecommendation: candidate.aiRecommendation,
+        reportCount: candidate.reportCount,
+        criticalReports: candidate.criticalReports
+      })));
     }
   };
 
