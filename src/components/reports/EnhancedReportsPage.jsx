@@ -816,63 +816,58 @@ export function EnhancedReportsPage() {
             </div>
 
             <div className="overflow-y-auto p-4 space-y-4 flex-1">
-              {/* Factual Verification Section - Compact */}
-              <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border border-green-300">
-                <CardHeader className="p-3 pb-2 bg-gradient-to-r from-green-100 to-emerald-100 border-b border-green-200">
-                  <CardTitle className="text-sm flex items-center gap-2 text-green-900">
-                    <Shield className="w-4 h-4 text-green-600" />
+              {/* Factual Verification Section */}
+              <Card className="border-0 shadow-lg overflow-hidden">
+                <CardHeader className="p-4 pb-3 bg-gradient-to-r from-emerald-600 to-green-600">
+                  <CardTitle className="text-base flex items-center gap-2 text-white">
+                    <Shield className="w-5 h-5" />
                     Factual Verification
-                    <Badge className="ml-auto bg-green-600 text-white text-[10px] px-2 py-0.5">
+                    <Badge className="ml-auto bg-white/20 text-white text-xs px-2 py-1 border-0">
                       Multi-Source
                     </Badge>
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-3 space-y-2">
-                  {/* Verification Summary - Compact */}
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="bg-white rounded p-2 border border-green-200">
-                      <div className="flex items-center gap-1 mb-1">
+                <CardContent className="p-0">
+                  {/* Verification Metrics - Horizontal Layout */}
+                  <div className="flex divide-x divide-gray-100">
+                    {/* AI Text */}
+                    <div className="flex-1 p-4 text-center bg-white hover:bg-gray-50 transition-colors">
+                      <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-purple-100 flex items-center justify-center">
                         <span className="text-lg">🤖</span>
-                        <span className="text-[10px] font-semibold text-gray-700">AI Text</span>
                       </div>
-                      <div className="text-center">
-                        <div className="text-base font-bold text-green-700">
-                          {selectedLocation.reports.filter(r => r.status === 'verified').length}
-                        </div>
-                        <div className="text-[10px] text-gray-600">Authenticated</div>
+                      <div className="text-2xl font-bold text-purple-600">
+                        {selectedLocation.reports.filter(r => r.status === 'verified').length}
                       </div>
+                      <div className="text-xs font-medium text-gray-500 mt-1">AI Authenticated</div>
                     </div>
 
-                    <div className="bg-white rounded p-2 border border-green-200">
-                      <div className="flex items-center gap-1 mb-1">
+                    {/* Image Evidence */}
+                    <div className="flex-1 p-4 text-center bg-white hover:bg-gray-50 transition-colors">
+                      <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-blue-100 flex items-center justify-center">
                         <span className="text-lg">📷</span>
-                        <span className="text-[10px] font-semibold text-gray-700">Image</span>
                       </div>
-                      <div className="text-center">
-                        <div className="text-base font-bold text-green-700">
-                          {selectedLocation.reports.filter(r => r.images && r.images.length > 0).length}
-                        </div>
-                        <div className="text-[10px] text-gray-600">With Evidence</div>
+                      <div className="text-2xl font-bold text-blue-600">
+                        {selectedLocation.reports.filter(r => r.images && r.images.length > 0).length}
                       </div>
+                      <div className="text-xs font-medium text-gray-500 mt-1">With Evidence</div>
                     </div>
 
-                    <div className="bg-white rounded p-2 border border-green-200">
-                      <div className="flex items-center gap-1 mb-1">
+                    {/* Weather Match */}
+                    <div className="flex-1 p-4 text-center bg-white hover:bg-gray-50 transition-colors">
+                      <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-amber-100 flex items-center justify-center">
                         <span className="text-lg">🌤️</span>
-                        <span className="text-[10px] font-semibold text-gray-700">Weather</span>
                       </div>
-                      <div className="text-center">
-                        <div className="text-base font-bold text-gray-700">
-                          {selectedLocation.aiConfidence}%
-                        </div>
-                        <div className="text-[10px] text-gray-600">Match Score</div>
+                      <div className="text-2xl font-bold text-amber-600">
+                        {selectedLocation.aiConfidence}%
                       </div>
+                      <div className="text-xs font-medium text-gray-500 mt-1">Weather Match</div>
                     </div>
                   </div>
 
-                  <div className="bg-white rounded p-2 border border-green-200">
-                    <p className="text-[10px] text-gray-700">
-                      <strong>Methods:</strong> AI spam detection (Hugging Face NLI), image analysis (CLIP), weather correlation (OpenWeather API).
+                  {/* Methods Footer */}
+                  <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
+                    <p className="text-xs text-gray-500 text-center">
+                      Verified via AI spam detection, image analysis (CLIP), and weather correlation
                     </p>
                   </div>
                 </CardContent>
