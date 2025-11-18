@@ -30,8 +30,12 @@ import {
   Settings as SettingsIcon,
   FileText,
   AlertTriangle,
+<<<<<<< HEAD
   Thermometer,
   Plus
+=======
+  BarChart3
+>>>>>>> 82ffe01ec79dbeceb41d467d951151f1e856fef8
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet';
@@ -56,6 +60,8 @@ import { Card } from '../../ui/card';
 import { Alert, AlertDescription } from '../../ui/alert';
 import { Badge } from '../../ui/badge';
 import { Shield, Crown, Building2, Check, Info, FlaskConical, RefreshCw } from 'lucide-react';
+import { AnalyticsPanel } from '../../analytics/AnalyticsPanel';
+import { SuspensionForecastCard } from '../../analytics/SuspensionForecastCard';
 
 // Fix for default marker icons in Leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -87,6 +93,7 @@ function TestSidebar({ activeSection, onSectionChange }) {
 
   const navItems = [
     { id: "dashboard", icon: LayoutDashboard, label: "Weather Dashboard" },
+    { id: "analytics", icon: BarChart3, label: "Analytics" },
     { id: "reports", icon: FileText, label: "Reports" },
     { id: "settings", icon: SettingsIcon, label: "Settings" },
   ];
@@ -530,6 +537,17 @@ export function TestRoleDashboard() {
                   </div>
                 )}
               </>
+            )}
+
+            {/* Analytics Section */}
+            {activeSection === 'analytics' && (
+              <div className="space-y-6">
+                {/* ARIMA Suspension Forecast - Compact */}
+                <SuspensionForecastCard city="Batangas City" />
+
+                {/* Original Analytics Panel */}
+                <AnalyticsPanel />
+              </div>
             )}
 
             {/* Placeholder for other sections */}
