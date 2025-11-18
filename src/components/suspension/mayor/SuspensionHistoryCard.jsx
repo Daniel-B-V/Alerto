@@ -77,7 +77,8 @@ export function SuspensionHistoryCard({ suspensions = [], className = '' }) {
   const getLevelBadges = (levels) => {
     if (!levels || levels.length === 0) return null;
     const levelNames = {
-      k12: 'K-12',
+      elementary: 'Elementary',
+      high_school: 'High School',
       preschool: 'Preschool',
       college: 'College'
     };

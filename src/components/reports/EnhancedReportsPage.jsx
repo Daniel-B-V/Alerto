@@ -63,7 +63,7 @@ export function EnhancedReportsPage() {
   // Suspension system integration
   const { issueSuspension } = useSuspensions();
   const [suspensionData, setSuspensionData] = useState(null);
-  const [selectedLevels, setSelectedLevels] = useState(['k12']);
+  const [selectedLevels, setSelectedLevels] = useState(['elementary', 'high_school']);
   const [suspensionMessage, setSuspensionMessage] = useState('');
   const [durationHours, setDurationHours] = useState(12);
   const [issuing, setIssuing] = useState(false);
@@ -1217,32 +1217,30 @@ export function EnhancedReportsPage() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Select Suspension Levels: *
                 </label>
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-2">
                   {SUSPENSION_LEVELS.slice(0, 3).map((level) => (
-                    <button
+                    <label
                       key={level.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedLevels(prev =>
-                          prev.includes(level.id)
-                            ? prev.filter(l => l !== level.id)
-                            : [...prev, level.id]
-                        );
-                      }}
-                      className={`px-5 py-2 rounded-full text-sm font-bold transition-all border-2 whitespace-nowrap ${
-                        selectedLevels.includes(level.id)
-                          ? 'bg-red-600 text-white border-red-600 shadow-md'
-                          : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:bg-red-50'
-                      }`}
-                      title={level.description}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
                     >
-                      {level.shortLabel}
-                    </button>
+                      <input
+                        type="checkbox"
+                        checked={selectedLevels.includes(level.id)}
+                        onChange={() => {
+                          setSelectedLevels(prev =>
+                            prev.includes(level.id)
+                              ? prev.filter(l => l !== level.id)
+                              : [...prev, level.id]
+                          );
+                        }}
+                        className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+                      />
+                      <span className="flex-1 text-sm font-medium text-gray-700">
+                        {level.shortLabel}
+                      </span>
+                    </label>
                   ))}
                 </div>
-                <p className="text-xs text-gray-500 mt-1.5">
-                  Click to select/deselect levels
-                </p>
               </div>
 
               {/* Duration */}
@@ -1362,7 +1360,7 @@ export function EnhancedReportsPage() {
                       alert(`✅ Class suspension successfully issued for ${selectedLocation.city}`);
                       setShowSuspensionModal(false);
                       setShowCompiledModal(false);
-                      setSelectedLevels(['k12']);
+                      setSelectedLevels(['elementary', 'high_school']);
                       setSuspensionMessage('');
                     } catch (error) {
                       console.error('Failed to issue suspension:', error);

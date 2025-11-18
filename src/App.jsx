@@ -46,6 +46,28 @@ if (import.meta.env.DEV) {
     console.log('   window.cleanupSpamReports({ dryRun: true }) - Preview deletions');
     console.log('   window.deleteAllReports() - Delete ALL reports (⚠️ dangerous!)\n');
   });
+
+  // Add cache clearing utility
+  window.clearAppCache = async () => {
+    try {
+      const cacheNames = await caches.keys();
+      console.log('🗑️ Found caches:', cacheNames);
+
+      await Promise.all(
+        cacheNames.map(cacheName => {
+          console.log('🗑️ Deleting cache:', cacheName);
+          return caches.delete(cacheName);
+        })
+      );
+
+      console.log('✅ All caches cleared! Reloading in 2 seconds...');
+      setTimeout(() => window.location.reload(), 2000);
+    } catch (error) {
+      console.error('❌ Failed to clear cache:', error);
+    }
+  };
+  console.log('🔧 Cache Management:');
+  console.log('   window.clearAppCache() - Clear all caches and reload\n');
 }
 
 function AppContent() {

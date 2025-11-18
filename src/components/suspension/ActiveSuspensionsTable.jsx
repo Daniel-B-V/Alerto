@@ -159,7 +159,8 @@ const ActiveSuspensionsTable = () => {
   const getLevelsDisplay = (levels) => {
     const levelMap = {
       preschool: { label: 'Preschool', icon: '👶' },
-      k12: { label: 'K-12', icon: '🎒' },
+      elementary: { label: 'Elementary', icon: '📚' },
+      high_school: { label: 'High School', icon: '🎒' },
       college: { label: 'College', icon: '🎓' },
       work: { label: 'Work', icon: '💼' },
       activities: { label: 'Activities', icon: '🏃' },
