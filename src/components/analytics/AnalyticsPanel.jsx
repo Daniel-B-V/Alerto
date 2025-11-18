@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { BarChart3, RefreshCw, Cloud, AlertTriangle, CloudRain, Wind, Droplets, PieChart as PieChartIcon, TrendingUp, Calendar } from "lucide-react";
+import { BarChart3, RefreshCw, Cloud, AlertTriangle, CloudRain, Wind, Droplets, PieChart as PieChartIcon, TrendingUp, Calendar, Thermometer } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import TyphoonTracker from "../typhoon/TyphoonTracker";
@@ -666,68 +666,172 @@ export function AnalyticsPanel() {
       {/* Climate Forecast */}
       {!loading && !error && climateForecast.length > 0 && (
         <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">4-Day Climate Forecast</h2>
-          <Card className="bg-white/70 backdrop-blur-sm border-gray-200/50 shadow-lg">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Cloud className="w-5 h-5 text-blue-500" />
-                Daily Climate Forecast - Batangas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Temperature & Rainfall Forecast */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">Temperature & Rainfall</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={climateForecast}>
+          <div className="mb-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
+              <Cloud className="w-7 h-7 text-blue-500" />
+              4-Day Climate Forecast
+            </h2>
+            <p className="text-gray-600">Daily weather predictions for Batangas Province</p>
+          </div>
+
+          <Card className="bg-white border-gray-200 shadow-lg">
+            <CardContent className="p-6">
+              {/* Temperature & Rainfall Chart */}
+              <div className="mb-8">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-orange-400 to-red-500"></div>
+                    <span className="text-sm font-semibold text-gray-700">Temperature (°C)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-blue-400 to-blue-600"></div>
+                    <span className="text-sm font-semibold text-gray-700">Rainfall (mm)</span>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={320}>
+                  <AreaChart data={climateForecast} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
                     <defs>
-                      <linearGradient id="colorTemp" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.8}/>
+                      <linearGradient id="colorTemp2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.8}/>
                         <stop offset="95%" stopColor="#ef4444" stopOpacity={0.1}/>
                       </linearGradient>
-                      <linearGradient id="colorRain" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="colorRain2" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#2563eb" stopOpacity={0.1}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="time" stroke="#6b7280" fontSize={11} />
-                    <YAxis yAxisId="left" stroke="#6b7280" fontSize={12} />
-                    <YAxis yAxisId="right" orientation="right" stroke="#6b7280" fontSize={12} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                    <XAxis
+                      dataKey="time"
+                      stroke="#6b7280"
+                      fontSize={13}
+                      fontWeight={500}
+                      tickLine={false}
+                      axisLine={{ stroke: '#d1d5db' }}
+                      dy={10}
+                    />
+                    <YAxis
+                      yAxisId="left"
+                      stroke="#f97316"
+                      fontSize={12}
+                      fontWeight={600}
+                      tickLine={false}
+                      axisLine={{ stroke: '#f97316', strokeWidth: 2 }}
+                      label={{ value: 'Temperature (°C)', angle: -90, position: 'insideLeft', style: { fill: '#f97316', fontWeight: 600 } }}
+                    />
+                    <YAxis
+                      yAxisId="right"
+                      orientation="right"
+                      stroke="#3b82f6"
+                      fontSize={12}
+                      fontWeight={600}
+                      tickLine={false}
+                      axisLine={{ stroke: '#3b82f6', strokeWidth: 2 }}
+                      label={{ value: 'Rainfall (mm)', angle: 90, position: 'insideRight', style: { fill: '#3b82f6', fontWeight: 600 } }}
+                    />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(229, 231, 235, 0.5)',
-                        borderRadius: '12px'
+                        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        padding: '12px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                       }}
+                      labelStyle={{ fontWeight: 700, color: '#111827', marginBottom: '8px' }}
+                      itemStyle={{ fontWeight: 600, padding: '4px 0' }}
                     />
-                    <Legend />
-                    <Area yAxisId="left" type="monotone" dataKey="temperature" stroke="#ef4444" fillOpacity={1} fill="url(#colorTemp)" name="Temperature (°C)" />
-                    <Area yAxisId="right" type="monotone" dataKey="rainfall" stroke="#3b82f6" fillOpacity={1} fill="url(#colorRain)" name="Rainfall (mm)" />
+                    <Area
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="temperature"
+                      stroke="#f97316"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorTemp2)"
+                      name="Temperature"
+                      dot={{ fill: '#ef4444', strokeWidth: 2, r: 5 }}
+                      activeDot={{ r: 7, strokeWidth: 2 }}
+                    />
+                    <Area
+                      yAxisId="right"
+                      type="monotone"
+                      dataKey="rainfall"
+                      stroke="#3b82f6"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorRain2)"
+                      name="Rainfall"
+                      dot={{ fill: '#2563eb', strokeWidth: 2, r: 5 }}
+                      activeDot={{ r: 7, strokeWidth: 2 }}
+                    />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
 
-              {/* Wind & Humidity Forecast */}
+              {/* Divider */}
+              <div className="border-t-2 border-gray-200 my-8"></div>
+
+              {/* Wind Speed & Humidity Chart */}
               <div>
-                <h3 className="text-lg font-semibold mb-3">Wind Speed & Humidity</h3>
-                <ResponsiveContainer width="100%" height={250}>
-                  <LineChart data={climateForecast}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="time" stroke="#6b7280" fontSize={11} />
-                    <YAxis stroke="#6b7280" fontSize={12} />
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-purple-400 to-purple-600"></div>
+                    <span className="text-sm font-semibold text-gray-700">Wind Speed (km/h)</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full bg-gradient-to-r from-cyan-400 to-cyan-600"></div>
+                    <span className="text-sm font-semibold text-gray-700">Humidity (%)</span>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={climateForecast} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                    <XAxis
+                      dataKey="time"
+                      stroke="#6b7280"
+                      fontSize={13}
+                      fontWeight={500}
+                      tickLine={false}
+                      axisLine={{ stroke: '#d1d5db' }}
+                      dy={10}
+                    />
+                    <YAxis
+                      stroke="#8b5cf6"
+                      fontSize={12}
+                      fontWeight={600}
+                      tickLine={false}
+                      axisLine={{ stroke: '#8b5cf6', strokeWidth: 2 }}
+                      label={{ value: 'Wind (km/h) / Humidity (%)', angle: -90, position: 'insideLeft', style: { fill: '#6b7280', fontWeight: 600 } }}
+                    />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(229, 231, 235, 0.5)',
-                        borderRadius: '12px'
+                        backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                        border: '2px solid #e5e7eb',
+                        borderRadius: '12px',
+                        padding: '12px',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
                       }}
+                      labelStyle={{ fontWeight: 700, color: '#111827', marginBottom: '8px' }}
+                      itemStyle={{ fontWeight: 600, padding: '4px 0' }}
                     />
-                    <Legend />
-                    <Line type="monotone" dataKey="windSpeed" stroke="#8b5cf6" strokeWidth={2} name="Wind Speed (km/h)" />
-                    <Line type="monotone" dataKey="humidity" stroke="#06b6d4" strokeWidth={2} name="Humidity (%)" />
+                    <Line
+                      type="monotone"
+                      dataKey="windSpeed"
+                      stroke="#8b5cf6"
+                      strokeWidth={3}
+                      name="Wind Speed"
+                      dot={{ fill: '#7c3aed', strokeWidth: 2, r: 5 }}
+                      activeDot={{ r: 7, strokeWidth: 2 }}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="humidity"
+                      stroke="#06b6d4"
+                      strokeWidth={3}
+                      name="Humidity"
+                      dot={{ fill: '#0891b2', strokeWidth: 2, r: 5 }}
+                      activeDot={{ r: 7, strokeWidth: 2 }}
+                    />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

@@ -221,62 +221,61 @@ export function UserSuspensionView() {
         <Card className="mb-6">
           {/* Search and Filter Header */}
           <CardContent className="p-4 border-b border-gray-100">
-            <div className="space-y-3">
-              {/* Search Bar */}
-              <div className="relative w-full">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search for a city..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-10 text-sm"
-                />
-              </div>
-
-              {/* Filter Buttons and Refresh */}
-              <div className="flex justify-between items-center">
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => setStatusFilter("all")}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                      statusFilter === "all"
-                        ? 'bg-gray-100 text-gray-900 border border-gray-300'
-                        : 'text-gray-600 border border-transparent hover:bg-gray-50'
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter("suspended")}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                      statusFilter === "suspended"
-                        ? 'bg-red-50 text-red-700 border border-red-200'
-                        : 'text-gray-600 border border-transparent hover:bg-gray-50'
-                    }`}
-                  >
-                    Suspended
-                  </button>
-                  <button
-                    onClick={() => setStatusFilter("active")}
-                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-                      statusFilter === "active"
-                        ? 'bg-green-50 text-green-700 border border-green-200'
-                        : 'text-gray-600 border border-transparent hover:bg-gray-50'
-                    }`}
-                  >
-                    Active
-                  </button>
-                </div>
-
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                {/* Filter Buttons */}
                 <button
-                  onClick={fetchData}
-                  className="px-3 py-1.5 text-xs font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-1.5"
+                  onClick={() => setStatusFilter("all")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    statusFilter === "all"
+                      ? 'bg-gray-100 text-gray-900 border border-gray-300'
+                      : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                  }`}
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Refresh
+                  All
                 </button>
+                <button
+                  onClick={() => setStatusFilter("suspended")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    statusFilter === "suspended"
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                  }`}
+                >
+                  Suspended
+                </button>
+                <button
+                  onClick={() => setStatusFilter("active")}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+                    statusFilter === "active"
+                      ? 'bg-green-50 text-green-700 border border-green-200'
+                      : 'text-gray-600 border border-transparent hover:bg-gray-50'
+                  }`}
+                >
+                  Active
+                </button>
+
+                {/* Search Bar */}
+                <div className="relative w-64">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    type="text"
+                    placeholder="Search for a city..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10 h-9 text-sm shadow-none"
+                  />
+                </div>
               </div>
+
+              {/* Refresh Button - Right Side */}
+              <button
+                onClick={fetchData}
+                className="px-3 py-1.5 text-xs font-medium rounded-md bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 transition-colors flex items-center gap-1.5"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Refresh
+              </button>
             </div>
           </CardContent>
 
@@ -308,13 +307,6 @@ export function UserSuspensionView() {
                       </CardTitle>
                     </div>
                     <div className="flex items-center gap-2">
-                      {/* Time Span (for suspended cities) */}
-                      {city.suspended && city.suspensionInfo?.effectiveUntil && (
-                        <div className="text-xs text-gray-600 text-right">
-                          <p className="font-medium">Until</p>
-                          <p>{new Date(city.suspensionInfo.effectiveUntil.seconds * 1000).toLocaleDateString()}</p>
-                        </div>
-                      )}
                       {city.suspended ? (
                         <Badge
                           className="flex items-center gap-1 px-3 py-1 font-bold"
@@ -345,49 +337,76 @@ export function UserSuspensionView() {
 
                 <CardContent className="pt-0">
                   {city.suspended ? (
-                    /* Suspended City - Show Details */
-                    <div className="space-y-4">
-                      {/* Time Span */}
+                    /* Suspended City - Unified Clean Design */
+                    <div className="space-y-4 py-2">
+                      {/* Suspension Period */}
                       {city.suspensionInfo?.effectiveFrom && city.suspensionInfo?.effectiveUntil && (
-                        <div className="p-3 bg-gray-50 rounded-lg">
-                          <p className="text-xs font-semibold text-gray-700 mb-1">Suspension Period</p>
-                          <p className="text-sm text-gray-900">
+                        <div>
+                          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Suspension Period</p>
+                          <p className="text-sm text-gray-900 font-semibold">
                             {new Date(city.suspensionInfo.effectiveFrom.seconds * 1000).toLocaleDateString()} - {new Date(city.suspensionInfo.effectiveUntil.seconds * 1000).toLocaleDateString()}
                           </p>
                         </div>
                       )}
 
+                      {/* Divider */}
+                      <div className="border-t border-gray-200"></div>
+
                       {/* Cause/Reason */}
                       {city.suspensionInfo?.reason && (
-                        <div className="p-3 bg-red-50 rounded-lg border-l-4 border-red-500">
-                          <p className="text-xs font-semibold text-red-900 mb-1">Cause</p>
-                          <p className="text-sm text-red-800">{city.suspensionInfo.reason}</p>
+                        <div>
+                          <div className="flex items-start gap-2">
+                            <div className="flex-shrink-0 w-5 h-5 rounded-full bg-red-100 flex items-center justify-center mt-0.5">
+                              <AlertCircle className="w-3.5 h-3.5 text-red-600" />
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Cause</p>
+                              <p className="text-sm text-gray-900 leading-relaxed">{city.suspensionInfo.reason}</p>
+                            </div>
+                          </div>
                         </div>
                       )}
 
+                      {/* Divider */}
+                      <div className="border-t border-gray-200"></div>
+
                       {/* Affected Levels */}
-                      <div className="p-3 bg-orange-50 rounded-lg">
-                        <p className="text-xs font-semibold text-orange-900 mb-2">Affected Levels</p>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Affected Levels</p>
                         <div className="flex flex-wrap gap-1.5">
                           {city.suspensionInfo?.affectedLevels ? (
                             city.suspensionInfo.affectedLevels.map((level, idx) => (
-                              <Badge key={idx} className="bg-orange-100 text-orange-800 text-xs">
+                              <span
+                                key={idx}
+                                style={{
+                                  display: 'inline-block',
+                                  backgroundColor: '#2563EB',
+                                  color: '#FFFFFF',
+                                  fontSize: '0.75rem',
+                                  fontWeight: '500',
+                                  padding: '0.25rem 0.75rem',
+                                  borderRadius: '0.375rem'
+                                }}
+                              >
                                 {level}
-                              </Badge>
+                              </span>
                             ))
                           ) : (
-                            <>
-                              <Badge className="bg-orange-100 text-orange-800 text-xs">All Levels</Badge>
-                            </>
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                backgroundColor: '#2563EB',
+                                color: '#FFFFFF',
+                                fontSize: '0.75rem',
+                                fontWeight: '500',
+                                padding: '0.25rem 0.75rem',
+                                borderRadius: '0.375rem'
+                              }}
+                            >
+                              All Levels
+                            </span>
                           )}
                         </div>
-                      </div>
-
-                      {/* Safety Advisory */}
-                      <div className="p-3 bg-red-100 rounded-lg">
-                        <p className="text-xs text-red-900">
-                          <strong>⚠️ Safety Advisory:</strong> Stay indoors and avoid unnecessary travel. Monitor official announcements for updates.
-                        </p>
                       </div>
                     </div>
                   ) : (

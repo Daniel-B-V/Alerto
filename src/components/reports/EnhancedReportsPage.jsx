@@ -1230,35 +1230,35 @@ export function EnhancedReportsPage() {
 
               {/* Suspension Levels */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Select Suspension Levels: *
                 </label>
-                <div className="space-y-2">
+                <div className="flex flex-wrap gap-2">
                   {SUSPENSION_LEVELS.slice(0, 3).map((level) => (
-                    <label
+                    <button
                       key={level.id}
-                      className="flex items-center space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 transition"
+                      type="button"
+                      onClick={() => {
+                        setSelectedLevels(prev =>
+                          prev.includes(level.id)
+                            ? prev.filter(l => l !== level.id)
+                            : [...prev, level.id]
+                        );
+                      }}
+                      className={`px-5 py-2 rounded-full text-sm font-bold transition-all border-2 whitespace-nowrap ${
+                        selectedLevels.includes(level.id)
+                          ? 'bg-red-600 text-white border-red-600 shadow-md'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-red-400 hover:bg-red-50'
+                      }`}
+                      title={level.description}
                     >
-                      <input
-                        type="checkbox"
-                        checked={selectedLevels.includes(level.id)}
-                        onChange={() => {
-                          setSelectedLevels(prev =>
-                            prev.includes(level.id)
-                              ? prev.filter(l => l !== level.id)
-                              : [...prev, level.id]
-                          );
-                        }}
-                        className="w-4 h-4 text-red-600 rounded focus:ring-red-500"
-                      />
-                      <span className="text-2xl">{level.icon}</span>
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{level.label}</p>
-                        <p className="text-xs text-gray-500">{level.description}</p>
-                      </div>
-                    </label>
+                      {level.shortLabel}
+                    </button>
                   ))}
                 </div>
+                <p className="text-xs text-gray-500 mt-1.5">
+                  Click to select/deselect levels
+                </p>
               </div>
 
               {/* Duration */}

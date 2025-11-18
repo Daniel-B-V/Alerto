@@ -545,6 +545,238 @@ export const autoExpireSuspensions = async () => {
   }
 };
 
+/**
+ * Get city suspension history with analytics
+ * @param {string} city - City name
+ * @param {number} limitCount - Number of suspensions to fetch
+ * @returns {Promise<object>} Suspension history with analytics
+ */
+export const getCitySuspensionHistory = async (city, limitCount = 50) => {
+  try {
+    const suspensions = await getSuspensionHistory(city, limitCount);
+
+    // Calculate analytics
+    const totalSuspensions = suspensions.length;
+
+    if (totalSuspensions === 0) {
+      return {
+        suspensions: [],
+        analytics: {
+          totalSuspensions: 0,
+          avgDuration: 0,
+          mostCommonReason: null,
+          suspensionsPerMonth: 0
+        }
+      };
+    }
+
+    // Average duration
+    const avgDuration = Math.round(
+      suspensions.reduce((sum, s) => sum + (s.durationHours || 0), 0) / totalSuspensions
+    );
+
+    // Most common reason
+    const reasonCounts = {};
+    suspensions.forEach(s => {
+      const reason = s.reason || 'Weather conditions';
+      reasonCounts[reason] = (reasonCounts[reason] || 0) + 1;
+    });
+    const mostCommonReason = Object.entries(reasonCounts)
+      .sort((a, b) => b[1] - a[1])[0]?.[0];
+
+    // Suspensions per month
+    const oldestDate = new Date(Math.min(...suspensions.map(s => new Date(s.issuedAt).getTime())));
+    const monthsDiff = Math.max(1, Math.ceil((Date.now() - oldestDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+    const suspensionsPerMonth = (totalSuspensions / monthsDiff).toFixed(1);
+
+    return {
+      suspensions,
+      analytics: {
+        totalSuspensions,
+        avgDuration,
+        mostCommonReason,
+        suspensionsPerMonth: parseFloat(suspensionsPerMonth)
+      }
+    };
+  } catch (error) {
+    console.error('Error getting city suspension history:', error);
+    throw new Error(`Failed to get city suspension history: ${error.message}`);
+  }
+};
+
+/**
+ * Get suspension recommendation based on current conditions
+ * @param {string} city - City name
+ * @param {object} weatherData - Current weather data
+ * @param {number} reportCount - Number of community reports
+ * @param {number} criticalReports - Number of critical reports
+ * @returns {Promise<object>} Recommendation with risk score
+ */
+export const getSuspensionRecommendation = async (city, weatherData, reportCount = 0, criticalReports = 0) => {
+  try {
+    let riskScore = 0;
+    const factors = [];
+
+    // Weather factors (max 50 points)
+    if (weatherData) {
+      // Rainfall (0-20 points)
+      if (weatherData.rainfall >= 30) {
+        riskScore += 20;
+        factors.push({ type: 'rainfall', severity: 'critical', value: weatherData.rainfall });
+      } else if (weatherData.rainfall >= 15) {
+        riskScore += 15;
+        factors.push({ type: 'rainfall', severity: 'high', value: weatherData.rainfall });
+      } else if (weatherData.rainfall >= 7.5) {
+        riskScore += 10;
+        factors.push({ type: 'rainfall', severity: 'moderate', value: weatherData.rainfall });
+      }
+
+      // Wind (0-15 points)
+      if (weatherData.windSpeed >= 55) {
+        riskScore += 15;
+        factors.push({ type: 'wind', severity: 'critical', value: weatherData.windSpeed });
+      } else if (weatherData.windSpeed >= 39) {
+        riskScore += 10;
+        factors.push({ type: 'wind', severity: 'high', value: weatherData.windSpeed });
+      }
+
+      // Heat Index (0-15 points)
+      const heatIndex = weatherData.heatIndex || weatherData.temperature;
+      if (heatIndex >= 41) {
+        riskScore += 15;
+        factors.push({ type: 'heat', severity: 'critical', value: heatIndex });
+      } else if (heatIndex >= 33) {
+        riskScore += 10;
+        factors.push({ type: 'heat', severity: 'high', value: heatIndex });
+      }
+    }
+
+    // Community reports (max 30 points)
+    if (criticalReports > 0) {
+      const reportPoints = Math.min(20, criticalReports * 5);
+      riskScore += reportPoints;
+      factors.push({ type: 'criticalReports', severity: 'high', value: criticalReports });
+    }
+    if (reportCount > 0) {
+      const reportPoints = Math.min(10, reportCount * 2);
+      riskScore += reportPoints;
+      factors.push({ type: 'reports', severity: 'moderate', value: reportCount });
+    }
+
+    // PAGASA Warning (max 20 points)
+    if (weatherData?.pagasaWarning) {
+      if (weatherData.pagasaWarning.id === 'red') {
+        riskScore += 20;
+        factors.push({ type: 'pagasaWarning', severity: 'critical', value: 'red' });
+      } else if (weatherData.pagasaWarning.id === 'orange') {
+        riskScore += 15;
+        factors.push({ type: 'pagasaWarning', severity: 'high', value: 'orange' });
+      } else if (weatherData.pagasaWarning.id === 'yellow') {
+        riskScore += 10;
+        factors.push({ type: 'pagasaWarning', severity: 'moderate', value: 'yellow' });
+      }
+    }
+
+    riskScore = Math.min(100, Math.round(riskScore));
+
+    // Determine recommendation
+    let recommendation;
+    if (riskScore >= 75) {
+      recommendation = {
+        action: 'SUSPEND_NOW',
+        level: 'critical',
+        message: 'Immediate suspension recommended based on current conditions.',
+        shouldSuspend: true
+      };
+    } else if (riskScore >= 50) {
+      recommendation = {
+        action: 'CONSIDER_SUSPENDING',
+        level: 'high',
+        message: 'Weather conditions warrant serious consideration for suspension.',
+        shouldSuspend: false
+      };
+    } else if (riskScore >= 25) {
+      recommendation = {
+        action: 'MONITOR_CLOSELY',
+        level: 'moderate',
+        message: 'Continue monitoring conditions. Suspension may be needed soon.',
+        shouldSuspend: false
+      };
+    } else {
+      recommendation = {
+        action: 'SAFE',
+        level: 'low',
+        message: 'Current conditions do not warrant suspension at this time.',
+        shouldSuspend: false
+      };
+    }
+
+    return {
+      riskScore,
+      recommendation,
+      factors,
+      timestamp: new Date()
+    };
+  } catch (error) {
+    console.error('Error generating suspension recommendation:', error);
+    return {
+      riskScore: 0,
+      recommendation: {
+        action: 'ERROR',
+        level: 'unknown',
+        message: 'Unable to generate recommendation.',
+        shouldSuspend: false
+      },
+      factors: [],
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Get statistics for a specific city
+ * @param {string} city - City name
+ * @returns {Promise<object>} City statistics
+ */
+export const getCityStatistics = async (city) => {
+  try {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    // Get all suspensions for the city
+    const allSuspensions = await getSuspensionHistory(city, 100);
+
+    // Get recent suspensions (last 30 days)
+    const recentSuspensions = allSuspensions.filter(s =>
+      new Date(s.issuedAt) >= thirtyDaysAgo
+    );
+
+    // Check for active suspension
+    const activeSuspension = allSuspensions.find(s =>
+      s.status === 'active' && new Date(s.effectiveUntil) > now
+    );
+
+    return {
+      totalSuspensions: allSuspensions.length,
+      recentSuspensions: recentSuspensions.length,
+      hasActiveSuspension: !!activeSuspension,
+      activeSuspension: activeSuspension || null,
+      avgDurationHours: allSuspensions.length > 0
+        ? Math.round(allSuspensions.reduce((sum, s) => sum + (s.durationHours || 0), 0) / allSuspensions.length)
+        : 0
+    };
+  } catch (error) {
+    console.error('Error getting city statistics:', error);
+    return {
+      totalSuspensions: 0,
+      recentSuspensions: 0,
+      hasActiveSuspension: false,
+      activeSuspension: null,
+      avgDurationHours: 0
+    };
+  }
+};
+
 export default {
   createSuspension,
   getSuspension,
@@ -558,5 +790,8 @@ export default {
   deleteSuspension,
   subscribeToActiveSuspensions,
   generateSuspensionRecommendation,
-  autoExpireSuspensions
+  autoExpireSuspensions,
+  getCitySuspensionHistory,
+  getSuspensionRecommendation,
+  getCityStatistics
 };

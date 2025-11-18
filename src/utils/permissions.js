@@ -22,19 +22,53 @@ export const isTestRole = (user) => {
   return user.role?.toLowerCase() === 'test';
 };
 
-// Governor can issue suspensions directly
+// Both Governor and Mayor can issue suspensions directly
+// Mayor can only issue for their assigned city
 export const canIssueSuspension = (user) => {
-  return isGovernor(user);
+  return isGovernor(user) || isMayor(user);
 };
 
-// Mayor can only request suspensions (needs governor approval)
+// Check if user can issue suspension for a specific city
+export const canIssueSuspensionFor = (user, cityName) => {
+  if (!user || !cityName) return false;
+
+  // Governor can issue for any city
+  if (isGovernor(user)) return true;
+
+  // Mayor can only issue for their assigned city
+  if (isMayor(user)) {
+    return getUserCity(user) === cityName;
+  }
+
+  return false;
+};
+
+// DEPRECATED: Mayor can now issue suspensions directly (no longer needs requests)
+// Kept for backward compatibility with old data
 export const canRequestSuspension = (user) => {
-  return isMayor(user);
+  return false; // Feature removed - mayors can now suspend directly
 };
 
-// Governor can lift/extend suspensions
+// Both Governor and Mayor can lift/extend suspensions
+// Mayor can only manage their city's suspensions
 export const canManageSuspensions = (user) => {
-  return isGovernor(user);
+  return isGovernor(user) || isMayor(user);
+};
+
+// Check if user can manage (extend/lift/edit) a specific suspension
+export const canManageSuspension = (user, suspension) => {
+  if (!user || !suspension) return false;
+
+  // Governor can manage all suspensions
+  if (isGovernor(user)) return true;
+
+  // Mayor can only manage suspensions for their assigned city
+  if (isMayor(user)) {
+    const userCity = getUserCity(user);
+    return suspension.city === userCity;
+  }
+
+  return false;
 };
 
 // Governor sees all cities, Mayor sees only their city
@@ -81,19 +115,11 @@ export const canViewCity = (user, cityName) => {
   return false;
 };
 
-// Check if user can request suspension for a specific city
+// DEPRECATED: Replaced with canIssueSuspensionFor
+// Kept for backward compatibility
 export const canRequestSuspensionFor = (user, cityName) => {
-  if (!user || !cityName) return false;
-
-  // Governor can request for any city
-  if (isGovernor(user)) return true;
-
-  // Mayor can only request for their assigned city
-  if (isMayor(user)) {
-    return getUserCity(user) === cityName;
-  }
-
-  return false;
+  // Feature removed - use canIssueSuspensionFor instead
+  return canIssueSuspensionFor(user, cityName);
 };
 
 // Check if user can approve suspension requests

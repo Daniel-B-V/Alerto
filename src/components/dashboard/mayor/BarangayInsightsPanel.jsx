@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card } from '../../ui/card';
 import { Badge } from '../../ui/badge';
+import { Button } from '../../ui/button';
 import { Alert, AlertDescription } from '../../ui/alert';
 import {
   MapPin,
@@ -13,7 +14,9 @@ import {
   TrendingUp,
   Activity,
   BarChart3,
-  Info
+  Info,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getUserCity } from '../../../utils/permissions';
@@ -25,6 +28,7 @@ const BarangayInsightsPanel = () => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [barangayStats, setBarangayStats] = useState([]);
+  const [showAllBarangays, setShowAllBarangays] = useState(false);
 
   // Load reports for the mayor's city
   useEffect(() => {
@@ -213,8 +217,9 @@ const BarangayInsightsPanel = () => {
             </AlertDescription>
           </Alert>
         ) : (
-          <div className="space-y-3">
-            {barangayStats.map((barangay, index) => (
+          <>
+            <div className="space-y-3">
+              {(showAllBarangays ? barangayStats : barangayStats.slice(0, 3)).map((barangay, index) => (
               <div
                 key={barangay.name}
                 className={`border rounded-lg p-4 hover:bg-gray-50 transition-colors ${
@@ -288,6 +293,30 @@ const BarangayInsightsPanel = () => {
               </div>
             ))}
           </div>
+
+          {/* Show More/Less Button */}
+          {barangayStats.length > 3 && (
+            <div className="mt-4 text-center">
+              <Button
+                variant="outline"
+                onClick={() => setShowAllBarangays(!showAllBarangays)}
+                className="text-blue-600 border-blue-300 hover:bg-blue-50"
+              >
+                {showAllBarangays ? (
+                  <>
+                    <ChevronUp className="w-4 h-4 mr-2" />
+                    Show Less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4 mr-2" />
+                    Show All ({barangayStats.length - 3} more)
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+          </>
         )}
       </Card>
 

@@ -103,7 +103,6 @@ export const SUSPENSION_LEVELS = [
     id: 'preschool',
     label: 'Preschool/ECCD',
     shortLabel: 'Preschool',
-    icon: '👶',
     description: 'Early Childhood Care and Development programs',
     order: 1
   },
@@ -111,7 +110,6 @@ export const SUSPENSION_LEVELS = [
     id: 'k12',
     label: 'K-12 Basic Education',
     shortLabel: 'K-12',
-    icon: '🎒',
     description: 'Kindergarten through Grade 12',
     order: 2
   },
@@ -119,7 +117,6 @@ export const SUSPENSION_LEVELS = [
     id: 'college',
     label: 'College/University',
     shortLabel: 'College',
-    icon: '🎓',
     description: 'Higher education institutions',
     order: 3
   },
@@ -127,7 +124,6 @@ export const SUSPENSION_LEVELS = [
     id: 'work',
     label: 'Government Work',
     shortLabel: 'Work',
-    icon: '💼',
     description: 'Government offices and services',
     order: 4
   },
@@ -135,7 +131,6 @@ export const SUSPENSION_LEVELS = [
     id: 'activities',
     label: 'Public Activities',
     shortLabel: 'Activities',
-    icon: '🏃',
     description: 'Public gatherings and outdoor events',
     order: 5
   }

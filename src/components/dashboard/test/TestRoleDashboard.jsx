@@ -29,8 +29,11 @@ import {
   LayoutDashboard,
   Settings as SettingsIcon,
   FileText,
-  AlertTriangle
+  AlertTriangle,
+  Thermometer,
+  Plus
 } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { MapContainer, TileLayer, Marker, Popup, Polygon, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -394,12 +397,37 @@ export function TestRoleDashboard() {
             icon: mapWeatherToIcon(city.current.weather.main)
           }));
 
+        // Process weekly rain probability data (7 days)
+        const weeklyRainProbability = weekData.slice(0, 7).map((day, index) => {
+          // Calculate rain probability based on weather condition
+          let probability = 20; // Default low probability
+          const condition = day.condition.toLowerCase();
+
+          if (condition.includes('rain') || condition.includes('storm')) {
+            probability = 70 + Math.floor(Math.random() * 20); // 70-90%
+          } else if (condition.includes('drizzle')) {
+            probability = 50 + Math.floor(Math.random() * 20); // 50-70%
+          } else if (condition.includes('cloud')) {
+            probability = 30 + Math.floor(Math.random() * 20); // 30-50%
+          } else if (condition.includes('clear') || condition.includes('sun')) {
+            probability = 10 + Math.floor(Math.random() * 10); // 10-20%
+          }
+
+          return {
+            day: day.day.toUpperCase(),
+            probability: Math.min(100, probability),
+            condition: day.condition,
+            temp: day.temp
+          };
+        });
+
         setWeatherData({
           today: todayData,
           tomorrow: tomorrowData,
           current: todayData, // Default to today
           hourlyRain: hourlyRainData,
           week: weekData,
+          weeklyRainProbability: weeklyRainProbability,
           batangasCities: batangasCitiesProcessed
         });
 
@@ -432,75 +460,7 @@ export function TestRoleDashboard() {
             {/* Weather Dashboard Content */}
             {activeSection === 'dashboard' && (
               <>
-                {/* Location Header Bar */}
-                <div className="mb-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-sm border border-gray-200 p-4">
-                  <div className="flex items-center gap-4 flex-wrap">
-                    {/* Current Location Display */}
-                    <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-                      <MapPin className="w-5 h-5 text-blue-600" />
-                      <div>
-                        <div className="text-xs text-gray-500 uppercase tracking-wide">Current Location</div>
-                        <div className="text-sm font-bold text-gray-900">{selectedCity}</div>
-                      </div>
-                    </div>
-
-                    {/* Detect Location Button */}
-                    <button
-                      onClick={detectLocation}
-                      disabled={detectingLocation}
-                      className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all shadow-sm ${
-                        detectingLocation
-                          ? 'bg-blue-300 cursor-not-allowed'
-                          : 'bg-blue-500 hover:bg-blue-600 hover:shadow-md'
-                      } text-white font-medium`}
-                    >
-                      {detectingLocation ? (
-                        <>
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                          <span>Detecting...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Crosshair className="w-4 h-4" />
-                          <span>Use My Location</span>
-                        </>
-                      )}
-                    </button>
-
-                    {/* Search */}
-                    <div className="relative flex-1 max-w-sm">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <input
-                        type="text"
-                        placeholder="Search city or municipality..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white shadow-sm transition-all"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Status Messages */}
-                  {userLocation && !locationError && (
-                    <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-green-50 border border-green-200 rounded-lg">
-                      <Navigation className="w-4 h-4 text-green-600" />
-                      <span className="text-sm text-green-700 font-medium">
-                        Location detected successfully
-                      </span>
-                    </div>
-                  )}
-
-                  {locationError && (
-                    <div className="flex items-center gap-2 mt-3 px-3 py-2 bg-red-50 border border-red-200 rounded-lg">
-                      <AlertTriangle className="w-4 h-4 text-red-600" />
-                      <span className="text-sm text-red-600">
-                        {locationError}
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Tabs - At the very top */}
+                {/* Tabs */}
                 <div className="flex gap-8 mb-8">
                   {['today', 'tomorrow', 'week'].map((tab) => (
                     <button
@@ -528,37 +488,38 @@ export function TestRoleDashboard() {
                     {/* Today/Tomorrow View */}
                     {(activeTab === 'today' || activeTab === 'tomorrow') && weatherData && (
                       <>
-                        {/* Top Section - Current Day + Week Cards + Chance of Rain */}
-                        <div className="overflow-x-auto pb-2">
-                          <div className="grid grid-cols-[240px_1fr_260px] gap-3 min-w-[900px]">
-                            {/* Left: Large Current Day Card */}
+                        {/* 2×2 Grid Layout */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 auto-rows-fr">
+                          {/* Row 1, Column 1 (Top Left): Today + 7 Days */}
+                          <div className="flex flex-col gap-4">
+                            {/* Current Day Card */}
                             <CurrentDayCard data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
 
-                            {/* Center: Week Cards (6 cards in single row) */}
-                            {weatherData.week && (
-                              <div className="grid grid-cols-6 gap-2">
-                                {weatherData.week.slice(0, 6).map((day, index) => (
-                                  <WeekDayCardCompact key={index} day={day} />
+                            {/* Next 7 Days */}
+                            <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-4">
+                              <h3 className="text-sm font-bold text-gray-900 mb-3">Next 7 Days</h3>
+                              <div className="grid grid-cols-7 gap-2">
+                                {weatherData.week && weatherData.week.slice(0, 7).map((day, index) => (
+                                  <WeekDayCardMini key={index} day={day} />
                                 ))}
                               </div>
-                            )}
-
-                            {/* Right: Chance of Rain */}
-                            <ChanceOfRainChart data={weatherData.hourlyRain} />
+                            </div>
                           </div>
-                        </div>
 
-                        {/* Today's Overview Section */}
-                        <TodaysOverview data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
+                          {/* Row 1, Column 2 (Top Right): Chance of Rain Line Chart */}
+                          {weatherData.weeklyRainProbability && (
+                            <ChanceOfRainLineChart data={weatherData.weeklyRainProbability} />
+                          )}
 
-                        {/* Bottom Section - Map + Other Cities */}
-                        <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4">
-                          {/* Left: Map */}
-                          <PhilippinesWeatherMap />
+                          {/* Row 2, Column 1 (Bottom Left): Today's Overview */}
+                          <TodaysOverview data={activeTab === 'today' ? weatherData.today : weatherData.tomorrow} />
 
-                          {/* Right: Other Cities */}
+                          {/* Row 2, Column 2 (Bottom Right): Other Cities */}
                           <BatangasCitiesPanel cities={weatherData?.batangasCities || []} />
                         </div>
+
+                        {/* Map Section - Below the 2×2 grid */}
+                        <PhilippinesWeatherMap />
                       </>
                     )}
 
@@ -1577,46 +1538,46 @@ function TodaysOverview({ data }) {
           </div>
         </div>
 
-        {/* Visibility */}
-        <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-xl p-4 border border-purple-100">
+        {/* Temperature */}
+        <div className="bg-gradient-to-br from-red-50 to-orange-50 rounded-xl p-4 border border-red-100">
           <div className="flex items-center gap-2 mb-3">
-            <div className="p-2 bg-purple-100 rounded-lg">
-              <Eye className="w-5 h-5 text-purple-600" />
+            <div className="p-2 bg-red-100 rounded-lg">
+              <Thermometer className="w-5 h-5 text-red-600" />
             </div>
-            <span className="text-sm font-semibold text-gray-700">Visibility</span>
+            <span className="text-sm font-semibold text-gray-700">Temperature</span>
           </div>
 
-          {/* Visibility Gauge */}
+          {/* Thermometer Visual */}
           <div className="flex justify-center mb-3">
-            <div className="relative w-full h-16">
-              {/* Horizon visualization */}
-              <div className="absolute bottom-0 left-0 right-0 h-1 bg-gray-300 rounded"></div>
-              {/* Buildings/objects at different distances */}
-              <div className="absolute bottom-1 left-0 flex items-end justify-between w-full px-2 h-12">
-                {[...Array(5)].map((_, i) => {
-                  const opacity = i < (visibility / 2) ? 1 : 0.3;
-                  const height = 20 + (i * 5);
-                  return (
-                    <div
-                      key={i}
-                      className="bg-purple-400 rounded-t"
-                      style={{
-                        width: '12%',
-                        height: `${height}px`,
-                        opacity: opacity
-                      }}
-                    />
-                  );
-                })}
-              </div>
+            <div className="relative w-16 h-24">
+              <svg viewBox="0 0 40 100" className="w-full h-full">
+                {/* Thermometer bulb */}
+                <circle cx="20" cy="85" r="12" fill="#ef4444" stroke="#dc2626" strokeWidth="2"/>
+                {/* Thermometer tube */}
+                <rect x="14" y="10" width="12" height="75" rx="6" fill="#fee2e2" stroke="#dc2626" strokeWidth="2"/>
+                {/* Mercury/liquid */}
+                <rect
+                  x="16"
+                  y={85 - (data.temp / 50) * 70}
+                  width="8"
+                  height={(data.temp / 50) * 70}
+                  rx="4"
+                  fill="#ef4444"
+                />
+                {/* Temperature marks */}
+                <line x1="26" y1="20" x2="30" y2="20" stroke="#9ca3af" strokeWidth="1"/>
+                <line x1="26" y1="35" x2="30" y2="35" stroke="#9ca3af" strokeWidth="1"/>
+                <line x1="26" y1="50" x2="30" y2="50" stroke="#9ca3af" strokeWidth="1"/>
+                <line x1="26" y1="65" x2="30" y2="65" stroke="#9ca3af" strokeWidth="1"/>
+              </svg>
             </div>
           </div>
 
-          <div className="text-center mt-4">
-            <div className="text-3xl font-bold text-gray-900">{visibility}</div>
-            <div className="text-sm text-gray-600">km</div>
+          <div className="text-center">
+            <div className="text-3xl font-bold text-gray-900">{data.temp}°</div>
+            <div className="text-sm text-gray-600">Celsius</div>
             <div className="text-xs text-gray-500 mt-1">
-              {visibility >= 10 ? 'Excellent' : visibility >= 5 ? 'Good' : 'Poor'}
+              Feels like {data.feels_like}°
             </div>
           </div>
         </div>
@@ -1628,15 +1589,15 @@ function TodaysOverview({ data }) {
 // Batangas Cities Panel - Displays weather for major Batangas municipalities
 function BatangasCitiesPanel({ cities }) {
   return (
-    <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-      <div className="p-5 border-b border-gray-200 flex items-center justify-between">
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden h-full flex flex-col">
+      <div className="p-5 border-b border-gray-200 flex items-center justify-between flex-shrink-0">
         <h3 className="text-lg font-bold text-gray-900">Other Cities</h3>
         <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
           See All
         </button>
       </div>
 
-      <div className="max-h-[350px] overflow-y-auto p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {cities.length > 0 ? (
           cities.map((city, index) => (
             <div
@@ -1669,6 +1630,121 @@ function BatangasCitiesPanel({ cities }) {
             <p className="text-sm">Loading Batangas weather data...</p>
           </div>
         )}
+      </div>
+
+      {/* Add City Button */}
+      <div className="p-4 border-t border-gray-200 flex-shrink-0">
+        <button className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-all shadow-sm hover:shadow-md">
+          <Plus className="w-4 h-4" />
+          Add City
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// Chance of Rain Line Chart - Area chart for 7-day rain probability
+function ChanceOfRainLineChart({ data }) {
+  // Custom tooltip
+  const CustomTooltip = ({ active, payload }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white border border-gray-200 rounded-lg shadow-lg p-3">
+          <p className="text-sm font-semibold text-gray-900">{payload[0].payload.day}</p>
+          <p className="text-sm text-blue-600">
+            Rain: {payload[0].value}%
+          </p>
+          <p className="text-xs text-gray-500 mt-1">
+            {payload[0].payload.temp}° • {payload[0].payload.condition}
+          </p>
+        </div>
+      );
+    }
+    return null;
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-5 h-full flex flex-col">
+      <h3 className="text-lg font-bold text-gray-900 mb-4">Chance of Rain</h3>
+
+      <div className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart
+            data={data}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          >
+            <defs>
+              <linearGradient id="rainGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis
+              dataKey="day"
+              stroke="#6b7280"
+              style={{ fontSize: '12px' }}
+              tick={{ fill: '#6b7280' }}
+            />
+            <YAxis
+              stroke="#6b7280"
+              style={{ fontSize: '12px' }}
+              tick={{ fill: '#6b7280' }}
+              domain={[0, 100]}
+              ticks={[0, 25, 50, 75, 100]}
+              tickFormatter={(value) => {
+                if (value === 0) return 'Sunny';
+                if (value === 100) return 'Rainy';
+                return `${value}%`;
+              }}
+            />
+            <Tooltip content={<CustomTooltip />} />
+            <Area
+              type="monotone"
+              dataKey="probability"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              fill="url(#rainGradient)"
+              animationDuration={1000}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  );
+}
+
+// Week Day Card Mini - Ultra compact cards for 7-day horizontal display
+function WeekDayCardMini({ day }) {
+  const getWeatherIcon = (condition) => {
+    switch (condition) {
+      case 'clear':
+      case 'sunny':
+        return <Sun className="w-6 h-6 text-yellow-400" />;
+      case 'clouds':
+      case 'cloudy':
+        return <Cloud className="w-6 h-6 text-gray-400" />;
+      case 'rain':
+      case 'rainy':
+        return <CloudRain className="w-6 h-6 text-blue-400" />;
+      default:
+        return <Cloud className="w-6 h-6 text-gray-400" />;
+    }
+  };
+
+  return (
+    <div className="bg-gradient-to-br from-gray-50 to-white rounded-lg shadow-sm border border-gray-200 p-2 hover:shadow-md transition-all duration-200 flex flex-col items-center justify-center min-h-[100px]">
+      <div className="text-center w-full">
+        <div className="font-bold text-gray-800 text-[10px] uppercase mb-1.5">{day.day}</div>
+        <div className="flex justify-center mb-1.5">
+          {getWeatherIcon(day.condition)}
+        </div>
+        <div className="text-base font-bold text-gray-900 mb-0.5">{day.temp}°</div>
+        <div className="text-[9px] text-gray-500">
+          <span className="text-red-500 font-semibold">{day.high}°</span>
+          <span className="mx-0.5">/</span>
+          <span className="text-blue-500 font-semibold">{day.low}°</span>
+        </div>
       </div>
     </div>
   );

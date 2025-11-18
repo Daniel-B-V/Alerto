@@ -7,7 +7,6 @@ import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import SuspensionAnalytics from './SuspensionAnalytics';
 import MayorDashboard from './MayorDashboard';
-import PendingRequestsTable from './PendingRequestsTable';
 import { Card } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Alert, AlertDescription } from '../ui/alert';
@@ -233,12 +232,6 @@ const SuspensionPanel = () => {
                   )}
                 </TabsTrigger>
                 <TabsTrigger
-                  value="requests"
-                  className="data-[state=active]:border-b-2 data-[state=active]:border-red-500 data-[state=active]:text-red-600 text-gray-600 rounded-none border-b-2 border-transparent px-6 py-3 font-medium hover:text-gray-900 transition-colors"
-                >
-                  Mayor Requests
-                </TabsTrigger>
-                <TabsTrigger
                   value="analytics"
                   className="data-[state=active]:border-b-2 data-[state=active]:border-red-500 data-[state=active]:text-red-600 text-gray-600 rounded-none border-b-2 border-transparent px-6 py-3 font-medium hover:text-gray-900 transition-colors"
                 >
@@ -253,10 +246,6 @@ const SuspensionPanel = () => {
 
             <TabsContent value="active" className="m-0 p-0">
               <ActiveSuspensionsTable />
-            </TabsContent>
-
-            <TabsContent value="requests" className="m-0 p-0">
-              <PendingRequestsTable />
             </TabsContent>
 
             <TabsContent value="analytics" className="m-0 p-0">
@@ -325,26 +314,26 @@ const SuspensionPanel = () => {
               <label className="block text-xs font-semibold text-gray-700 mb-2">
                 Select Suspension Levels *
               </label>
-              <div className="space-y-1.5">
+              <div className="flex flex-wrap gap-2">
                 {SUSPENSION_LEVELS.slice(0, 3).map((level) => (
-                  <label
+                  <button
                     key={level.id}
-                    className="flex items-center space-x-2 p-2 border rounded-lg cursor-pointer hover:bg-gray-50"
+                    type="button"
+                    onClick={() => handleLevelToggle(level.id)}
+                    className={`px-5 py-2 rounded-full text-sm font-bold transition-all border-2 whitespace-nowrap ${
+                      selectedLevels.includes(level.id)
+                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
+                        : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:bg-blue-50'
+                    }`}
+                    title={level.description}
                   >
-                    <input
-                      type="checkbox"
-                      checked={selectedLevels.includes(level.id)}
-                      onChange={() => handleLevelToggle(level.id)}
-                      className="w-4 h-4 text-blue-600 rounded"
-                    />
-                    <span className="text-xl">{level.icon}</span>
-                    <div>
-                      <p className="font-medium text-xs">{level.label}</p>
-                      <p className="text-xs text-gray-500">{level.description}</p>
-                    </div>
-                  </label>
+                    {level.shortLabel}
+                  </button>
                 ))}
               </div>
+              <p className="text-xs text-gray-500 mt-1.5">
+                Click to select/deselect levels
+              </p>
             </div>
 
             {/* Duration */}

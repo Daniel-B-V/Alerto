@@ -8,6 +8,7 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Checkbox } from '../ui/checkbox';
 import { Card } from '../ui/card';
+import { Input } from '../ui/input';
 import {
   AlertTriangle,
   Eye,
@@ -16,7 +17,8 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  RefreshCw
+  RefreshCw,
+  Search
 } from 'lucide-react';
 import { useSuspensions } from '../../hooks/useSuspensions';
 import { SUSPENSION_LEVELS, AI_ACTIONS, SUSPENSION_STATUS } from '../../constants/suspensionCriteria';
@@ -25,6 +27,7 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
   const { suspensionCandidates, loadSuspensionCandidates, candidatesLoading } = useSuspensions();
   const [selectedCities, setSelectedCities] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load candidates on mount
   useEffect(() => {
@@ -72,6 +75,27 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
       criticalReports: candidate.criticalReports
     });
   };
+
+  const handleSuspendAll = () => {
+    // Filter out cities that already have active suspensions
+    const citiesToSuspend = filteredCandidates.filter(c => !c.hasActiveSuspension);
+
+    if (citiesToSuspend.length === 0) {
+      alert('All cities already have active suspensions.');
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to suspend ${citiesToSuspend.length} cities?`)) {
+      citiesToSuspend.forEach(candidate => {
+        handleIssueSuspension(candidate);
+      });
+    }
+  };
+
+  // Filter candidates based on search query
+  const filteredCandidates = suspensionCandidates.filter(candidate =>
+    candidate.city.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const getPAGASABadge = (warning) => {
     if (!warning) {
@@ -167,19 +191,44 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
       {/* Header Section */}
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-900">
-            Suspension Candidates ({suspensionCandidates.length})
-          </h3>
-          <Button
-            onClick={handleRefresh}
-            disabled={refreshing}
-            variant="outline"
-            size="sm"
-            className="border-blue-400 text-blue-700 hover:bg-blue-50 hover:border-blue-500 font-medium shadow-sm"
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-semibold text-gray-900">
+              Suspension Candidates
+            </h3>
+            {/* Search Bar */}
+            <div className="relative">
+              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
+              <Input
+                type="text"
+                placeholder="Search cities..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-7 h-8 w-56 text-sm shadow-none border-gray-300"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleSuspendAll}
+              disabled={filteredCandidates.filter(c => !c.hasActiveSuspension).length === 0}
+              variant="outline"
+              size="sm"
+              className="border-red-400 text-red-700 hover:bg-red-50 hover:border-red-500 font-semibold shadow-sm"
+            >
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Suspend All
+            </Button>
+            <Button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+              className="border-blue-400 text-blue-700 hover:bg-blue-50 hover:border-blue-500 font-medium shadow-sm"
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -189,6 +238,19 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
           <div className="text-center py-12">
             <AlertCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <p className="text-gray-500">No candidates available</p>
+          </div>
+        ) : filteredCandidates.length === 0 ? (
+          <div className="text-center py-12">
+            <Search className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+            <p className="text-gray-500">No cities found matching "{searchQuery}"</p>
+            <Button
+              onClick={() => setSearchQuery('')}
+              variant="outline"
+              size="sm"
+              className="mt-4"
+            >
+              Clear Search
+            </Button>
           </div>
         ) : (
           <div
@@ -269,7 +331,7 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                 </tr>
               </thead>
             <tbody className="divide-y-2 divide-gray-300">
-              {suspensionCandidates.map((candidate) => (
+              {filteredCandidates.map((candidate) => (
                 <tr
                   key={candidate.city}
                   className={`border-b border-gray-200 ${
@@ -364,11 +426,9 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
                         <Button
                           size="sm"
                           onClick={() => handleIssueSuspension(candidate)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-sm hover:shadow-md transition-all whitespace-nowrap"
+                          className="bg-red-500 hover:bg-red-600 text-white font-semibold shadow-sm hover:shadow-md transition-all whitespace-nowrap px-6"
                         >
-                          <span className="flex items-center gap-1">
-                            ⚠️ <span>Suspend</span>
-                          </span>
+                          Suspend
                         </Button>
                         {candidate.aiRecommendation?.confidence < 60 && candidate.aiRecommendation?.shouldSuspend && (
                           <span className="text-xs text-gray-500">
@@ -386,7 +446,7 @@ const SuspensionCandidateTable = ({ onIssueSuspension }) => {
         )}
 
         {/* Legend */}
-        {suspensionCandidates.length > 0 && (
+        {filteredCandidates.length > 0 && (
           <div className="mt-6">
             <p className="text-xs font-bold text-gray-700 mb-3">Legend:</p>
             <div className="flex flex-wrap gap-6 text-xs text-gray-700">
