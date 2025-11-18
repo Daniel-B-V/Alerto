@@ -70,8 +70,8 @@ router.post('/image-classification', async (req, res) => {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    // Use the direct Inference API endpoint instead of router
-    const response = await fetch('https://api-inference.huggingface.co/models/openai/clip-vit-large-patch14', {
+    // Use the new router endpoint (api-inference.huggingface.co is deprecated)
+    const response = await fetch('https://router.huggingface.co/hf-inference/models/openai/clip-vit-large-patch14', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_API_KEY}`,
