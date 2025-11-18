@@ -241,15 +241,15 @@ const SuspensionAnalytics = () => {
                   data={[
                     { name: 'Elementary', value: stats.byLevel.elementary || 0 },
                     { name: 'High School', value: stats.byLevel.high_school || 0 },
-                    { name: 'Preschool', value: stats.byLevel.preschool },
-                    { name: 'College', value: stats.byLevel.college },
-                    { name: 'All Levels', value: stats.byLevel.all }
-                  ]}
+                    { name: 'Preschool', value: stats.byLevel.preschool || 0 },
+                    { name: 'College', value: stats.byLevel.college || 0 },
+                    { name: 'All Levels', value: stats.byLevel.all || 0 }
+                  ].filter(item => item.value > 0)}
                   cx="50%"
                   cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={100}
+                  labelLine={true}
+                  label={({ name, percent }) => percent > 0.05 ? `${name} ${(percent * 100).toFixed(0)}%` : ''}
+                  outerRadius={80}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -258,6 +258,7 @@ const SuspensionAnalytics = () => {
                   ))}
                 </Pie>
                 <Tooltip />
+                <Legend />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
