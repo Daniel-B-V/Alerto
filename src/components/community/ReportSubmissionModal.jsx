@@ -97,7 +97,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
             setUploadProgress(Math.round((current / total) * 100));
           }
         );
-        imageUrls = uploadResults.map(result => result.secure_url);
+        imageUrls = uploadResults.map(result => result.url);
       }
 
       let aiAnalysis = null;
@@ -112,6 +112,16 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
       // Helper function to remove undefined values from objects
       const cleanObject = (obj) => {
         if (!obj || typeof obj !== 'object') return obj;
+
+        // Preserve arrays - don't convert them to objects
+        if (Array.isArray(obj)) {
+          return obj
+            .filter(item => item !== undefined)
+            .map(item =>
+              typeof item === 'object' && item !== null ? cleanObject(item) : item
+            );
+        }
+
         const cleaned = {};
         Object.keys(obj).forEach(key => {
           const value = obj[key];

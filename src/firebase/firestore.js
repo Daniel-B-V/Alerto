@@ -234,7 +234,50 @@ export const createReport = async (reportData, userId) => {
       clusterVerified: false, // Tracks if verified through clustering
     };
 
-    const docRef = await addDoc(collection(db, COLLECTIONS.REPORTS), report);
+    // Remove any undefined values to prevent Firestore errors (recursively)
+    const cleanObject = (obj) => {
+      // Return as-is if not an object, or if it's a Date or Firebase sentinel value
+      if (!obj || typeof obj !== 'object' || obj instanceof Date) return obj;
+
+      // Check if it's a Firebase sentinel value (serverTimestamp, deleteField, etc.)
+      if (obj.constructor && obj.constructor.name && obj.constructor.name.includes('FieldValue')) {
+        return obj; // Return Firebase sentinel values as-is
+      }
+
+      if (Array.isArray(obj)) {
+        return obj
+          .filter(item => item !== undefined)
+          .map(item => cleanObject(item));
+      }
+
+      const cleaned = {};
+      Object.keys(obj).forEach(key => {
+        const value = obj[key];
+        if (value !== undefined) {
+          cleaned[key] = typeof value === 'object' && value !== null && !(value instanceof Date)
+            ? cleanObject(value)
+            : value;
+        }
+      });
+      return cleaned;
+    };
+
+    const cleanedReport = cleanObject(report);
+
+    // Debug: Log any remaining undefined values
+    const findUndefined = (obj, path = 'report') => {
+      if (!obj || typeof obj !== 'object') return;
+      Object.keys(obj).forEach(key => {
+        if (obj[key] === undefined) {
+          console.error(`❌ UNDEFINED VALUE at ${path}.${key}`);
+        } else if (typeof obj[key] === 'object' && obj[key] !== null && !(obj[key] instanceof Date)) {
+          findUndefined(obj[key], `${path}.${key}`);
+        }
+      });
+    };
+    findUndefined(cleanedReport);
+
+    const docRef = await addDoc(collection(db, COLLECTIONS.REPORTS), cleanedReport);
 
     // After creating report, check if it can form/complete a cluster
     const reportWithId = { id: docRef.id, ...report };

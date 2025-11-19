@@ -51,21 +51,30 @@ Severity: "low", "medium", "high", or "critical"
 isSpam: true if image is unrelated/inappropriate, false if genuine`;
 
     // Call Cloudflare Workers AI with Llama Vision model
+    // Use OpenAI-compatible format with content array
     const requestBody = {
       messages: [
         {
           role: 'user',
-          content: prompt
+          content: [
+            {
+              type: 'text',
+              text: prompt
+            },
+            {
+              type: 'image_url',
+              image_url: `data:image/jpeg;base64,${image}`
+            }
+          ]
         }
       ],
-      image: `data:image/jpeg;base64,${image}`,
       max_tokens: 512
     };
 
     console.log('🔍 Sending request to Cloudflare AI...');
     console.log('📝 Prompt length:', prompt.length);
     console.log('🖼️ Image length:', image.length);
-    console.log('📋 Messages:', JSON.stringify(requestBody.messages));
+    console.log('📋 Request body:', JSON.stringify(requestBody).substring(0, 500));
 
     const response = await fetch(
       `https://api.cloudflare.com/client/v4/accounts/${CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.2-11b-vision-instruct`,

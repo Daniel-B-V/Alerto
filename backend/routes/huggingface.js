@@ -195,13 +195,19 @@ Order results by confidence score descending.`;
     res.json([{
       scores: analysisResult.scores || [analysisResult.topScore || 0.5],
       labels: analysisResult.labels || [analysisResult.topLabel || 'unknown'],
-      analysis: analysisResult.analysis,
-      matchesReportedHazard: analysisResult.matchesReportedHazard
+      analysis: analysisResult.analysis || 'Image analyzed',
+      matchesReportedHazard: analysisResult.matchesReportedHazard || false
     }]);
 
   } catch (error) {
     console.error('Error in Gemini image analysis:', error);
-    res.status(500).json({ error: error.message });
+    // Return a neutral analysis instead of error to allow report submission
+    res.json([{
+      scores: [0.5],
+      labels: ['unknown'],
+      analysis: 'Image analysis temporarily unavailable',
+      matchesReportedHazard: false
+    }]);
   }
 });
 
