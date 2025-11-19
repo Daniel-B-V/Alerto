@@ -129,7 +129,7 @@ router.post('/gemini-image-analysis', async (req, res) => {
     }
 
     // Initialize Gemini model with vision capability
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     // Build prompt for hazard analysis
     const labels = candidateLabels || [];
