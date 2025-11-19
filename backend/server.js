@@ -14,6 +14,7 @@ const weatherRoutes = require('./routes/weather');
 const adminRoutes = require('./routes/admin');
 const typhoonRoutes = require('./routes/typhoon');
 const huggingfaceRoutes = require('./routes/huggingface');
+const cloudflareRoutes = require('./routes/cloudflareAI');
 const lightningRoutes = require('./routes/lightning');
 
 // Import middleware
@@ -101,6 +102,7 @@ app.use('/api/weather', weatherRoutes);
 app.use('/api/admin', authMiddleware, adminRoutes);
 app.use('/api/typhoon', typhoonRoutes);
 app.use('/api/huggingface', huggingfaceRoutes);
+app.use('/api/cloudflare', cloudflareRoutes);
 app.use('/api/lightning', lightningRoutes);
 
 // Health check endpoint
