@@ -9,14 +9,15 @@ import {
   XCircle,
   FileText,
   MapPin,
-  Calendar
+  Calendar,
+  Trash2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { useAuth } from "../../contexts/AuthContext";
-import { getUserReports } from "../../firebase/firestore";
+import { getUserReports, deleteReport } from "../../firebase/firestore";
 import { ReportSubmissionModal } from "../community/ReportSubmissionModal";
 import { CATEGORY_CONFIG } from "../../constants/categorization";
 
@@ -28,6 +29,8 @@ export function UserReportsPage() {
   const [showModal, setShowModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [reportToDelete, setReportToDelete] = useState(null);
 
   // Helper function to convert location to string
   const getLocationString = (location) => {
@@ -65,6 +68,32 @@ export function UserReportsPage() {
   // Refresh reports after submission
   const handleSubmitSuccess = () => {
     fetchReports(); // Refresh the list
+  };
+
+  // Delete report handler
+  const handleDeleteClick = (report) => {
+    setReportToDelete(report);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteReport = async () => {
+    if (!reportToDelete) return;
+
+    try {
+      await deleteReport(reportToDelete.id);
+      // Refresh the list after deletion
+      fetchReports();
+      setShowDeleteModal(false);
+      setReportToDelete(null);
+    } catch (error) {
+      console.error('Error deleting report:', error);
+      alert('Failed to delete report. Please try again.');
+    }
+  };
+
+  const cancelDelete = () => {
+    setShowDeleteModal(false);
+    setReportToDelete(null);
   };
 
   // Apply filters
@@ -278,7 +307,7 @@ export function UserReportsPage() {
                         </div>
                       </div>
                     </CardHeader>
-                    <CardContent className="space-y-3">
+                    <CardContent className="space-y-3 relative pb-12">
                       {report.location && (
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <MapPin className="w-4 h-4 text-gray-400" />
@@ -303,6 +332,15 @@ export function UserReportsPage() {
                       <p className="text-sm text-gray-700 line-clamp-3">
                         {report.description}
                       </p>
+
+                      {/* Delete Button - Bottom Right */}
+                      <button
+                        onClick={() => handleDeleteClick(report)}
+                        className="absolute bottom-4 right-3 p-2 rounded-full hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors group"
+                        title="Delete report"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
                     </CardContent>
                   </Card>
                 ))}
@@ -325,6 +363,78 @@ export function UserReportsPage() {
         onClose={() => setShowModal(false)}
         onSubmitSuccess={handleSubmitSuccess}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-100 rounded-full flex-shrink-0">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900">Delete Report</h3>
+            </div>
+
+            <p className="text-gray-600 mb-2">
+              Are you sure you want to delete this report?
+            </p>
+
+            {reportToDelete && (
+              <div className="bg-gray-50 rounded-lg p-3 mb-4">
+                <p className="font-semibold text-gray-900 break-words">
+                  {reportToDelete.title || reportToDelete.category}
+                </p>
+                <p className="text-sm text-gray-600 mt-1 line-clamp-2 break-words">
+                  {reportToDelete.description}
+                </p>
+              </div>
+            )}
+
+            <p className="text-sm text-red-600 font-medium mb-6">
+              This action cannot be undone.
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px', width: '100%' }}>
+              <button
+                onClick={cancelDelete}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  backgroundColor: '#f3f4f6',
+                  color: '#374151',
+                  fontWeight: '500',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#e5e7eb'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDeleteReport}
+                style={{
+                  flex: 1,
+                  padding: '10px 16px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  fontWeight: '500',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
+                onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

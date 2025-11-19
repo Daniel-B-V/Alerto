@@ -245,9 +245,18 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-xl shadow-2xl flex flex-col overflow-hidden" style={{ width: '768px', maxWidth: '90%', height: '90vh' }}>
         {/* Header */}
-        <div className="bg-blue-600 px-6 py-4 rounded-t-xl flex items-center justify-between">
+        <div style={{
+          backgroundColor: '#3B82F6',
+          padding: '16px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexShrink: 0,
+          borderTopLeftRadius: '12px',
+          borderTopRightRadius: '12px'
+        }}>
           <div className="flex items-center gap-3">
             <AlertTriangle className="w-6 h-6 text-white" />
             <div>
@@ -378,18 +387,35 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
               ) : (
                 <div className="flex flex-wrap gap-3">
                   {imagePreview.map((img, idx) => (
-                    <div key={idx} className="relative w-28 h-28">
+                    <div key={idx} style={{ position: 'relative', width: '150px', height: '150px' }}>
                       <img
                         src={img.url}
                         alt={`Preview ${idx + 1}`}
-                        className="w-full h-full object-cover rounded-lg border-2 border-gray-200"
+                        style={{ width: '150px', height: '150px', objectFit: 'cover', borderRadius: '8px', border: '2px solid #E5E7EB' }}
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(idx)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-lg hover:bg-red-600 transition-all"
+                        style={{
+                          position: 'absolute',
+                          top: '-6px',
+                          right: '-6px',
+                          backgroundColor: '#EF4444',
+                          color: 'white',
+                          borderRadius: '50%',
+                          padding: '4px',
+                          border: 'none',
+                          cursor: 'pointer',
+                          boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                          transition: 'background-color 0.2s',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = '#DC2626'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = '#EF4444'}
                       >
-                        <X className="w-4 h-4" />
+                        <X style={{ width: '12px', height: '12px' }} />
                       </button>
                     </div>
                   ))}
@@ -397,7 +423,8 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
                   {imagePreview.length < 5 && (
                     <label
                       htmlFor="image-upload"
-                      className="w-28 h-28 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
+                      style={{ width: '150px', height: '150px' }}
+                      className="border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 hover:bg-blue-50 transition-all"
                     >
                       <Plus className="w-6 h-6 text-blue-500 mb-1" />
                       <p className="text-xs text-gray-600 font-medium">Add More</p>
@@ -427,7 +454,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 p-6 bg-white">
+        <div className="border-t border-gray-200 p-6 bg-white flex-shrink-0">
           <div className="flex gap-3">
             <button
               type="button"

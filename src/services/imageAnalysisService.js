@@ -1,8 +1,8 @@
-// Hugging Face Image Analysis Service using CLIP
+// Image Analysis Service using Gemini AI
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
 
 /**
- * Analyze report images to verify they match the reported hazard using Hugging Face CLIP
+ * Analyze report images to verify they match the reported hazard using Gemini AI
  * @param {Array} imageUrls - Array of image URLs from the report
  * @param {Object} reportData - Report data including hazardType, description, title
  * @param {Object} weatherData - Optional real-time weather data for the location
@@ -51,17 +51,18 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
     // Prepare CLIP parameters
     const candidateLabels = `${expectedLabel}, ${spamLabels}`;
 
-    // Call backend proxy for Hugging Face CLIP API (avoids CORS)
-    console.log('🔍 Calling Hugging Face API via backend:', `${BACKEND_URL}/api/huggingface/image-classification`);
+    // Call backend proxy for Gemini AI image analysis
+    console.log('🔍 Calling Gemini AI via backend:', `${BACKEND_URL}/api/huggingface/gemini-image-analysis`);
 
-    const hfResponse = await fetch(`${BACKEND_URL}/api/huggingface/image-classification`, {
+    const hfResponse = await fetch(`${BACKEND_URL}/api/huggingface/gemini-image-analysis`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
         image: await blobToBase64(blob),
-        candidateLabels: candidateLabels.split(', ')
+        candidateLabels: candidateLabels.split(', '),
+        hazardType: reportedHazard
       })
     });
 
@@ -70,7 +71,7 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
 
       // Handle model loading (503)
       if (hfResponse.status === 503 && errorData.isLoading) {
-        console.warn('⚠️ CLIP model is loading, returning neutral confidence');
+        console.warn('⚠️ Gemini AI is loading, returning neutral confidence');
         return {
           credible: true,
           confidence: 50,
@@ -80,12 +81,12 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
         };
       }
 
-      console.error('❌ Backend API error:', hfResponse.status, errorData);
-      throw new Error(`Backend API error: ${hfResponse.status}`);
+      console.error('❌ Gemini API error:', hfResponse.status, errorData);
+      throw new Error(`Gemini API error: ${hfResponse.status}`);
     }
 
     const hfData = await hfResponse.json();
-    console.log('✅ Hugging Face API response received:', hfData);
+    console.log('✅ Gemini AI response received:', hfData);
 
     // Parse results
     const scores = hfData[0]?.scores || [];
@@ -146,7 +147,7 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
     const matchesReport = maxHazardScore > 0.5 ? 'yes' : (maxHazardScore > 0.3 ? 'partial' : 'no');
     const credible = confidence >= 40;
 
-    console.log('🔍 Hugging Face CLIP Analysis Result:', {
+    console.log('🔍 Gemini AI Analysis Result:', {
       confidence,
       matchesReport,
       reportedHazard,
@@ -164,12 +165,12 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
       detectedHazards,
       reportedHazard,
       weatherMatch,
-      reason: `CLIP analysis: ${Math.round(maxHazardScore * 100)}% match to ${reportedHazard}. ${weatherMatch !== 'unknown' ? `Weather ${weatherMatch}.` : ''}`,
+      reason: `AI analysis: ${Math.round(maxHazardScore * 100)}% match to ${reportedHazard}. ${weatherMatch !== 'unknown' ? `Weather ${weatherMatch}.` : ''}`,
       redFlags: maxSpamScore > maxHazardScore ? ['Image appears unrelated to disaster/hazard'] : []
     };
 
   } catch (error) {
-    console.error('Error analyzing images with Hugging Face CLIP:', error);
+    console.error('Error analyzing images with Gemini AI:', error);
     return {
       credible: true,
       confidence: 50,
