@@ -93,18 +93,18 @@ const Login = () => {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-white p-6">
+    <div className="h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100 p-6">
 
       {/* Login Card Container */}
       <div className="w-full max-w-md">
-        <div className="bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] px-12 py-12">
+        <div className="bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] px-12 py-12 border border-gray-100">
 
         {/* Logo/Brand */}
         <div className="flex justify-center mb-8">
           <img
             src="/assets/logo.png"
             alt="Alerto Logo"
-            className="h-16 object-contain"
+            className="h-12 object-contain"
           />
         </div>
 

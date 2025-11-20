@@ -135,7 +135,6 @@ export function Header() {
               }`}
             >
               {roleBadge.color === 'red' && <Shield className="w-3.5 h-3.5" />}
-              {roleBadge.color === 'purple' && <Crown className="w-3.5 h-3.5" />}
               {roleBadge.color === 'blue' && <Building2 className="w-3.5 h-3.5" />}
               {roleBadge.color === 'gray' && <User className="w-3.5 h-3.5" />}
               <span className="text-xs font-semibold">{roleBadge.fullLabel}</span>

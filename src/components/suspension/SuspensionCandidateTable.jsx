@@ -197,7 +197,7 @@ const SuspensionCandidateTable = ({ onIssueSuspension, onSuspendAll }) => {
   return (
     <>
       {/* Header Section */}
-      <div className="p-6 border-b border-gray-200">
+      <div className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h3 className="text-lg font-semibold text-gray-900">
@@ -205,13 +205,13 @@ const SuspensionCandidateTable = ({ onIssueSuspension, onSuspendAll }) => {
             </h3>
             {/* Search Bar */}
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 w-3 h-3 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 type="text"
                 placeholder="Search cities..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-7 h-8 w-56 text-sm shadow-none border-gray-300"
+                className="pl-10 h-9 w-64 text-sm border-gray-300"
               />
             </div>
           </div>
@@ -434,7 +434,7 @@ const SuspensionCandidateTable = ({ onIssueSuspension, onSuspendAll }) => {
                         <Button
                           size="sm"
                           onClick={() => handleIssueSuspension(candidate)}
-                          className="bg-red-500 hover:bg-red-600 text-white font-semibold shadow-sm hover:shadow-md transition-all whitespace-nowrap px-6"
+                          className="bg-blue-500 hover:bg-blue-600 text-white font-semibold shadow-sm hover:shadow-md transition-all whitespace-nowrap px-6"
                         >
                           Suspend
                         </Button>

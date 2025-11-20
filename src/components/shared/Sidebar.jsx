@@ -25,7 +25,6 @@ export function Sidebar({ activeSection, onSectionChange }) {
   // Get role-specific badge helper
   const getRoleBadgeIcon = () => {
     if (user?.role === 'admin' || user?.role === 'super_admin') return <Shield className="w-3 h-3" />;
-    if (isGovernor(user)) return <Crown className="w-3 h-3" />;
     if (isMayor(user)) return <Building2 className="w-3 h-3" />;
     return null;
   };

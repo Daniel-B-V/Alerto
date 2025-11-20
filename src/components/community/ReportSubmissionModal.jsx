@@ -4,6 +4,7 @@ import { createReport } from "../../firebase/firestore";
 import { uploadMultipleImagesToCloudinary } from "../../services/cloudinaryService";
 import { analyzeReportImages } from "../../services/imageAnalysisService";
 import { detectSpamInText, analyzeReportText } from "../../services/textSpamDetection";
+import { getCurrentWeather } from "../../services/weatherService";
 import { useAuth } from "../../contexts/AuthContext";
 import { BATANGAS_MUNICIPALITIES, getBarangays } from "../../constants/batangasLocations";
 
@@ -100,13 +101,28 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         imageUrls = uploadResults.map(result => result.url);
       }
 
+      // Fetch weather data for credibility verification
+      let weatherData = null;
+      try {
+        console.log('🌤️ Fetching weather data for:', formData.city);
+        weatherData = await getCurrentWeather(formData.city);
+        console.log('✅ Weather data fetched:', weatherData);
+      } catch (error) {
+        console.warn('⚠️ Failed to fetch weather data, continuing without weather verification:', error);
+        // Continue submission even if weather fetch fails
+      }
+
       let aiAnalysis = null;
       if (imageUrls.length > 0) {
-        aiAnalysis = await analyzeReportImages(imageUrls, {
-          hazardType: formData.hazardType,
-          title: formData.title,
-          description: formData.description
-        });
+        aiAnalysis = await analyzeReportImages(
+          imageUrls,
+          {
+            hazardType: formData.hazardType,
+            title: formData.title,
+            description: formData.description
+          },
+          weatherData  // Pass weather data as third parameter
+        );
       }
 
       // Helper function to remove undefined values from objects
@@ -179,6 +195,7 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
           province: 'Batangas'
         },
         images: imageUrls || [],
+        weatherSnapshot: weatherData || null,  // Store weather conditions at submission time
         aiAnalysis: aiAnalysis || null,
         textAnalysis: textAnalysis || null,
         aiCredibility: aiCredibility,

@@ -114,7 +114,7 @@ router.post('/image-classification', async (req, res) => {
   }
 });
 
-// Gemini-based image analysis endpoint (for hazard verification)
+// Hugging Face Inference API image classification endpoint (for hazard verification)
 router.post('/gemini-image-analysis', async (req, res) => {
   try {
     const { image, candidateLabels, hazardType } = req.body;
@@ -123,84 +123,139 @@ router.post('/gemini-image-analysis', async (req, res) => {
       return res.status(400).json({ error: 'Image is required' });
     }
 
-    if (!GEMINI_API_KEY || !genAI) {
-      console.error('Gemini API key not configured');
-      return res.status(500).json({ error: 'Gemini API key not configured' });
+    if (!HF_API_KEY) {
+      console.error('Hugging Face API key not configured');
+      return res.status(500).json({ error: 'Hugging Face API key not configured' });
     }
 
-    // Initialize Gemini model with vision capability
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Use Hugging Face Inference API with Vision Transformer model
+    console.log('🔍 Calling Hugging Face Inference API for image classification...');
 
-    // Build prompt for hazard analysis
-    const labels = candidateLabels || [];
-    const hazardLabelsStr = labels.filter(l => !['clear sky', 'sunny day', 'normal conditions', 'unrelated object', 'random photo'].includes(l.toLowerCase())).join(', ');
-    const spamLabelsStr = 'clear sky, sunny day, normal conditions, unrelated object, random photo';
-
-    const prompt = `Analyze this image and determine what it shows.
-
-You need to classify this image based on these possible categories:
-- Hazard-related: ${hazardLabelsStr}
-- Non-hazard/spam: ${spamLabelsStr}
-
-The user reported this as: ${hazardType || 'unknown hazard'}
-
-Respond in this exact JSON format:
-{
-  "scores": [array of confidence scores from 0-1 for each label],
-  "labels": [array of matching labels in same order as scores],
-  "topLabel": "the most likely classification",
-  "topScore": 0.XX,
-  "matchesReportedHazard": true/false,
-  "analysis": "brief description of what's visible in the image"
-}
-
-Order results by confidence score descending.`;
-
-    // Prepare image for Gemini
-    const imagePart = {
-      inlineData: {
-        data: image,
-        mimeType: 'image/jpeg'
+    // Call Hugging Face Inference API
+    const response = await fetch(
+      'https://router.huggingface.co/hf-inference/models/google/vit-base-patch16-224',
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${HF_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          inputs: image, // base64 string
+          parameters: {
+            function_to_apply: 'sigmoid',
+            top_k: 10 // Get top 10 predictions
+          }
+        })
       }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Hugging Face Inference API error:', response.status, errorText);
+      throw new Error(`HF API error: ${response.status}`);
+    }
+
+    const hfResults = await response.json();
+    console.log('✅ HF Inference API response:', hfResults);
+
+    // HF returns array of {label, score} objects
+    // Map these to disaster-related concepts with comprehensive keywords
+    const disasterKeywords = {
+      // Water-related (flooding)
+      water: ['water', 'flood', 'flooding', 'submerged', 'inundation', 'lake', 'lakeside', 'lakeshore',
+              'sea', 'seashore', 'coast', 'ocean', 'river', 'stream', 'pond', 'wetland', 'swamp'],
+      // Debris/Landslide
+      debris: ['debris', 'rubble', 'landslide', 'mudslide', 'avalanche', 'rockslide', 'fallen', 'collapsed'],
+      // Damage/Destruction
+      damage: ['damage', 'damaged', 'destruction', 'destroyed', 'broken', 'ruined', 'demolished', 'wreckage', 'ruins'],
+      // Storm-related
+      storm: ['storm', 'hurricane', 'typhoon', 'cyclone', 'tornado', 'tempest', 'gale'],
+      // Fire/Smoke
+      fire: ['fire', 'flame', 'burning', 'smoke', 'ash', 'wildfire', 'blaze', 'inferno'],
+      // Rain/Weather
+      rain: ['rain', 'rainfall', 'precipitation', 'downpour', 'deluge', 'monsoon'],
+      // Wind damage
+      wind: ['wind', 'blown', 'uprooted', 'toppled'],
+      // General emergency indicators
+      emergency: ['emergency', 'disaster', 'hazard', 'catastrophe', 'calamity', 'crisis']
     };
 
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const text = response.text();
+    // Analyze results for disaster-related content
+    const hazardType_lower = (hazardType || '').toLowerCase();
+    let maxHazardScore = 0;
+    let detectedHazards = [];
+    let matchesReport = false;
 
-    // Parse JSON from response
-    let analysisResult;
-    try {
-      // Extract JSON from response (it might be wrapped in markdown)
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysisResult = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No JSON found in response');
+    hfResults.forEach(result => {
+      const label = result.label.toLowerCase();
+      const score = result.score;
+
+      console.log(`🔍 Checking label: "${label}" (score: ${score})`);
+
+      // Check if label relates to disasters
+      for (const [key, keywords] of Object.entries(disasterKeywords)) {
+        const keyMatch = label.includes(key);
+        const keywordMatch = keywords.some(kw => label.includes(kw.toLowerCase()));
+
+        if (keyMatch || keywordMatch) {
+          console.log(`  ✅ MATCH found! Category: ${key}, KeyMatch: ${keyMatch}, KeywordMatch: ${keywordMatch}`);
+
+          if (score > maxHazardScore) {
+            maxHazardScore = score;
+          }
+          detectedHazards.push({ label: result.label, score });
+
+          // Check if it matches reported hazard
+          if (hazardType_lower && (label.includes(hazardType_lower) || keywords.some(kw => hazardType_lower.includes(kw.toLowerCase())))) {
+            matchesReport = true;
+            console.log(`  ✅ Matches reported hazard: ${hazardType_lower}`);
+          }
+        }
       }
-    } catch (parseError) {
-      console.error('Error parsing Gemini response:', parseError, text);
-      // Return a default response
-      analysisResult = {
-        scores: [0.5],
-        labels: ['unknown'],
-        topLabel: 'unknown',
-        topScore: 0.5,
-        matchesReportedHazard: false,
-        analysis: text.substring(0, 200)
-      };
-    }
+    });
 
-    // Format response to match expected format from CLIP
+    console.log(`\n📊 Final Results:`)
+    console.log(`  - Max Hazard Score: ${maxHazardScore}`);
+    console.log(`  - Detected Hazards: ${detectedHazards.length}`)
+    console.log(`  - Matches Report: ${matchesReport}`);
+
+    // Calculate confidence score (0-100)
+    let confidence = Math.round(maxHazardScore * 100);
+    const matchesReport_str = maxHazardScore > 0.5 ? 'yes' : (maxHazardScore > 0.3 ? 'partial' : 'no');
+
+    console.log(`  - Confidence: ${confidence}%`);
+    console.log(`  - Match Status: ${matchesReport_str}`);
+
+    // Build analysis result
+    const analysisResult = {
+      scores: hfResults.map(r => r.score),
+      labels: hfResults.map(r => r.label),
+      topLabel: hfResults[0]?.label || 'unknown',
+      topScore: hfResults[0]?.score || 0,
+      matchesReportedHazard: matchesReport,
+      detectedHazards: detectedHazards.map(h => h.label),
+      maxHazardScore: maxHazardScore,
+      confidence: confidence,
+      matchesReport: matchesReport_str,
+      analysis: `Detected: ${detectedHazards.length > 0 ? detectedHazards.map(h => h.label).join(', ') : 'No clear disaster indicators'}`
+    };
+
+    // Format response to match expected format from frontend
     res.json([{
       scores: analysisResult.scores || [analysisResult.topScore || 0.5],
       labels: analysisResult.labels || [analysisResult.topLabel || 'unknown'],
       analysis: analysisResult.analysis || 'Image analyzed',
-      matchesReportedHazard: analysisResult.matchesReportedHazard || false
+      matchesReportedHazard: analysisResult.matchesReportedHazard || false,
+      // NEW: Send pre-calculated confidence and analysis from backend
+      confidence: analysisResult.confidence,
+      maxHazardScore: analysisResult.maxHazardScore,
+      detectedHazards: analysisResult.detectedHazards,
+      matchesReport: analysisResult.matchesReport
     }]);
 
   } catch (error) {
-    console.error('Error in Gemini image analysis:', error);
+    console.error('Error in Hugging Face image analysis:', error);
     // Return a neutral analysis instead of error to allow report submission
     res.json([{
       scores: [0.5],

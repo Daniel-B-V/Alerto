@@ -88,63 +88,70 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
     const hfData = await hfResponse.json();
     console.log('✅ Gemini AI response received:', hfData);
 
-    // Parse results
-    const scores = hfData[0]?.scores || [];
-    const labels = hfData[0]?.labels || [];
+    // Use backend's pre-calculated analysis
+    const backendAnalysis = hfData[0];
+    let confidence = backendAnalysis.confidence || 0;
+    const maxHazardScore = backendAnalysis.maxHazardScore || 0;
+    const detectedHazards = backendAnalysis.detectedHazards || [];
+    let matchesReport = backendAnalysis.matchesReport || 'unknown';
 
-    // Find if reported hazard matches
-    const hazardKeywords = expectedLabel.split(', ');
-    const spamKeywords = spamLabels.split(', ');
-
-    let maxHazardScore = 0;
-    let maxSpamScore = 0;
-    let detectedHazards = [];
-
-    labels.forEach((label, index) => {
-      const score = scores[index];
-
-      if (hazardKeywords.some(keyword => label.toLowerCase().includes(keyword.toLowerCase()))) {
-        if (score > maxHazardScore) {
-          maxHazardScore = score;
-        }
-        if (score > 0.3) {
-          detectedHazards.push(label);
-        }
-      } else if (spamKeywords.some(keyword => label.toLowerCase().includes(keyword.toLowerCase()))) {
-        if (score > maxSpamScore) {
-          maxSpamScore = score;
-        }
-      }
-    });
-
-    // Calculate confidence based on CLIP scores
-    // High hazard score + low spam score = high confidence
-    // Low hazard score + high spam score = low confidence
-    let confidence = Math.round((maxHazardScore * 100));
-
-    // Adjust confidence based on spam detection
-    if (maxSpamScore > maxHazardScore) {
-      confidence = Math.max(20, confidence - Math.round(maxSpamScore * 50));
-    }
-
-    // Weather cross-check
+    // Weather cross-check (optional enhancement)
     let weatherMatch = 'unknown';
-    if (weatherData) {
-      const hasRain = (weatherData.rain_1h || 0) > 0;
-      const isWet = weatherData.humidity > 80;
-      const isFlooding = reportedHazard === 'flood';
-      const isRain = reportedHazard === 'rain';
+    if (weatherData && weatherData.current) {
+      console.log('🌤️ Weather cross-check starting:', {
+        reportedHazard,
+        weather: weatherData.current
+      });
 
-      if ((isFlooding || isRain) && !hasRain && !isWet) {
-        weatherMatch = 'contradicts';
-        confidence = Math.max(15, confidence - 30);
-      } else if ((isFlooding || isRain) && (hasRain || isWet)) {
-        weatherMatch = 'matches';
-        confidence = Math.min(100, confidence + 10);
+      // Extract weather parameters with correct property names and null safety
+      const rainfall = (weatherData.current?.rainfall || 0);
+      const humidity = (weatherData.current?.humidity || 0);
+      const windSpeed = (weatherData.current?.windSpeed || 0);
+
+      console.log('📊 Weather parameters:', { rainfall, humidity, windSpeed });
+
+      const hazardType = reportedHazard;
+
+      // Check weather conditions based on hazard type
+      if (hazardType === 'flood' || hazardType === 'rain') {
+        const hasRain = rainfall > 0;
+        const isWet = humidity > 80;
+
+        if (!hasRain && !isWet) {
+          weatherMatch = 'contradicts';
+          confidence = Math.max(15, confidence - 30);
+          console.log('⚠️ Weather contradicts: No rain/humidity for flood/rain report');
+        } else if (hasRain || isWet) {
+          weatherMatch = 'matches';
+          confidence = Math.min(100, confidence + 10);
+          console.log('✅ Weather matches: Rain/humidity detected for flood/rain report');
+        }
+      } else if (hazardType === 'strong_winds') {
+        if (windSpeed < 20) {
+          weatherMatch = 'contradicts';
+          confidence = Math.max(15, confidence - 25);
+          console.log(`⚠️ Weather contradicts: Low wind speed (${windSpeed} km/h) for strong winds report`);
+        } else if (windSpeed > 40) {
+          weatherMatch = 'matches';
+          confidence = Math.min(100, confidence + 15);
+          console.log(`✅ Weather matches: High wind speed (${windSpeed} km/h) for strong winds report`);
+        }
+      } else if (hazardType === 'landslide') {
+        const highRainfall = rainfall > 5;
+        const highHumidity = humidity > 85;
+
+        if (highRainfall || highHumidity) {
+          weatherMatch = 'matches';
+          confidence = Math.min(100, confidence + 10);
+          console.log('✅ Weather matches: High rainfall/humidity for landslide report');
+        }
       }
+
+      console.log('🔍 Weather match result:', weatherMatch, 'Adjusted confidence:', confidence);
+    } else {
+      console.log('⚠️ No weather data available for cross-check');
     }
 
-    const matchesReport = maxHazardScore > 0.5 ? 'yes' : (maxHazardScore > 0.3 ? 'partial' : 'no');
     const credible = confidence >= 40;
 
     console.log('🔍 Gemini AI Analysis Result:', {
@@ -152,7 +159,6 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
       matchesReport,
       reportedHazard,
       maxHazardScore,
-      maxSpamScore,
       detectedHazards,
       weatherMatch
     });
@@ -165,8 +171,8 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
       detectedHazards,
       reportedHazard,
       weatherMatch,
-      reason: `AI analysis: ${Math.round(maxHazardScore * 100)}% match to ${reportedHazard}. ${weatherMatch !== 'unknown' ? `Weather ${weatherMatch}.` : ''}`,
-      redFlags: maxSpamScore > maxHazardScore ? ['Image appears unrelated to disaster/hazard'] : []
+      reason: `AI analysis: ${confidence}% match to ${reportedHazard}. ${weatherMatch !== 'unknown' ? `Weather ${weatherMatch}.` : ''}`,
+      redFlags: confidence < 40 ? ['Image confidence below threshold'] : []
     };
 
   } catch (error) {

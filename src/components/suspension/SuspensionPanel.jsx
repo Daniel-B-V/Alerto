@@ -240,7 +240,7 @@ const SuspensionPanel = () => {
             </p>
           </div>
           <Badge className="bg-purple-100 text-purple-800 border-purple-200 font-semibold px-4 py-2">
-            👑 Governor
+            Governor
           </Badge>
         </div>
 

@@ -61,7 +61,9 @@ export function CommunityFeed() {
   const [filters, setFilters] = useState({
     category: 'all',
     location: 'all',
-    limit: 20
+    status: 'all',
+    sortBy: 'latest',
+    limit: 500
   });
   const { user, isAuthenticated } = useAuth();
 
@@ -167,7 +169,34 @@ export function CommunityFeed() {
       return false;
     }
 
+    // Filter by status
+    if (filters.status !== 'all') {
+      if (filters.status === 'pending' && report.status !== 'pending' && report.status !== 'under_review' && report.status) {
+        return false;
+      }
+      if (filters.status === 'verified' && report.status !== 'verified') {
+        return false;
+      }
+      if (filters.status === 'flagged' && report.status !== 'flagged') {
+        return false;
+      }
+    }
+
     return true;
+  }).sort((a, b) => {
+    // Sort reports based on selected sort option
+    switch (filters.sortBy) {
+      case 'latest':
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+      case 'oldest':
+        return (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0);
+      case 'highCredibility':
+        return (b.aiCredibility || b.imageAnalysis?.confidence || 0) - (a.aiCredibility || a.imageAnalysis?.confidence || 0);
+      case 'lowCredibility':
+        return (a.aiCredibility || a.imageAnalysis?.confidence || 0) - (b.aiCredibility || b.imageAnalysis?.confidence || 0);
+      default:
+        return (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0);
+    }
   });
 
   // Handle like/unlike
@@ -296,7 +325,7 @@ export function CommunityFeed() {
 
           {/* Role Scope Indicator */}
           {(isMayorUser || isAdmin) && (
-            <Card className="mb-6 bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
+            <Card className="mb-6 !bg-gradient-to-r !from-indigo-50 !to-purple-50 border-indigo-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
                   {isMayorUser ? (
@@ -307,9 +336,7 @@ export function CommunityFeed() {
                       <div>
                         <p className="text-sm text-gray-600">Viewing reports from</p>
                         <p className="text-lg font-bold text-gray-900">{userCity || 'Your City'}</p>
-                        <p className="text-xs text-blue-600 mt-0.5">
-                          🏛️ Mayor access - Only reports from your assigned city
-                        </p>
+                        <p className="text-xs text-blue-600 mt-0.5">Mayor access - Only reports from your assigned city</p>
                       </div>
                     </>
                   ) : (
@@ -320,9 +347,7 @@ export function CommunityFeed() {
                       <div>
                         <p className="text-sm text-gray-600">Viewing reports from</p>
                         <p className="text-lg font-bold text-gray-900">Batangas Province</p>
-                        <p className="text-xs text-purple-600 mt-0.5">
-                          👑 Governor access - All cities and municipalities
-                        </p>
+                        <p className="text-xs text-purple-600 mt-0.5">Governor access - All cities and municipalities</p>
                       </div>
                     </>
                   )}
@@ -376,10 +401,35 @@ export function CommunityFeed() {
                   </SelectContent>
                 </Select>
 
-                <div className="ml-auto flex items-center gap-2">
-                  <TrendingUp className="w-4 h-4 text-gray-500" />
-                  <span className="text-sm text-gray-600">Sorted by: Latest</span>
-                </div>
+                <Select
+                  value={filters.status}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="All Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="verified">Verified</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="flagged">Spam</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={filters.sortBy}
+                  onValueChange={(value) => setFilters(prev => ({ ...prev, sortBy: value }))}
+                >
+                  <SelectTrigger className="w-52 ml-auto">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="latest">Latest First</SelectItem>
+                    <SelectItem value="oldest">Oldest First</SelectItem>
+                    <SelectItem value="highCredibility">High Credibility</SelectItem>
+                    <SelectItem value="lowCredibility">Low Credibility</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </CardContent>
           </Card>
@@ -388,8 +438,8 @@ export function CommunityFeed() {
         {/* Reports Feed */}
         <div className="space-y-4">
           {filteredReports.length === 0 ? (
-            <Card>
-              <CardContent className="p-12 text-center">
+            <Card style={{ minHeight: '400px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              <CardContent className="p-12 text-center flex flex-col items-center justify-center">
                 <MessageCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-700 mb-2">
                   {reports.length === 0 ? 'No reports yet' : 'No reports match your filters'}
