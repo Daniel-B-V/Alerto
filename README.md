@@ -1,8 +1,9 @@
-# 🌪️ ALERTO
+# ALERTO
 
 **Comprehensive Class Suspension Decision Support System**
-
 > *Complete information for earlier decisions. From fragmented data to unified action.*
+> 
+<img width="748" height="415" alt="Image" src="https://github.com/user-attachments/assets/4937d0db-f97c-42d0-b816-be66ffba277b" />
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-18.x-61DAFB?logo=react)](https://reactjs.org/)
