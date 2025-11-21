@@ -28,7 +28,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { subscribeToReports, updateReport, rejectReport } from "../../firebase/firestore";
+import { subscribeToReports } from "../../firebase/firestore";
 import { analyzeCompiledLocationReports, analyzeIndividualReportCredibility } from "../../services/geminiService";
 import { useSuspensions } from "../../hooks/useSuspensions";
 import { getWeatherAssessmentForSuspension } from "../../services/weatherService";
@@ -112,9 +112,10 @@ export function EnhancedReportsPage() {
       if (report.severity === 'high') locationGroups[city].highReports++;
       if (report.severity === 'medium') locationGroups[city].mediumReports++;
 
-      // Count by status (all reports are verified, tracking investigating separately)
-      if (report.status === 'verified') locationGroups[city].verifiedReports++;
-      if (report.status === 'investigating') locationGroups[city].investigatingReports++;
+      // Count by credibility level
+      const credibility = report.aiCredibility || report.imageAnalysis?.confidence || 50;
+      if (credibility >= 80) locationGroups[city].verifiedReports++; // High credibility
+      if (credibility >= 50 && credibility < 80) locationGroups[city].investigatingReports++; // Medium credibility
 
       // Track latest report time
       const reportTime = report.createdAt?.seconds ? report.createdAt.seconds * 1000 : Date.now();
@@ -287,8 +288,11 @@ export function EnhancedReportsPage() {
     totalCities: compiledReports.length,
     critical: reports.filter(r => r.severity === 'critical').length,
     high: reports.filter(r => r.severity === 'high').length,
-    verified: reports.filter(r => r.status === 'verified').length,
-    investigating: reports.filter(r => r.status === 'investigating').length,
+    highCredibility: reports.filter(r => (r.aiCredibility || r.imageAnalysis?.confidence || 50) >= 80).length,
+    mediumCredibility: reports.filter(r => {
+      const cred = r.aiCredibility || r.imageAnalysis?.confidence || 50;
+      return cred >= 50 && cred < 80;
+    }).length,
   };
 
   // Format timestamp
@@ -343,36 +347,6 @@ export function EnhancedReportsPage() {
       ...prev,
       [reportId]: !prev[reportId]
     }));
-  };
-
-  // Handle verify report
-  const handleVerifyReport = async (reportId) => {
-    try {
-      await updateReport(reportId, {
-        status: 'verified',
-        verifiedBy: `Governor (${user?.displayName || user?.email})`,
-        verifiedAt: new Date()
-      });
-      console.log('Report verified successfully by Governor');
-    } catch (error) {
-      console.error('Error verifying report:', error);
-      alert('Failed to verify report');
-    }
-  };
-
-  // Handle reject report
-  const handleRejectReport = async (reportId) => {
-    try {
-      await rejectReport(
-        reportId,
-        `Governor (${user?.displayName || user?.email})`,
-        'Marked as spam/inappropriate content'
-      );
-      console.log('Report rejected successfully by Governor');
-    } catch (error) {
-      console.error('Error rejecting report:', error);
-      alert('Failed to reject report');
-    }
   };
 
   // Handle view compiled reports
@@ -575,7 +549,7 @@ export function EnhancedReportsPage() {
                   <h3 className="text-xl font-bold text-gray-900 mb-2">{city.city}</h3>
                   <p className="text-3xl font-bold text-indigo-600 mb-4">{city.totalReports} reports</p>
                   <div className="text-sm text-gray-600">
-                    <div>✓ {city.verifiedReports} Verified</div>
+                    <div>✓ {city.verifiedReports} High Credibility</div>
                   </div>
                 </div>
                 );
@@ -758,7 +732,7 @@ export function EnhancedReportsPage() {
                               {location.credibilityStatus.label}
                             </Badge>
                             <div className="text-xs text-gray-500">
-                              {location.verifiedReports} verified{location.investigatingReports > 0 ? ` / ${location.investigatingReports} investigating` : ''}
+                              {location.verifiedReports} high cred.{location.investigatingReports > 0 ? ` / ${location.investigatingReports} medium` : ''}
                             </div>
                           </div>
                         </td>
@@ -817,62 +791,6 @@ export function EnhancedReportsPage() {
             </div>
 
             <div className="overflow-y-auto p-4 space-y-4 flex-1">
-              {/* Factual Verification Section */}
-              <Card className="border-0 shadow-lg overflow-hidden">
-                <CardHeader className="p-4 pb-3 bg-gradient-to-r from-emerald-600 to-green-600">
-                  <CardTitle className="text-base flex items-center gap-2 text-white">
-                    <Shield className="w-5 h-5" />
-                    Factual Verification
-                    <Badge className="ml-auto bg-white/20 text-white text-xs px-2 py-1 border-0">
-                      Multi-Source
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  {/* Verification Metrics - Horizontal Layout */}
-                  <div className="flex divide-x divide-gray-100">
-                    {/* AI Text */}
-                    <div className="flex-1 p-4 text-center bg-white hover:bg-gray-50 transition-colors">
-                      <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-purple-100 flex items-center justify-center">
-                        <span className="text-lg">🤖</span>
-                      </div>
-                      <div className="text-2xl font-bold text-purple-600">
-                        {selectedLocation.reports.filter(r => r.status === 'verified').length}
-                      </div>
-                      <div className="text-xs font-medium text-gray-500 mt-1">AI Authenticated</div>
-                    </div>
-
-                    {/* Image Evidence */}
-                    <div className="flex-1 p-4 text-center bg-white hover:bg-gray-50 transition-colors">
-                      <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-blue-100 flex items-center justify-center">
-                        <span className="text-lg">📷</span>
-                      </div>
-                      <div className="text-2xl font-bold text-blue-600">
-                        {selectedLocation.reports.filter(r => r.images && r.images.length > 0).length}
-                      </div>
-                      <div className="text-xs font-medium text-gray-500 mt-1">With Evidence</div>
-                    </div>
-
-                    {/* Weather Match */}
-                    <div className="flex-1 p-4 text-center bg-white hover:bg-gray-50 transition-colors">
-                      <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-amber-100 flex items-center justify-center">
-                        <span className="text-lg">🌤️</span>
-                      </div>
-                      <div className="text-2xl font-bold text-amber-600">
-                        {selectedLocation.aiConfidence}%
-                      </div>
-                      <div className="text-xs font-medium text-gray-500 mt-1">Weather Match</div>
-                    </div>
-                  </div>
-
-                  {/* Methods Footer */}
-                  <div className="px-4 py-3 bg-gray-50 border-t border-gray-100">
-                    <p className="text-xs text-gray-500 text-center">
-                      Verified via AI spam detection, image analysis (CLIP), and weather correlation
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
 
               {/* Gemini AI Compiled Summary */}
               {aiLoading && (
@@ -890,13 +808,10 @@ export function EnhancedReportsPage() {
 
               {!aiLoading && aiAnalysis && (
                 <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-300 shadow-lg">
-                  <CardHeader className="p-4 pb-3 bg-gradient-to-r from-purple-100 to-blue-100 border-b border-purple-200">
+                  <CardHeader className="p-4 pb-3 bg-purple-100 border-b border-purple-200 rounded-t-lg">
                     <CardTitle className="text-lg flex items-center gap-2 text-purple-900">
                       <Sparkles className="w-5 h-5 text-purple-600" />
                       AI Insights
-                      <Badge className="ml-auto bg-purple-600 text-white text-xs">
-                        Powered by Gemini
-                      </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 space-y-3">
@@ -910,24 +825,6 @@ export function EnhancedReportsPage() {
                         {aiAnalysis.compiledSummary}
                       </p>
                     </div>
-
-                    {/* Recommendations */}
-                    {aiAnalysis.recommendations && aiAnalysis.recommendations.length > 0 && (
-                      <div className="bg-white rounded-lg p-4 border border-purple-200">
-                        <h4 className="font-semibold text-base text-purple-900 mb-3 flex items-center gap-2">
-                          <CheckCircle className="w-5 h-5" />
-                          Recommendations
-                        </h4>
-                        <ul className="space-y-2">
-                          {aiAnalysis.recommendations.map((rec, idx) => (
-                            <li key={idx} className="text-sm text-gray-800 flex items-start gap-2">
-                              <span className="text-purple-600">✓</span>
-                              <span>{rec}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    )}
 
                     {/* Inconsistencies (if any) */}
                     {aiAnalysis.inconsistencies && aiAnalysis.inconsistencies.length > 0 && (
@@ -1005,15 +902,24 @@ export function EnhancedReportsPage() {
                             <span className="text-xs text-gray-600 font-medium">
                               {report.category?.replace(/_/g, ' ') || 'General'}
                             </span>
-                            <Badge
-                              className="text-xs"
-                              style={{
-                                backgroundColor: report.status === 'verified' ? '#16a34a' : report.status === 'rejected' ? '#dc2626' : '#eab308',
-                                color: 'white'
-                              }}
-                            >
-                              {report.status === 'verified' ? '✓ Verified' : report.status === 'rejected' ? '× Rejected' : report.status === 'investigating' ? '🔍 Investigating' : report.status}
-                            </Badge>
+                            {(() => {
+                              const credibility = report.aiCredibility || report.imageAnalysis?.confidence || 50;
+                              const getBadgeStyle = () => {
+                                if (credibility >= 80) return { bg: '#16a34a', label: 'High' };
+                                if (credibility >= 50) return { bg: '#ca8a04', label: 'Medium' };
+                                if (credibility >= 20) return { bg: '#f97316', label: 'Low' };
+                                return { bg: '#dc2626', label: 'Very Low' };
+                              };
+                              const style = getBadgeStyle();
+                              return (
+                                <Badge
+                                  className="text-xs"
+                                  style={{ backgroundColor: style.bg, color: 'white' }}
+                                >
+                                  {credibility}% Credible
+                                </Badge>
+                              );
+                            })()}
                           </div>
                           <p className="text-sm text-gray-800 mb-2">
                             {isExpanded ? report.description : (report.description?.length > 100 ? report.description.substring(0, 100) + '...' : report.description)}
@@ -1048,30 +954,6 @@ export function EnhancedReportsPage() {
                               <p className="text-xs text-gray-600 mt-1 italic">
                                 {credibility.spamReason}
                               </p>
-                            </div>
-                          )}
-
-                          {/* Verify and Reject Buttons */}
-                          {report.status !== 'verified' && report.status !== 'rejected' && (
-                            <div className="flex items-center justify-end gap-2 mt-2 mb-2">
-                              <Button
-                                onClick={() => handleVerifyReport(report.id)}
-                                size="sm"
-                                variant="outline"
-                                className="text-xs px-3 py-1 h-7"
-                              >
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Verify
-                              </Button>
-                              <Button
-                                onClick={() => handleRejectReport(report.id)}
-                                size="sm"
-                                variant="outline"
-                                className="text-xs px-3 py-1 h-7"
-                              >
-                                <XCircle className="w-3 h-3 mr-1" />
-                                Reject
-                              </Button>
                             </div>
                           )}
 

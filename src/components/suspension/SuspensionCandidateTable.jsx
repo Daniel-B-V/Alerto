@@ -252,42 +252,6 @@ const SuspensionCandidateTable = ({ onIssueSuspension, onSuspendAll }) => {
               scrollbarColor: '#CBD5E1 #F1F5F9'
             }}
           >
-            <style jsx>{`
-              div::-webkit-scrollbar {
-                width: 6px;
-              }
-              div::-webkit-scrollbar-track {
-                background: #F1F5F9;
-                border-radius: 10px;
-              }
-              div::-webkit-scrollbar-thumb {
-                background: #CBD5E1;
-                border-radius: 10px;
-              }
-              div::-webkit-scrollbar-thumb:hover {
-                background: #94A3B8;
-              }
-              div::-webkit-scrollbar-button {
-                display: none;
-              }
-              .tabular-nums {
-                font-variant-numeric: tabular-nums;
-              }
-              .group:hover .group-hover\:block {
-                display: block;
-                animation: fadeIn 0.2s ease-in;
-              }
-              @keyframes fadeIn {
-                from {
-                  opacity: 0;
-                  transform: translateY(-4px);
-                }
-                to {
-                  opacity: 1;
-                  transform: translateY(0);
-                }
-              }
-            `}</style>
             <table className="w-full">
               <thead className="bg-gray-50 border-b-2 border-gray-200" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                 <tr>

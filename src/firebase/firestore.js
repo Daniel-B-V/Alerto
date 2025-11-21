@@ -192,45 +192,20 @@ export const getReport = async (reportId) => {
 // Create new report
 export const createReport = async (reportData, userId) => {
   try {
-    // Determine status based on AI credibility score
-    let status = 'pending';
-    let verifiedBy = null;
-    let verifiedAt = null;
-    let rejectedBy = null;
-    let rejectedAt = null;
-    let rejectionReason = null;
+    // Credibility-only system - no status verification
+    // aiCredibility score (0-100%) is the sole indicator of report quality
+    const confidence = reportData.aiCredibility || 50;
+    const isSpam = confidence < 30; // Flag for filtering purposes
 
-    // Auto-verify or auto-reject based on credibility score
-    if (reportData.aiCredibility !== null && reportData.aiCredibility !== undefined) {
-      const confidence = reportData.aiCredibility;
-
-      if (confidence >= 80) {
-        // Auto-verify high credibility reports
-        status = 'verified';
-        verifiedBy = 'AI Auto-Verification';
-        verifiedAt = serverTimestamp();
-        console.log(`✅ Report auto-verified. Credibility: ${confidence}%`);
-      } else if (confidence < 30) {
-        // Auto-reject spam
-        status = 'spam';
-        rejectedBy = 'AI Auto-Moderation';
-        rejectedAt = serverTimestamp();
-        rejectionReason = `Automatically rejected due to low credibility score (${confidence}%). Possible spam or misleading content.`;
-        console.log(`🚫 Report auto-rejected as spam. Credibility: ${confidence}%`);
-      }
-    }
+    console.log(`📊 Report credibility: ${confidence}%${isSpam ? ' (flagged as low quality)' : ''}`);
 
     const report = {
       ...reportData,
       userId,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      status: status,
-      verifiedBy: verifiedBy,
-      verifiedAt: verifiedAt,
-      rejectedBy: rejectedBy,
-      rejectedAt: rejectedAt,
-      rejectionReason: rejectionReason,
+      aiCredibility: confidence,
+      isSpam: isSpam,
       likes: [],
       commentsCount: 0,
       viewsCount: 0,
@@ -303,23 +278,7 @@ export const updateReport = async (reportId, updates) => {
   }
 };
 
-// Reject report (mark as spam/rejected)
-export const rejectReport = async (reportId, rejectedBy, reason = 'Marked as spam') => {
-  try {
-    const reportRef = doc(db, COLLECTIONS.REPORTS, reportId);
-    await updateDoc(reportRef, {
-      status: 'rejected',
-      rejectedBy: rejectedBy,
-      rejectedAt: serverTimestamp(),
-      rejectionReason: reason,
-      updatedAt: serverTimestamp()
-    });
-    console.log(`Report ${reportId} rejected by ${rejectedBy}`);
-  } catch (error) {
-    console.error('Error rejecting report:', error);
-    throw error;
-  }
-};
+// REMOVED: rejectReport function - credibility-only system, no manual verification
 
 // Delete report
 export const deleteReport = async (reportId) => {

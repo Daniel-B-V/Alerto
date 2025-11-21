@@ -26,7 +26,7 @@ import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { getReports, toggleLike, subscribeToReports, updateReport, rejectReport } from "../../firebase";
+import { getReports, toggleLike, subscribeToReports, updateReport } from "../../firebase";
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { useAuth } from "../../contexts/AuthContext";
@@ -82,37 +82,8 @@ export function CommunityFeed() {
   const [announcementPriority, setAnnouncementPriority] = useState('normal');
   const [issuingAnnouncement, setIssuingAnnouncement] = useState(false);
 
-  // Handle verify report
-  const handleVerifyReport = async (reportId) => {
-    try {
-      const verifierRole = isAdmin ? 'Governor' : isMayorUser ? `Mayor of ${userCity}` : 'Admin';
-      await updateReport(reportId, {
-        status: 'verified',
-        verifiedBy: `${verifierRole} (${user?.displayName || user?.email})`,
-        verifiedAt: new Date()
-      });
-      console.log('Report verified successfully by', verifierRole);
-    } catch (error) {
-      console.error('Error verifying report:', error);
-      alert('Failed to verify report');
-    }
-  };
-
-  // Handle reject report
-  const handleRejectReport = async (reportId) => {
-    try {
-      const rejectorRole = isAdmin ? 'Governor' : isMayorUser ? `Mayor of ${userCity}` : 'Admin';
-      await rejectReport(
-        reportId,
-        `${rejectorRole} (${user?.displayName || user?.email})`,
-        'Marked as spam/inappropriate content'
-      );
-      console.log('Report rejected successfully by', rejectorRole);
-    } catch (error) {
-      console.error('Error rejecting report:', error);
-      alert('Failed to reject report');
-    }
-  };
+  // REMOVED: handleVerifyReport and handleRejectReport - credibility-only system
+  // Reports are now shown with credibility scores only, no manual verification
 
   // Handle issue announcement
   const handleIssueAnnouncement = async () => {
@@ -223,15 +194,16 @@ export function CommunityFeed() {
       return false;
     }
 
-    // Filter by status
+    // Filter by credibility level
     if (filters.status !== 'all') {
-      if (filters.status === 'pending' && report.status !== 'pending' && report.status !== 'under_review' && report.status) {
+      const credibility = report.aiCredibility || report.imageAnalysis?.confidence || 50;
+      if (filters.status === 'high' && credibility < 80) {
         return false;
       }
-      if (filters.status === 'verified' && report.status !== 'verified') {
+      if (filters.status === 'medium' && (credibility < 50 || credibility >= 80)) {
         return false;
       }
-      if (filters.status === 'flagged' && report.status !== 'flagged') {
+      if (filters.status === 'low' && credibility >= 50) {
         return false;
       }
     }
@@ -475,13 +447,13 @@ export function CommunityFeed() {
                   onValueChange={(value) => setFilters(prev => ({ ...prev, status: value }))}
                 >
                   <SelectTrigger className="w-48">
-                    <SelectValue placeholder="All Status" />
+                    <SelectValue placeholder="All Credibility" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="verified">Verified</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="flagged">Spam</SelectItem>
+                    <SelectItem value="all">All Reports</SelectItem>
+                    <SelectItem value="high">High Credibility (80%+)</SelectItem>
+                    <SelectItem value="medium">Medium (50-79%)</SelectItem>
+                    <SelectItem value="low">Low Credibility (&lt;50%)</SelectItem>
                   </SelectContent>
                 </Select>
 
@@ -594,25 +566,22 @@ export function CommunityFeed() {
                         </div>
                       </div>
 
-                      {/* Right: Status Badge */}
+                      {/* Right: Credibility Score Badge */}
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {/* Status Badge - Verified, Pending, Spam, or Rejected */}
-                        <Badge
-                          className={`text-xs px-2.5 py-1 font-medium ${
-                            report.status === 'verified'
-                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : report.status === 'spam' || report.status === 'flagged'
-                              ? 'bg-red-50 text-red-700 border border-red-200'
-                              : report.status === 'rejected'
-                              ? 'bg-orange-50 text-orange-700 border border-orange-200'
-                              : 'bg-slate-50 text-slate-700 border border-slate-200'
-                          }`}
-                        >
-                          {report.status === 'verified' ? '✓ Verified'
-                            : report.status === 'spam' || report.status === 'flagged' ? '🚫 Spam'
-                            : report.status === 'rejected' ? '✕ Rejected'
-                            : 'Pending'}
-                        </Badge>
+                        {(() => {
+                          const credibility = report.aiCredibility || report.imageAnalysis?.confidence || 50;
+                          const getBadgeStyle = () => {
+                            if (credibility >= 80) return 'bg-emerald-50 text-emerald-700 border border-emerald-200';
+                            if (credibility >= 50) return 'bg-amber-50 text-amber-700 border border-amber-200';
+                            if (credibility >= 20) return 'bg-orange-50 text-orange-700 border border-orange-200';
+                            return 'bg-red-50 text-red-700 border border-red-200';
+                          };
+                          return (
+                            <Badge className={`text-xs px-2.5 py-1 font-medium ${getBadgeStyle()}`}>
+                              {credibility}% Credible
+                            </Badge>
+                          );
+                        })()}
                       </div>
                     </div>
 
@@ -688,61 +657,9 @@ export function CommunityFeed() {
                       )}
                     </div>
 
-                    {/* Bottom Section: Divider Line + AI Credibility (left) + Admin Buttons (right) */}
+                    {/* Bottom Section: Timestamp */}
                     <div className="pt-3 border-t border-gray-100">
-                      <div className="flex items-center justify-between gap-2">
-                        {/* Left: AI Credibility Badge with % */}
-                        <div className="flex items-center gap-2">
-                          {(report.imageAnalysis || report.aiCredibility !== null) && (
-                            <Badge
-                              className={`text-xs px-2.5 py-1 flex items-center gap-1.5 font-medium border ${
-                                report.aiCredibility >= 70 || (report.imageAnalysis && report.imageAnalysis.confidence >= 70)
-                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                                  : report.aiCredibility >= 40 || (report.imageAnalysis && report.imageAnalysis.confidence >= 40)
-                                  ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                  : 'bg-red-50 text-red-700 border-red-200'
-                              }`}
-                              title={report.imageAnalysis?.reason || report.aiReason || 'AI-analyzed report'}
-                            >
-                              <Shield className="w-3.5 h-3.5" />
-                              {report.aiCredibility >= 70 || (report.imageAnalysis && report.imageAnalysis.confidence >= 70)
-                                ? `Credible (${report.aiCredibility || report.imageAnalysis?.confidence || 0}%)`
-                                : report.aiCredibility >= 40 || (report.imageAnalysis && report.imageAnalysis.confidence >= 40)
-                                ? `Suspicious (${report.aiCredibility || report.imageAnalysis?.confidence || 0}%)`
-                                : `Spam (${report.aiCredibility || report.imageAnalysis?.confidence || 0}%)`
-                              }
-                            </Badge>
-                          )}
-                          <span className="text-xs text-gray-500">{formatTimestamp(report.createdAt)}</span>
-                        </div>
-
-                        {/* Right: Admin Actions - Verify & Reject Buttons */}
-                        {(isAdmin || isMayorUser) &&
-                         report.status !== 'verified' &&
-                         report.status !== 'rejected' &&
-                         report.status !== 'flagged' && (
-                          <div className="flex items-center gap-2">
-                            <Button
-                              onClick={() => handleVerifyReport(report.id)}
-                              size="sm"
-                              variant="outline"
-                              className="text-xs px-3 py-1.5 h-auto font-medium"
-                            >
-                              <CheckCircle className="w-3.5 h-3.5 mr-1" />
-                              Verify
-                            </Button>
-                            <Button
-                              onClick={() => handleRejectReport(report.id)}
-                              size="sm"
-                              variant="outline"
-                              className="text-xs px-3 py-1.5 h-auto font-medium"
-                            >
-                              <XCircle className="w-3.5 h-3.5 mr-1" />
-                              Reject
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                      <span className="text-xs text-gray-500">{formatTimestamp(report.createdAt)}</span>
                     </div>
 
                   </CardContent>

@@ -225,11 +225,34 @@ router.post('/image-analysis', async (req, res) => {
     console.log(`  - Detected Hazards: ${detectedHazards.length}`)
     console.log(`  - Matches Report: ${matchesReport}`);
 
-    // Calculate confidence score (0-100)
+    // Calculate confidence score (0-100) with STRICTER scoring
     let confidence = Math.round(maxHazardScore * 100);
-    const matchesReport_str = maxHazardScore > 0.5 ? 'yes' : (maxHazardScore > 0.3 ? 'partial' : 'no');
 
-    console.log(`  - Confidence: ${confidence}%`);
+    // STRICT: Heavy penalty if image doesn't match reported hazard type
+    if (!matchesReport && hazardType_lower) {
+      // Image shows different hazard than reported - major credibility hit
+      const penalty = 40; // 40% penalty for mismatch
+      confidence = Math.max(10, confidence - penalty);
+      console.log(`  ⚠️ PENALTY: Image doesn't match reported hazard "${hazardType_lower}" (-${penalty}%)`);
+    }
+
+    // STRICT: Penalty if no clear disaster indicators detected
+    if (detectedHazards.length === 0) {
+      confidence = Math.max(10, confidence - 30);
+      console.log(`  ⚠️ PENALTY: No disaster indicators detected (-30%)`);
+    }
+
+    // STRICT: Lower base confidence for weak matches
+    if (maxHazardScore < 0.3 && !matchesReport) {
+      confidence = Math.min(confidence, 35); // Cap at 35% for weak non-matching
+      console.log(`  ⚠️ CAP: Weak match, capping at 35%`);
+    }
+
+    // STRICT: Require higher threshold for "yes" match
+    const matchesReport_str = (maxHazardScore > 0.5 && matchesReport) ? 'yes' :
+                              (maxHazardScore > 0.3 || matchesReport) ? 'partial' : 'no';
+
+    console.log(`  - Final Confidence: ${confidence}%`);
     console.log(`  - Match Status: ${matchesReport_str}`);
 
     // Build analysis result
@@ -268,6 +291,65 @@ router.post('/image-analysis', async (req, res) => {
       analysis: 'Image analysis temporarily unavailable',
       matchesReportedHazard: false
     }]);
+  }
+});
+
+// AI text generation endpoint (using Gemini)
+router.post('/llama-generate', async (req, res) => {
+  try {
+    const { prompt, maxTokens = 512 } = req.body;
+
+    if (!prompt) {
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    if (!GEMINI_API_KEY) {
+      console.error('Gemini API key not configured');
+      return res.status(500).json({ error: 'API key not configured' });
+    }
+
+    console.log('🤖 Calling Gemini AI...');
+
+    // Use Gemini API with @google/generative-ai package
+    // Try different model names that are supported
+    const modelNames = [
+      "gemini-1.5-pro",
+      "gemini-pro",
+      "models/gemini-1.5-pro",
+      "models/gemini-pro"
+    ];
+
+    let generatedText = null;
+    let lastError = null;
+
+    for (const modelName of modelNames) {
+      try {
+        console.log(`Trying Gemini model: ${modelName}`);
+        const model = genAI.getGenerativeModel({ model: modelName });
+
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        generatedText = response.text();
+
+        console.log(`✅ Gemini model ${modelName} worked!`);
+        break;
+      } catch (err) {
+        console.warn(`Model ${modelName} failed:`, err.message);
+        lastError = err;
+      }
+    }
+
+    if (!generatedText) {
+      throw lastError || new Error('All Gemini models failed');
+    }
+
+    console.log('✅ Gemini response received');
+
+    res.json({ generated_text: generatedText });
+
+  } catch (error) {
+    console.error('Error in Gemini generation:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

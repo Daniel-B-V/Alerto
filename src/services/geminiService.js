@@ -1,9 +1,12 @@
-// Gemini AI Service for Report Compilation and Analysis
+// AI Service for Report Compilation and Analysis (Using Llama 3 via HuggingFace)
 import { getSeverityConfig } from '../constants/categorization';
 
-const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSyDDL3nl6cR3xsIQ8Ilv046_7xjIa-iIo0E';
-// Use v1 API endpoint with gemini-1.5-flash-latest (more stable)
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash-latest:generateContent';
+// Use Llama 3 via backend proxy
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:5000';
+const LLAMA_API_URL = `${BACKEND_URL}/api/huggingface/llama-generate`;
+const HF_API_KEY = import.meta.env.VITE_HUGGING_FACE_API_KEY;
+const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY;
+const GEMINI_API_URL = GEMINI_API_KEY ? `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}` : '';
 
 // API health tracking to prevent console spam
 let apiFailureCount = 0;
@@ -18,6 +21,36 @@ const logError = (message, error) => {
     console.error(message, error);
     lastErrorLog = now;
   }
+};
+
+/**
+ * Helper function to call Gemini AI via backend proxy
+ */
+const callGemini = async (prompt, maxTokens = 512) => {
+  const response = await fetch(LLAMA_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      prompt,
+      maxTokens
+    })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+
+    // Handle model loading (503)
+    if (response.status === 503 && errorData.isLoading) {
+      throw new Error('Gemini model is loading, please try again in a moment');
+    }
+
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.generated_text;
 };
 
 
@@ -79,32 +112,7 @@ Respond in JSON format:
   "sources": ${reports.length}
 }`;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.4,
-          topK: 32,
-          topP: 1,
-          maxOutputTokens: 1024,
-        }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.candidates[0].content.parts[0].text;
+    const aiResponse = await callGemini(prompt, 1024);
 
     // Parse JSON response from AI
     let compiledData;
@@ -236,28 +244,9 @@ Respond in JSON:
       }
     }
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{ parts }],
-        generationConfig: {
-          temperature: 0.3,
-          topK: 32,
-          topP: 1,
-          maxOutputTokens: 512,
-        }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.candidates[0].content.parts[0].text;
+    // Note: Llama doesn't support images via HF Inference API, so we just use the text prompt
+    // Image analysis is handled by HuggingFace CLIP separately
+    const aiResponse = await callGemini(parts[0].text, 512);
 
     // Parse JSON response
     const jsonMatch = aiResponse.match(/```json\n([\s\S]*?)\n```/) || aiResponse.match(/\{[\s\S]*\}/);
@@ -356,8 +345,13 @@ export const getSeverityColor = (severity) => {
  * @returns {Promise<Object>} Analysis with priority classification
  */
 export const analyzeClassSuspensionReports = async (reports) => {
+  // Always use fallback - AI API not working
+  console.log('Using fallback analysis (AI API disabled)');
+  return fallbackClassSuspensionAnalysis(reports);
+
+  /* DISABLED - API issues
   if (!GEMINI_API_KEY) {
-    console.warn('Gemini API key not configured. Using fallback analysis.');
+    console.warn('Llama API key not configured. Using fallback analysis.');
     return fallbackClassSuspensionAnalysis(reports);
   }
 
@@ -405,36 +399,7 @@ Respond in JSON format:
   }
 }`;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.2,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        },
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!aiResponse) {
-      throw new Error('No response from Gemini AI');
-    }
+    const aiResponse = await callGemini(prompt, 1024);
 
     // Extract JSON from response
     let jsonText = aiResponse;
@@ -458,6 +423,7 @@ Respond in JSON format:
     console.error('Gemini AI class suspension analysis failed:', error);
     return fallbackClassSuspensionAnalysis(reports);
   }
+  */
 };
 
 /**
@@ -467,8 +433,13 @@ Respond in JSON format:
  * @returns {Promise<Object>} Combined suspension analysis
  */
 export const analyzeSuspensionAdvisory = async (weatherData, reports) => {
+  // Always use fallback - AI API not working
+  console.log('Using fallback suspension advisory (AI API disabled)');
+  return fallbackSuspensionAdvisory(weatherData, reports);
+
+  /* DISABLED - API issues
   if (!GEMINI_API_KEY) {
-    console.warn('Gemini API key not configured. Using fallback suspension advisory.');
+    console.warn('Llama API key not configured. Using fallback suspension advisory.');
     return fallbackSuspensionAdvisory(weatherData, reports);
   }
 
@@ -513,32 +484,7 @@ Provide analysis in JSON format:
   "timestamp": "${new Date().toISOString()}"
 }`;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.3,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 1024,
-        },
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const aiResponse = await callGemini(prompt, 1024);
 
     // Extract JSON
     let jsonText = aiResponse;
@@ -561,6 +507,7 @@ Provide analysis in JSON format:
     console.error('Suspension advisory analysis failed:', error);
     return fallbackSuspensionAdvisory(weatherData, reports);
   }
+  */
 };
 
 /**
@@ -791,6 +738,11 @@ const fallbackSuspensionAdvisory = (weatherData, reports) => {
  * @returns {Promise<Object>} Comprehensive AI analysis with credibility, severity, patterns, and recommendations
  */
 export const analyzeCompiledLocationReports = async (locationData) => {
+  // Always use fallback - AI API not working
+  console.log('Using fallback location analysis (AI API disabled)');
+  return fallbackLocationAnalysis(locationData);
+
+  /* DISABLED - API issues
   if (!GEMINI_API_KEY || apiDisabled) {
     if (!GEMINI_API_KEY) {
       logError('Gemini API key not configured. Using fallback analysis.');
@@ -799,11 +751,16 @@ export const analyzeCompiledLocationReports = async (locationData) => {
   }
 
   try {
-    // Prepare reports data for AI analysis
+    // Prepare reports data for AI analysis (including HuggingFace scores)
     const reportsData = locationData.reports.map((report, index) => {
       const timestamp = report.createdAt?.seconds
         ? new Date(report.createdAt.seconds * 1000).toLocaleString()
         : report.createdAt?.toDate?.()?.toLocaleString() || 'Unknown';
+
+      // Include HuggingFace analysis data if available
+      const hfData = report.aiCredibility !== undefined
+        ? `\n  AI Credibility Score: ${report.aiCredibility}%`
+        : '';
 
       return `Report ${index + 1}:
   Severity: ${report.severity || 'unknown'}
@@ -813,8 +770,16 @@ export const analyzeCompiledLocationReports = async (locationData) => {
   Reporter: ${report.userName || 'Anonymous'}
   Time: ${timestamp}
   Location: ${report.location?.barangay || ''}, ${report.location?.city || locationData.city}
-  Has Images: ${report.images && report.images.length > 0 ? 'Yes (' + report.images.length + ')' : 'No'}`;
+  Has Images: ${report.images && report.images.length > 0 ? 'Yes (' + report.images.length + ')' : 'No'}${hfData}`;
     }).join('\n\n');
+
+    // Calculate aggregate HuggingFace stats
+    const reportsWithAiScore = locationData.reports.filter(r => r.aiCredibility !== undefined);
+    const avgAiCredibility = reportsWithAiScore.length > 0
+      ? Math.round(reportsWithAiScore.reduce((sum, r) => sum + r.aiCredibility, 0) / reportsWithAiScore.length)
+      : null;
+    const lowCredibilityCount = reportsWithAiScore.filter(r => r.aiCredibility < 50).length;
+    const highCredibilityCount = reportsWithAiScore.filter(r => r.aiCredibility >= 80).length;
 
     const prompt = `You are an AI assistant helping emergency management officials in Batangas Province, Philippines analyze compiled weather-related incident reports for a specific location.
 
@@ -825,6 +790,13 @@ HIGH PRIORITY REPORTS: ${locationData.highReports}
 MEDIUM PRIORITY REPORTS: ${locationData.mediumReports}
 VERIFIED REPORTS: ${locationData.verifiedReports}
 PENDING REPORTS: ${locationData.pendingReports}
+
+HUGGING FACE AI PRE-ANALYSIS (Image + Text Analysis via CLIP & NLP):
+- Reports with AI Scores: ${reportsWithAiScore.length}/${locationData.totalReports}
+- Average AI Credibility: ${avgAiCredibility !== null ? avgAiCredibility + '%' : 'Not available'}
+- High Credibility Reports (≥80%): ${highCredibilityCount}
+- Low Credibility Reports (<50%): ${lowCredibilityCount}
+Note: Use these scores to help identify potentially fake or spam reports.
 
 ALL INDIVIDUAL REPORTS:
 ${reportsData}
@@ -854,9 +826,12 @@ Your task is to analyze ALL these reports comprehensively and provide:
    - Geographic patterns within the location
    - Correlations between different report types
 
-4. **INCONSISTENCIES**: Flag any suspicious, contradictory, or potentially fake reports
-
-5. **ACTIONABLE RECOMMENDATIONS**: What should the admin DO with this information?
+4. **INCONSISTENCIES**: Flag any suspicious, contradictory, or potentially fake reports. Specifically check for:
+   - Multiple reports from the SAME PERSON (same userName) - are they consistent or contradictory?
+   - Same person reporting different incidents in different locations at similar times (suspicious)
+   - Duplicate reports from the same user that appear to be spam
+   - Reports with nonsensical or gibberish text
+   - Contradictions between reports from different users about the same area
 
 Respond in JSON format ONLY (no markdown, no extra text):
 {
@@ -870,7 +845,8 @@ Respond in JSON format ONLY (no markdown, no extra text):
   ],
   "inconsistencies": [
     "Specific inconsistency or red flag",
-    "Potential duplicate or fake report"
+    "Potential duplicate or fake report",
+    "Same user [userName] submitted X reports - [consistent/contradictory] content"
   ],
   "keyFindings": [
     "Most important finding 1",
@@ -887,38 +863,7 @@ Respond in JSON format ONLY (no markdown, no extra text):
   "urgencyLevel": "IMMEDIATE|HIGH|MODERATE|LOW"
 }`;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.3,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 2048,
-        },
-      })
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Gemini API error response:', errorText);
-      throw new Error(`Gemini API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
-
-    if (!aiResponse) {
-      throw new Error('No response from Gemini AI');
-    }
+    const aiResponse = await callGemini(prompt, 2048);
 
     // Extract JSON from response (handle markdown code blocks)
     let jsonText = aiResponse;
@@ -933,7 +878,7 @@ Respond in JSON format ONLY (no markdown, no extra text):
     const analysis = JSON.parse(jsonText.trim());
 
     // Validate and normalize the response
-    // Note: No credibility scores - Gemini focuses on summarization and patterns
+    // Note: No credibility scores - Llama focuses on summarization and patterns
     // Use weather API + Hugging Face for factual verification instead
     return {
       success: true,
@@ -963,10 +908,11 @@ Respond in JSON format ONLY (no markdown, no extra text):
 
     return fallbackLocationAnalysis(locationData);
   }
+  */
 };
 
 /**
- * Fallback analysis when Gemini API is unavailable
+ * Fallback analysis when Llama API is unavailable
  * Note: No credibility scoring - focuses on pattern detection and summarization
  */
 const fallbackLocationAnalysis = (locationData) => {
@@ -1062,10 +1008,10 @@ const fallbackLocationAnalysis = (locationData) => {
  * @returns {Promise<Object>} Credibility analysis with spam detection
  */
 export const analyzeIndividualReportCredibility = async (report, otherReportsFromCity) => {
-  // Check if API is disabled or key is missing
-  if (!GEMINI_API_KEY || apiDisabled) {
-    if (apiDisabled && apiFailureCount === MAX_FAILURES) {
-      logError('⚠️ Gemini API temporarily disabled due to repeated failures. Using fallback analysis.');
+  // Check if API is disabled
+  if (apiDisabled) {
+    if (apiFailureCount === MAX_FAILURES) {
+      logError('⚠️ Llama API temporarily disabled due to repeated failures. Using fallback analysis.');
       apiFailureCount++; // Increment to prevent this log from repeating
     }
     return fallbackIndividualCredibility(report, otherReportsFromCity);
@@ -1093,6 +1039,12 @@ export const analyzeIndividualReportCredibility = async (report, otherReportsFro
       ? new Date(report.createdAt.seconds * 1000).toLocaleString()
       : report.createdAt?.toDate?.()?.toLocaleString() || 'Unknown';
 
+    // Get HuggingFace analysis results if available
+    const hfImageScore = report.imageAnalysis?.confidence || report.aiAnalysis?.confidence || null;
+    const hfTextScore = report.textAnalysis?.confidence || null;
+    const hfSpamDetected = report.textSpamResult?.isSpam || false;
+    const combinedAiScore = report.aiCredibility || null;
+
     const prompt = `You are an AI assistant helping detect spam and fake weather incident reports for ${report.location?.city || 'a city'} in Batangas Province, Philippines.
 
 REPORT TO ANALYZE:
@@ -1104,6 +1056,12 @@ Time: ${reportTimestamp}
 Location: ${report.location?.barangay || ''}, ${report.location?.city || 'Unknown'}
 Has Images: ${report.images?.length > 0 ? 'Yes (' + report.images.length + ')' : 'No'}
 Status: ${report.status || 'pending'}
+
+HUGGING FACE AI ANALYSIS (use this to inform your decision):
+- Image Analysis Score (CLIP): ${hfImageScore !== null ? hfImageScore + '%' : 'Not available'}
+- Text Analysis Score: ${hfTextScore !== null ? hfTextScore + '%' : 'Not available'}
+- Text Spam Detection: ${hfSpamDetected ? 'SPAM DETECTED' : 'No spam patterns'}
+- Combined AI Credibility: ${combinedAiScore !== null ? combinedAiScore + '%' : 'Not calculated'}
 
 OTHER REPORTS FROM THE SAME CITY (for comparison):
 ${otherReportsText || 'No other reports to compare'}
@@ -1143,32 +1101,35 @@ Respond in JSON format ONLY:
   "recommendation": "APPROVE|REVIEW_MANUALLY|REJECT"
 }`;
 
-    const response = await fetch(`${GEMINI_API_URL}?key=${GEMINI_API_KEY}`, {
+    // Use Llama 3 via HuggingFace if available, otherwise skip
+    if (!HF_API_KEY) {
+      throw new Error('HuggingFace API key not configured');
+    }
+
+    const response = await fetch(LLAMA_API_URL, {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${HF_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: prompt
-          }]
-        }],
-        generationConfig: {
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 512,
           temperature: 0.2,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 512,
-        },
+          top_p: 0.95,
+          return_full_text: false
+        }
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
+      const errorText = await response.text();
+      throw new Error(`Llama API error: ${response.status} - ${errorText}`);
     }
 
     const data = await response.json();
-    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const aiResponse = data[0]?.generated_text || data.generated_text;
 
     if (!aiResponse) {
       throw new Error('No response from Gemini AI');
@@ -1204,7 +1165,7 @@ Respond in JSON format ONLY:
     // Disable API temporarily after MAX_FAILURES
     if (apiFailureCount >= MAX_FAILURES) {
       apiDisabled = true;
-      logError('⚠️ Gemini API disabled after repeated failures. Using fallback analysis.', error);
+      logError('⚠️ Llama API disabled after repeated failures. Using fallback analysis.', error);
     } else {
       logError(`Individual report credibility analysis error (${apiFailureCount}/${MAX_FAILURES}):`, error);
     }
@@ -1217,33 +1178,37 @@ Respond in JSON format ONLY:
  * Fallback credibility check for individual reports
  */
 const fallbackIndividualCredibility = (report, otherReportsFromCity) => {
-  let credibilityScore = 50;
+  // START with HuggingFace aiCredibility if available, otherwise use low base
+  let credibilityScore = report.aiCredibility || report.imageAnalysis?.confidence || 40;
   const redFlags = [];
   const supportingFactors = [];
 
-  // Check for evidence
+  // If we have aiCredibility, note it
+  if (report.aiCredibility) {
+    supportingFactors.push(`AI image analysis: ${report.aiCredibility}%`);
+  }
+
+  // Check for evidence - STRICTER: images required for high scores
   if (report.images && report.images.length > 0) {
-    credibilityScore += 25;
     supportingFactors.push('Has supporting images');
-  } else if (report.severity === 'critical' || report.severity === 'high') {
-    redFlags.push('High severity claim without images');
-    credibilityScore -= 15;
-  }
-
-  // Check description length and specificity
-  const descLength = (report.description || '').length;
-  if (descLength < 20) {
-    redFlags.push('Very short description');
+    // Only small bonus if aiCredibility already accounts for images
+    if (!report.aiCredibility) {
+      credibilityScore += 10;
+    }
+  } else {
+    // NO images is a major red flag
+    redFlags.push('No images to verify claim');
     credibilityScore -= 20;
-  } else if (descLength > 50) {
-    supportingFactors.push('Detailed description');
-    credibilityScore += 10;
   }
 
-  // Check if verified
-  if (report.status === 'verified') {
-    credibilityScore += 20;
-    supportingFactors.push('Verified by admin');
+  // Check description length - STRICTER thresholds
+  const descLength = (report.description || '').length;
+  if (descLength < 30) {
+    redFlags.push('Very short/vague description');
+    credibilityScore -= 15;
+  } else if (descLength > 100) {
+    supportingFactors.push('Detailed description');
+    credibilityScore += 5;
   }
 
   // Check consistency with other reports
@@ -1252,33 +1217,51 @@ const fallbackIndividualCredibility = (report, otherReportsFromCity) => {
     Math.abs((r.createdAt?.seconds || 0) - (report.createdAt?.seconds || 0)) < 3600
   );
 
-  if (similarReports.length >= 2) {
-    supportingFactors.push(`${similarReports.length} similar reports nearby`);
-    credibilityScore += 15;
-  } else if (otherReportsFromCity.length > 5 && similarReports.length === 0) {
-    redFlags.push('No corroborating reports');
+  if (similarReports.length >= 3) {
+    supportingFactors.push(`${similarReports.length} corroborating reports`);
+    credibilityScore += 10;
+  } else if (similarReports.length === 0 && otherReportsFromCity.length > 3) {
+    redFlags.push('No corroborating reports from same area/time');
     credibilityScore -= 10;
   }
 
-  credibilityScore = Math.min(100, Math.max(0, credibilityScore));
+  // STRICT: Check if same user has many reports (potential spam)
+  const sameUserReports = otherReportsFromCity.filter(r =>
+    r.userId === report.userId && r.id !== report.id
+  );
+  if (sameUserReports.length >= 3) {
+    const recentSameUser = sameUserReports.filter(r =>
+      Math.abs((r.createdAt?.seconds || 0) - (report.createdAt?.seconds || 0)) < 7200 // 2 hours
+    );
+    if (recentSameUser.length >= 2) {
+      redFlags.push(`Same user submitted ${recentSameUser.length + 1} reports in 2 hours`);
+      credibilityScore -= 15;
+    }
+  }
 
+  credibilityScore = Math.min(100, Math.max(0, Math.round(credibilityScore)));
+
+  // STRICTER category thresholds
   let category = 'SUSPICIOUS';
-  if (credibilityScore >= 80) category = 'CREDIBLE';
-  else if (credibilityScore >= 60) category = 'LIKELY_CREDIBLE';
-  else if (credibilityScore <= 30) category = 'SPAM';
-  else if (credibilityScore <= 50) category = 'LIKELY_SPAM';
+  if (credibilityScore >= 85) category = 'CREDIBLE';
+  else if (credibilityScore >= 70) category = 'LIKELY_CREDIBLE';
+  else if (credibilityScore >= 50) category = 'SUSPICIOUS';
+  else if (credibilityScore >= 30) category = 'LIKELY_SPAM';
+  else category = 'SPAM';
 
   return {
     success: true,
     isSpam: credibilityScore < 40,
     credibilityScore,
-    spamReason: credibilityScore >= 60
+    spamReason: credibilityScore >= 70
       ? 'Report appears credible based on available evidence'
+      : credibilityScore >= 50
+      ? 'Report needs manual review - limited evidence'
       : 'Report has multiple red flags suggesting low credibility',
     category,
     redFlags,
     supportingFactors,
-    recommendation: credibilityScore >= 70 ? 'APPROVE' : credibilityScore >= 40 ? 'REVIEW_MANUALLY' : 'REJECT',
+    recommendation: credibilityScore >= 75 ? 'APPROVE' : credibilityScore >= 45 ? 'REVIEW_MANUALLY' : 'REJECT',
     source: 'fallback'
   };
 };

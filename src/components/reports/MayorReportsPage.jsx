@@ -27,7 +27,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
-import { subscribeToReports, updateReport, rejectReport } from "../../firebase/firestore";
+import { subscribeToReports } from "../../firebase/firestore";
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../../firebase/config';
 import { analyzeCompiledLocationReports, analyzeIndividualReportCredibility } from "../../services/geminiService";
@@ -130,9 +130,10 @@ export function MayorReportsPage() {
       if (report.severity === 'high') locationGroups[barangay].highReports++;
       if (report.severity === 'medium') locationGroups[barangay].mediumReports++;
 
-      // Count by status (all reports are verified, tracking investigating separately)
-      if (report.status === 'verified') locationGroups[barangay].verifiedReports++;
-      if (report.status === 'investigating') locationGroups[barangay].investigatingReports++;
+      // Count by credibility level
+      const credibility = report.aiCredibility || report.imageAnalysis?.confidence || 50;
+      if (credibility >= 80) locationGroups[barangay].verifiedReports++; // High credibility
+      if (credibility >= 50 && credibility < 80) locationGroups[barangay].investigatingReports++; // Medium credibility
 
       // Track latest report time
       const reportTime = report.createdAt?.seconds ? report.createdAt.seconds * 1000 : Date.now();
@@ -305,8 +306,11 @@ export function MayorReportsPage() {
     totalBarangays: compiledReports.length,
     critical: reports.filter(r => r.severity === 'critical').length,
     high: reports.filter(r => r.severity === 'high').length,
-    verified: reports.filter(r => r.status === 'verified').length,
-    investigating: reports.filter(r => r.status === 'investigating').length,
+    highCredibility: reports.filter(r => (r.aiCredibility || r.imageAnalysis?.confidence || 50) >= 80).length,
+    mediumCredibility: reports.filter(r => {
+      const cred = r.aiCredibility || r.imageAnalysis?.confidence || 50;
+      return cred >= 50 && cred < 80;
+    }).length,
   };
 
   // Format timestamp
@@ -364,36 +368,6 @@ export function MayorReportsPage() {
     }));
   };
 
-  // Handle verify report
-  const handleVerifyReport = async (reportId) => {
-    try {
-      await updateReport(reportId, {
-        status: 'verified',
-        verifiedBy: `Mayor of ${userCity} (${user?.displayName || user?.email})`,
-        verifiedAt: new Date()
-      });
-      console.log('Report verified successfully by Mayor of', userCity);
-    } catch (error) {
-      console.error('Error verifying report:', error);
-      alert('Failed to verify report');
-    }
-  };
-
-  // Handle reject report
-  const handleRejectReport = async (reportId) => {
-    try {
-      await rejectReport(
-        reportId,
-        `Mayor of ${userCity} (${user?.displayName || user?.email})`,
-        'Marked as spam/inappropriate content'
-      );
-      console.log('Report rejected successfully by Mayor of', userCity);
-    } catch (error) {
-      console.error('Error rejecting report:', error);
-      alert('Failed to reject report');
-    }
-  };
-
   // Handle view compiled reports
   const handleViewCompiled = async (locationGroup) => {
     setSelectedLocation(locationGroup);
@@ -428,22 +402,6 @@ export function MayorReportsPage() {
         try {
           const credibility = await analyzeIndividualReportCredibility(report, allReports);
           credibilityResults[report.id] = credibility;
-
-          // Auto-reject if spam or credibility score <= 30%
-          if (report.status !== 'verified' && report.status !== 'rejected') {
-            if (credibility.category === 'SPAM' || credibility.credibilityScore <= 30) {
-              try {
-                await rejectReport(
-                  report.id,
-                  `AI Auto-Rejection (Mayor Dashboard)`,
-                  `Auto-rejected: ${credibility.category === 'SPAM' ? 'Detected as spam' : `Low credibility score (${credibility.credibilityScore}%)`} - ${credibility.spamReason || ''}`
-                );
-                console.log(`Auto-rejected report ${report.id} - ${credibility.category}, score: ${credibility.credibilityScore}%`);
-              } catch (rejectError) {
-                console.error(`Failed to auto-reject report ${report.id}:`, rejectError);
-              }
-            }
-          }
         } catch (error) {
           console.error(`Error analyzing report ${report.id}:`, error);
           // Use fallback for failed analyses
@@ -642,7 +600,7 @@ export function MayorReportsPage() {
                     >
                       {attentionLevel.level}
                     </Badge>
-                    <div>✓ {barangay.verifiedReports} Verified{barangay.investigatingReports > 0 ? ` / ${barangay.investigatingReports} Under Investigation` : ''}</div>
+                    <div>✓ {barangay.verifiedReports} High Cred.{barangay.investigatingReports > 0 ? ` / ${barangay.investigatingReports} Medium` : ''}</div>
                   </div>
                 </div>
                 );
@@ -765,25 +723,6 @@ export function MayorReportsPage() {
                 scrollbarColor: '#CBD5E1 #F1F5F9'
               }}
             >
-              <style jsx>{`
-                div::-webkit-scrollbar {
-                  width: 6px;
-                }
-                div::-webkit-scrollbar-track {
-                  background: #F1F5F9;
-                  border-radius: 10px;
-                }
-                div::-webkit-scrollbar-thumb {
-                  background: #CBD5E1;
-                  border-radius: 10px;
-                }
-                div::-webkit-scrollbar-thumb:hover {
-                  background: #94A3B8;
-                }
-                div::-webkit-scrollbar-button {
-                  display: none;
-                }
-              `}</style>
               <table className="w-full">
                 <thead className="bg-gray-50 border-b-2 border-gray-200" style={{ position: 'sticky', top: 0, zIndex: 10 }}>
                   <tr>
@@ -827,7 +766,7 @@ export function MayorReportsPage() {
                               {location.credibilityStatus.label}
                             </Badge>
                             <div className="text-xs text-gray-500">
-                              {location.verifiedReports} verified{location.investigatingReports > 0 ? ` / ${location.investigatingReports} investigating` : ''}
+                              {location.verifiedReports} high cred.{location.investigatingReports > 0 ? ` / ${location.investigatingReports} medium` : ''}
                             </div>
                           </div>
                         </td>
@@ -906,9 +845,6 @@ export function MayorReportsPage() {
                     <CardTitle className="text-lg flex items-center gap-2 text-purple-900">
                       <Sparkles className="w-5 h-5 text-purple-600" />
                       AI Analysis
-                      <Badge className="ml-auto bg-purple-600 text-white text-xs">
-                        Credibility: {aiAnalysis.credibilityScore}%
-                      </Badge>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-4">
@@ -942,9 +878,9 @@ export function MayorReportsPage() {
 
                     return Object.entries(categoryCounts).map(([category, count]) => (
                       <Card key={category} className="bg-gray-100 border-gray-300">
-                        <CardContent className="p-3">
-                          <div className="text-center">
-                            <div className="text-2xl font-bold text-gray-900 mb-1">{count}</div>
+                        <CardContent className="p-4">
+                          <div className="text-center py-2">
+                            <div className="text-2xl font-bold text-gray-900 mb-2">{count}</div>
                             <div className="text-xs text-gray-600 capitalize">
                               {category.replace(/_/g, ' ')}
                             </div>
@@ -981,15 +917,24 @@ export function MayorReportsPage() {
                             <span className="text-xs text-gray-600 font-medium">
                               {report.category?.replace(/_/g, ' ') || 'General'}
                             </span>
-                            <Badge
-                              className="text-xs"
-                              style={{
-                                backgroundColor: report.status === 'verified' ? '#16a34a' : report.status === 'rejected' ? '#dc2626' : '#eab308',
-                                color: 'white'
-                              }}
-                            >
-                              {report.status === 'verified' ? '✓ Verified' : report.status === 'rejected' ? '× Rejected' : report.status === 'investigating' ? '🔍 Investigating' : report.status}
-                            </Badge>
+                            {(() => {
+                              const credibility = report.aiCredibility || report.imageAnalysis?.confidence || 50;
+                              const getBadgeStyle = () => {
+                                if (credibility >= 80) return { bg: '#16a34a', label: 'High' };
+                                if (credibility >= 50) return { bg: '#ca8a04', label: 'Medium' };
+                                if (credibility >= 20) return { bg: '#f97316', label: 'Low' };
+                                return { bg: '#dc2626', label: 'Very Low' };
+                              };
+                              const style = getBadgeStyle();
+                              return (
+                                <Badge
+                                  className="text-xs"
+                                  style={{ backgroundColor: style.bg, color: 'white' }}
+                                >
+                                  {credibility}% Credible
+                                </Badge>
+                              );
+                            })()}
                           </div>
                           <p className="text-sm text-gray-800 mb-2">
                             {isExpanded ? report.description : (report.description?.length > 100 ? report.description.substring(0, 100) + '...' : report.description)}
@@ -1024,30 +969,6 @@ export function MayorReportsPage() {
                               <p className="text-xs text-gray-600 mt-1 italic">
                                 {credibility.spamReason}
                               </p>
-                            </div>
-                          )}
-
-                          {/* Verify and Reject Buttons */}
-                          {report.status !== 'verified' && report.status !== 'rejected' && (
-                            <div className="flex items-center gap-2 mt-2 mb-2">
-                              <Button
-                                onClick={() => handleVerifyReport(report.id)}
-                                size="sm"
-                                variant="outline"
-                                className="text-xs px-3 py-1 h-7"
-                              >
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                                Verify
-                              </Button>
-                              <Button
-                                onClick={() => handleRejectReport(report.id)}
-                                size="sm"
-                                variant="outline"
-                                className="text-xs px-3 py-1 h-7"
-                              >
-                                <XCircle className="w-3 h-3 mr-1" />
-                                Reject
-                              </Button>
                             </div>
                           )}
 

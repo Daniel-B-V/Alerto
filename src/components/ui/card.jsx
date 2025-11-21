@@ -2,7 +2,7 @@ import * as React from "react";
 
 import { cn } from "../../lib/utils";
 
-const Card = React.forwardRef(({ className, jsx, ...props }, ref) => {
+const Card = React.forwardRef(({ className, ...props }, ref) => {
   return (
     <div
       ref={ref}
@@ -17,7 +17,7 @@ const Card = React.forwardRef(({ className, jsx, ...props }, ref) => {
 });
 Card.displayName = "Card";
 
-const CardHeader = React.forwardRef(({ className, jsx, ...props }, ref) => {
+const CardHeader = React.forwardRef(({ className, ...props }, ref) => {
   return (
     <div
       ref={ref}
@@ -32,7 +32,7 @@ const CardHeader = React.forwardRef(({ className, jsx, ...props }, ref) => {
 });
 CardHeader.displayName = "CardHeader";
 
-const CardTitle = React.forwardRef(({ className, jsx, ...props }, ref) => {
+const CardTitle = React.forwardRef(({ className, ...props }, ref) => {
   return (
     <h4
       ref={ref}
@@ -44,7 +44,7 @@ const CardTitle = React.forwardRef(({ className, jsx, ...props }, ref) => {
 });
 CardTitle.displayName = "CardTitle";
 
-const CardDescription = React.forwardRef(({ className, jsx, ...props }, ref) => {
+const CardDescription = React.forwardRef(({ className, ...props }, ref) => {
   return (
     <p
       ref={ref}
@@ -56,7 +56,7 @@ const CardDescription = React.forwardRef(({ className, jsx, ...props }, ref) => 
 });
 CardDescription.displayName = "CardDescription";
 
-const CardAction = React.forwardRef(({ className, jsx, ...props }, ref) => {
+const CardAction = React.forwardRef(({ className, ...props }, ref) => {
   return (
     <div
       ref={ref}
@@ -71,7 +71,7 @@ const CardAction = React.forwardRef(({ className, jsx, ...props }, ref) => {
 });
 CardAction.displayName = "CardAction";
 
-const CardContent = React.forwardRef(({ className, jsx, ...props }, ref) => {
+const CardContent = React.forwardRef(({ className, ...props }, ref) => {
   return (
     <div
       ref={ref}
@@ -83,7 +83,7 @@ const CardContent = React.forwardRef(({ className, jsx, ...props }, ref) => {
 });
 CardContent.displayName = "CardContent";
 
-const CardFooter = React.forwardRef(({ className, jsx, ...props }, ref) => {
+const CardFooter = React.forwardRef(({ className, ...props }, ref) => {
   return (
     <div
       ref={ref}

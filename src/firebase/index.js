@@ -23,7 +23,6 @@ export {
   getReport,
   createReport,
   updateReport,
-  rejectReport,
   deleteReport,
   toggleLike,
   getComments,
