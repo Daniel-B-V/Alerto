@@ -857,11 +857,10 @@ To all the mayors, governors, barangay officials, and citizens who face these ch
 
 ## 📞 Contact & Support
 
-- **Project Lead:** [Your Name]
+- **Project Lead:** [Christian Nayre & Daniel Villanueva]
 - **Email:** contact@alerto.ph
-- **Website:** https://alerto.ph
 - **Documentation:** https://docs.alerto.ph
-- **Issue Tracker:** https://github.com/yourusername/alerto/issues
+- **Issue Tracker:** https://github.com/Kuzensky/alerto/issues
 
 ---
 
@@ -880,6 +879,6 @@ To all the mayors, governors, barangay officials, and citizens who face these ch
 
 *ALERTO: Complete Information. Earlier Decisions. Safer Communities.*
 
-[⭐ Star this repo](https://github.com/yourusername/alerto) | [🐛 Report Bug](https://github.com/yourusername/alerto/issues) | [💡 Request Feature](https://github.com/yourusername/alerto/issues)
+[⭐ Star this repo](https://github.com/Kuzensky/alerto) | [🐛 Report Bug](https://github.com/Kuzensky/alerto/issues) | [💡 Request Feature](https://github.com/Kuzensky/alerto/issues)
 
 </div>
