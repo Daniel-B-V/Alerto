@@ -878,7 +878,7 @@ To all the mayors, governors, barangay officials, and citizens who face these ch
 
 **Built with ❤️ for the Philippines**
 
-*ALERTO: Complete Information. Earlier Decisions. Safer Communities.*
+*ALERTO: For every Region, For every Filipino.*
 
 [⭐ Star this repo](https://github.com/Kuzensky/alerto) | [🐛 Report Bug](https://github.com/Kuzensky/alerto/issues) | [💡 Request Feature](https://github.com/Kuzensky/alerto/issues)
 
