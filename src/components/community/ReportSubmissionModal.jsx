@@ -185,6 +185,9 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         aiCredibility = Math.min(aiCredibility, 30);
       }
 
+      // Auto-reject if spam or credibility score <= 30%
+      const shouldAutoReject = textSpamResult?.isSpam || aiCredibility <= 30;
+
       const reportData = cleanObject({
         title: formData.title || `${formData.hazardType} Report`,
         description: formData.description,
@@ -201,6 +204,11 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         aiCredibility: aiCredibility,
         spamScore: textSpamResult?.spamScore ?? 0,
         isSpam: textSpamResult?.isSpam ?? false,
+        // Auto-reject spam reports
+        status: shouldAutoReject ? 'rejected' : 'pending',
+        rejectedBy: shouldAutoReject ? 'AI Auto-Rejection' : null,
+        rejectedReason: shouldAutoReject ? `Auto-rejected: ${textSpamResult?.isSpam ? 'Detected as spam' : `Low credibility score (${aiCredibility}%)`}` : null,
+        rejectedAt: shouldAutoReject ? new Date() : null,
         userId: user?.uid || 'anonymous',
         userName: user?.displayName || 'Anonymous',
         userEmail: user?.email || 'anonymous@alerto.com',
