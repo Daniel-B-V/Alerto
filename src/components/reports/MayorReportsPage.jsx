@@ -20,13 +20,16 @@ import {
   Loader2,
   AlertOctagon,
   Target,
-  Filter
+  Filter,
+  Megaphone
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { subscribeToReports, updateReport, rejectReport } from "../../firebase/firestore";
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 import { analyzeCompiledLocationReports, analyzeIndividualReportCredibility } from "../../services/geminiService";
 import { useSuspensions } from "../../hooks/useSuspensions";
 import { getWeatherAssessmentForSuspension } from "../../services/weatherService";
@@ -65,6 +68,13 @@ export function MayorReportsPage() {
   const [suspensionMessage, setSuspensionMessage] = useState('');
   const [durationHours, setDurationHours] = useState(12);
   const [issuing, setIssuing] = useState(false);
+
+  // Announcement state
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementMessage, setAnnouncementMessage] = useState('');
+  const [announcementPriority, setAnnouncementPriority] = useState('normal');
+  const [issuingAnnouncement, setIssuingAnnouncement] = useState(false);
 
   // Load reports from Firebase (filtered by mayor's city)
   useEffect(() => {
@@ -442,6 +452,45 @@ export function MayorReportsPage() {
     setShowSuspensionModal(true);
   };
 
+  // Handle issue announcement
+  const handleIssueAnnouncement = async () => {
+    if (!announcementTitle.trim() || !announcementMessage.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setIssuingAnnouncement(true);
+
+      // Create announcement in Firestore
+      const announcementsRef = collection(db, 'announcements');
+      await addDoc(announcementsRef, {
+        city: userCity,
+        title: announcementTitle.trim(),
+        message: announcementMessage.trim(),
+        priority: announcementPriority,
+        issuedBy: user?.displayName || user?.email || 'Mayor',
+        issuedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        active: true,
+        type: 'mayor_announcement'
+      });
+
+      // Reset form and close modal
+      setAnnouncementTitle('');
+      setAnnouncementMessage('');
+      setAnnouncementPriority('normal');
+      setShowAnnouncementModal(false);
+
+      alert('Announcement posted successfully!');
+    } catch (error) {
+      console.error('Error posting announcement:', error);
+      alert('Failed to post announcement. Please try again.');
+    } finally {
+      setIssuingAnnouncement(false);
+    }
+  };
+
   if (!userCity) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -481,6 +530,13 @@ export function MayorReportsPage() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            onClick={() => setShowAnnouncementModal(true)}
+            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white"
+          >
+            <Megaphone className="w-4 h-4" />
+            Make Announcement
+          </Button>
           <Button
             variant="outline"
             onClick={exportToCSV}
@@ -967,7 +1023,8 @@ export function MayorReportsPage() {
                               <Button
                                 onClick={() => handleVerifyReport(report.id)}
                                 size="sm"
-                                className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 h-7 flex-1"
+                                variant="outline"
+                                className="text-xs px-3 py-1 h-7"
                               >
                                 <CheckCircle className="w-3 h-3 mr-1" />
                                 Verify
@@ -975,7 +1032,8 @@ export function MayorReportsPage() {
                               <Button
                                 onClick={() => handleRejectReport(report.id)}
                                 size="sm"
-                                className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 h-7 flex-1"
+                                variant="outline"
+                                className="text-xs px-3 py-1 h-7"
                               >
                                 <XCircle className="w-3 h-3 mr-1" />
                                 Reject
@@ -1050,6 +1108,133 @@ export function MayorReportsPage() {
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Announcement Modal */}
+      {showAnnouncementModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowAnnouncementModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl flex flex-col"
+            style={{ width: '600px', maxWidth: '90vw', maxHeight: '85vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex-shrink-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Make Announcement</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Send an announcement to all residents in {userCity}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                disabled={issuingAnnouncement}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Priority Level
+                </label>
+                <select
+                  value={announcementPriority}
+                  onChange={(e) => setAnnouncementPriority(e.target.value)}
+                  style={{ border: '2px solid #d1d5db' }}
+                  className="w-full px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none font-medium text-gray-700 bg-white"
+                >
+                  <option value="normal">Normal - General information</option>
+                  <option value="important">Important - Requires attention</option>
+                  <option value="urgent">Urgent - Critical announcement</option>
+                </select>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Announcement Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={announcementTitle}
+                  onChange={(e) => setAnnouncementTitle(e.target.value)}
+                  placeholder="e.g., Road Closure Notice, Community Meeting"
+                  maxLength={100}
+                  style={{ border: '2px solid #d1d5db' }}
+                  className="w-full px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none"
+                />
+                <div className="mt-1 text-xs text-gray-500 text-right">
+                  {announcementTitle.length}/100 characters
+                </div>
+              </div>
+
+              {/* Message */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Message <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={announcementMessage}
+                  onChange={(e) => setAnnouncementMessage(e.target.value)}
+                  placeholder="Enter your announcement message here..."
+                  rows={6}
+                  maxLength={500}
+                  style={{ border: '2px solid #d1d5db' }}
+                  className="w-full px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
+                />
+                <div className="mt-1 text-xs text-gray-500 text-right">
+                  {announcementMessage.length}/500 characters
+                </div>
+              </div>
+
+              {/* Info Box */}
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> This announcement will be visible to all residents in {userCity} on their dashboard and notifications.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex-shrink-0 border-t border-gray-200 p-4 flex gap-3">
+              <Button
+                onClick={() => setShowAnnouncementModal(false)}
+                variant="outline"
+                disabled={issuingAnnouncement}
+                className="flex-1"
+                style={{ backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleIssueAnnouncement}
+                disabled={issuingAnnouncement || !announcementTitle.trim() || !announcementMessage.trim()}
+                className="flex-1"
+                style={{ backgroundColor: '#10b981', color: 'white' }}
+              >
+                {issuingAnnouncement ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Posting...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Megaphone className="w-4 h-4" />
+                    Post Announcement
+                  </span>
+                )}
+              </Button>
             </div>
           </div>
         </div>

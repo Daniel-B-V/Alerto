@@ -75,7 +75,7 @@ export function ActiveSuspensionBanner({
   };
 
   return (
-    <div className={`bg-gradient-to-r from-red-50 to-orange-50 border-2 border-red-300 rounded-2xl shadow-lg ${className}`}>
+    <div className={`border-2 border-red-300 rounded-2xl shadow-lg ${className}`} style={{ backgroundColor: 'white' }}>
       <div className="p-6">
         {/* Header Row */}
         <div className="flex items-start justify-between mb-4">
@@ -121,20 +121,10 @@ export function ActiveSuspensionBanner({
           </div>
         </div>
 
-        {/* Progress Bar */}
-        <div className="mb-4">
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div
-              className={`h-full transition-all duration-1000 ${getProgressColor()}`}
-              style={{ width: `${percentRemaining}%` }}
-            />
-          </div>
-        </div>
-
         {/* Suspension Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           {/* Levels */}
-          <div className="bg-white/60 rounded-lg p-3 border border-red-200">
+          <div className="p-3" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
             <div className="flex items-center gap-2 mb-2">
               <School className="w-4 h-4 text-red-600" />
               <span className="text-xs font-semibold text-gray-600 uppercase">Levels</span>
@@ -143,7 +133,7 @@ export function ActiveSuspensionBanner({
           </div>
 
           {/* Duration */}
-          <div className="bg-white/60 rounded-lg p-3 border border-red-200">
+          <div className="p-3" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
             <div className="flex items-center gap-2 mb-2">
               <Clock className="w-4 h-4 text-red-600" />
               <span className="text-xs font-semibold text-gray-600 uppercase">Duration</span>
@@ -152,7 +142,7 @@ export function ActiveSuspensionBanner({
           </div>
 
           {/* Reason */}
-          <div className="bg-white/60 rounded-lg p-3 border border-red-200">
+          <div className="p-3" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
             <div className="flex items-center gap-2 mb-2">
               <AlertTriangle className="w-4 h-4 text-red-600" />
               <span className="text-xs font-semibold text-gray-600 uppercase">Reason</span>
@@ -165,7 +155,7 @@ export function ActiveSuspensionBanner({
 
         {/* Message */}
         {suspension.message && (
-          <div className="bg-white/80 rounded-lg p-4 border border-red-200 mb-4">
+          <div className="p-4 mb-4" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e5e7eb' }}>
             <div className="text-xs font-semibold text-gray-600 uppercase mb-2">Public Message</div>
             <div className="text-sm text-gray-800">{suspension.message}</div>
           </div>

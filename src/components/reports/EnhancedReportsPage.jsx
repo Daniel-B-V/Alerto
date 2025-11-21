@@ -1052,11 +1052,12 @@ export function EnhancedReportsPage() {
 
                           {/* Verify and Reject Buttons */}
                           {report.status !== 'verified' && report.status !== 'rejected' && (
-                            <div className="flex items-center gap-2 mt-2 mb-2">
+                            <div className="flex items-center justify-end gap-2 mt-2 mb-2">
                               <Button
                                 onClick={() => handleVerifyReport(report.id)}
                                 size="sm"
-                                className="bg-green-500 hover:bg-green-600 text-white text-xs px-3 py-1 h-7 flex-1"
+                                variant="outline"
+                                className="text-xs px-3 py-1 h-7"
                               >
                                 <CheckCircle className="w-3 h-3 mr-1" />
                                 Verify
@@ -1064,7 +1065,8 @@ export function EnhancedReportsPage() {
                               <Button
                                 onClick={() => handleRejectReport(report.id)}
                                 size="sm"
-                                className="bg-red-500 hover:bg-red-600 text-white text-xs px-3 py-1 h-7 flex-1"
+                                variant="outline"
+                                className="text-xs px-3 py-1 h-7"
                               >
                                 <XCircle className="w-3 h-3 mr-1" />
                                 Reject

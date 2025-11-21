@@ -1,10 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { Cloud, Bell } from 'lucide-react';
 import { validateSignUpForm, getAuthErrorMessage } from './LoginUtils';
-import { Label } from '../ui/label';
-import { Input } from '../ui/input';
-import { LoginAlert } from './LoginAlert';
 
 const SignUp = () => {
   const [formData, setFormData] = useState({
@@ -87,47 +83,84 @@ const SignUp = () => {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center bg-white p-6">
-
-      {/* SignUp Card Container */}
-      <div className="w-full max-w-md">
-        <div className="bg-white rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] px-12 py-12">
-
-        {/* Logo/Brand */}
-        <div className="flex justify-center mb-8">
-          <img
-            src="/assets/logo.png"
-            alt="Alerto Logo"
-            className="h-16 object-contain"
-          />
-        </div>
-
-        {/* Heading */}
-        <h2 className="text-3xl font-bold text-gray-900 mb-2 leading-tight">Create an account</h2>
-        <p className="text-gray-600 mb-8 leading-relaxed">Start monitoring weather alerts in Batangas.</p>
-
-        {/* Alert Messages */}
-        {error && (
-          <div className="mb-6">
-            <LoginAlert type="error" message={error} onClose={() => setError('')} />
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: '#eff6ff',
+      padding: '20px'
+    }}>
+      <div style={{
+        width: '100%',
+        maxWidth: '540px'
+      }}>
+        <div style={{
+          background: 'white',
+          borderRadius: '16px',
+          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1)',
+          padding: '48px'
+        }}>
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+            <h1 style={{
+              fontSize: '32px',
+              fontWeight: 'bold',
+              color: '#1a202c',
+              marginBottom: '8px'
+            }}>
+              Create an account
+            </h1>
+            <p style={{
+              fontSize: '14px',
+              color: '#718096'
+            }}>
+              Start monitoring weather alerts in Batangas
+            </p>
           </div>
-        )}
-        {success && (
-          <div className="mb-6">
-            <LoginAlert type="success" message={success} />
-          </div>
-        )}
 
-        {/* SignUp Form - Centered Container */}
-        <div className="max-w-sm mx-auto">
-          <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Alert Messages */}
+          {error && (
+            <div style={{
+              backgroundColor: '#fed7d7',
+              border: '1px solid #fc8181',
+              color: '#c53030',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              marginBottom: '20px'
+            }}>
+              {error}
+            </div>
+          )}
+          {success && (
+            <div style={{
+              backgroundColor: '#c6f6d5',
+              border: '1px solid #68d391',
+              color: '#2f855a',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              fontSize: '14px',
+              marginBottom: '20px'
+            }}>
+              {success}
+            </div>
+          )}
 
-            {/* Name Input */}
-            <div className="space-y-2">
-              <Label htmlFor="name" className="text-sm font-semibold text-gray-900 leading-normal">
+          {/* Form */}
+          <form onSubmit={handleSubmit}>
+            {/* Name */}
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="name" style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
                 Name
-              </Label>
-              <Input
+              </label>
+              <input
                 id="name"
                 type="text"
                 name="name"
@@ -136,15 +169,40 @@ const SignUp = () => {
                 placeholder="Enter your name"
                 disabled={loading}
                 autoComplete="name"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  opacity: loading ? 0.5 : 1,
+                  cursor: loading ? 'not-allowed' : 'text'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#d1d5db';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
-            {/* Email Input */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-semibold text-gray-900 leading-normal">
+            {/* Email */}
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="email" style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
                 Email
-              </Label>
-              <Input
+              </label>
+              <input
                 id="email"
                 type="email"
                 name="email"
@@ -153,15 +211,40 @@ const SignUp = () => {
                 placeholder="Enter your email"
                 disabled={loading}
                 autoComplete="email"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  opacity: loading ? 0.5 : 1,
+                  cursor: loading ? 'not-allowed' : 'text'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#d1d5db';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
-            {/* Password Input */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-semibold text-gray-900 leading-normal">
+            {/* Password */}
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="password" style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
                 Password
-              </Label>
-              <Input
+              </label>
+              <input
                 id="password"
                 type="password"
                 name="password"
@@ -170,15 +253,40 @@ const SignUp = () => {
                 placeholder="Create a password"
                 disabled={loading}
                 autoComplete="new-password"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  opacity: loading ? 0.5 : 1,
+                  cursor: loading ? 'not-allowed' : 'text'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#d1d5db';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
-            {/* Confirm Password Input */}
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-sm font-semibold text-gray-900 leading-normal">
+            {/* Confirm Password */}
+            <div style={{ marginBottom: '20px' }}>
+              <label htmlFor="confirmPassword" style={{
+                display: 'block',
+                fontSize: '14px',
+                fontWeight: '500',
+                color: '#374151',
+                marginBottom: '8px'
+              }}>
                 Confirm Password
-              </Label>
-              <Input
+              </label>
+              <input
                 id="confirmPassword"
                 type="password"
                 name="confirmPassword"
@@ -187,6 +295,25 @@ const SignUp = () => {
                 placeholder="Confirm your password"
                 disabled={loading}
                 autoComplete="new-password"
+                style={{
+                  width: '100%',
+                  padding: '12px 16px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  outline: 'none',
+                  transition: 'all 0.2s',
+                  opacity: loading ? 0.5 : 1,
+                  cursor: loading ? 'not-allowed' : 'text'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#3b82f6';
+                  e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = '#d1d5db';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
             </div>
 
@@ -194,20 +321,93 @@ const SignUp = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-white hover:bg-gray-50 text-black border border-gray-300 py-3 rounded-lg font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
+              style={{
+                width: '100%',
+                backgroundColor: loading ? '#93c5fd' : '#3b82f6',
+                color: 'white',
+                fontWeight: '600',
+                fontSize: '16px',
+                padding: '14px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                marginTop: '8px',
+                display: 'block'
+              }}
+              onMouseEnter={(e) => {
+                if (!loading) e.target.style.backgroundColor = '#2563eb';
+              }}
+              onMouseLeave={(e) => {
+                if (!loading) e.target.style.backgroundColor = '#3b82f6';
+              }}
             >
               {loading ? 'Creating account...' : 'Get started'}
             </button>
           </form>
+
+          {/* Divider */}
+          <div style={{
+            position: 'relative',
+            margin: '24px 0'
+          }}>
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center'
+            }}>
+              <div style={{
+                width: '100%',
+                borderTop: '1px solid #d1d5db'
+              }}></div>
+            </div>
+            <div style={{
+              position: 'relative',
+              display: 'flex',
+              justifyContent: 'center',
+              fontSize: '14px'
+            }}>
+              <span style={{
+                padding: '0 8px',
+                background: 'white',
+                color: '#6b7280'
+              }}>
+                Or continue with
+              </span>
+            </div>
+          </div>
 
           {/* Google Sign-up */}
           <button
             type="button"
             onClick={handleGoogleSignUp}
             disabled={loading}
-            className="w-full mt-4 flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg bg-white text-gray-700 font-semibold hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px',
+              backgroundColor: 'white',
+              border: '1px solid #d1d5db',
+              color: '#374151',
+              fontWeight: '500',
+              fontSize: '16px',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              opacity: loading ? 0.5 : 1
+            }}
+            onMouseEnter={(e) => {
+              if (!loading) e.target.style.backgroundColor = '#f9fafb';
+            }}
+            onMouseLeave={(e) => {
+              if (!loading) e.target.style.backgroundColor = 'white';
+            }}
           >
-            <svg className="w-5 h-5" viewBox="0 0 24 24">
+            <svg style={{ width: '20px', height: '20px' }} viewBox="0 0 24 24">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -217,18 +417,27 @@ const SignUp = () => {
           </button>
 
           {/* Login Link */}
-          <div className="mt-8 text-center">
-            <p className="text-gray-600 leading-relaxed">
-              Already have an account?{' '}
-              <button
-                onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { path: '/login' } }))}
-                className="font-semibold text-blue-600 hover:text-blue-700 hover:underline bg-transparent border-0 cursor-pointer"
-              >
-                Log in
-              </button>
-            </p>
-          </div>
-        </div>
+          <p style={{
+            textAlign: 'center',
+            fontSize: '14px',
+            color: '#6b7280',
+            marginTop: '24px'
+          }}>
+            Already have an account?{' '}
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: { path: '/login' } }))}
+              style={{
+                fontWeight: '600',
+                color: '#3b82f6',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: 0
+              }}
+            >
+              Log in
+            </button>
+          </p>
         </div>
       </div>
     </div>

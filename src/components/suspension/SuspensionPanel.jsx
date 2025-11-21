@@ -19,7 +19,7 @@ import {
   DialogTitle,
 } from '../ui/dialog';
 import { Button } from '../ui/button';
-import { AlertCircle, Info, Clock, TrendingUp, CheckCircle, RefreshCw, AlertTriangle } from 'lucide-react';
+import { AlertCircle, Info, Clock, TrendingUp, CheckCircle, RefreshCw, AlertTriangle, School } from 'lucide-react';
 import SuspensionCandidateTable from './SuspensionCandidateTable';
 import ActiveSuspensionsTable from './ActiveSuspensionsTable';
 import { useSuspensions, useSuspensionStats } from '../../hooks/useSuspensions';
@@ -43,13 +43,23 @@ const SuspensionPanel = () => {
   const [bulkSuspendDialogOpen, setBulkSuspendDialogOpen] = useState(false);
   const [citiesToBulkSuspend, setCitiesToBulkSuspend] = useState([]);
   const [bulkSuspending, setBulkSuspending] = useState(false);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   const handleIssueSuspension = (candidateData) => {
     setSelectedCandidate(candidateData);
     setSelectedLevels(candidateData.levels || ['elementary', 'high_school']);
     setCustomMessage('');
     setDurationHours(12);
+    setShowConfirmation(false);
     setIssueDialogOpen(true);
+  };
+
+  const handleContinueToReview = () => {
+    if (selectedLevels.length === 0) {
+      alert('Please select at least one suspension level');
+      return;
+    }
+    setShowConfirmation(true);
   };
 
   const handleConfirmIssue = async () => {
@@ -312,7 +322,7 @@ const SuspensionPanel = () => {
                 >
                   Active Suspensions
                   {stats.activeCount > 0 && (
-                    <Badge className="ml-2 bg-red-500 text-white">{stats.activeCount}</Badge>
+                    <Badge className="ml-3 bg-red-500 text-white">{stats.activeCount}</Badge>
                   )}
                 </TabsTrigger>
                 <TabsTrigger
@@ -340,69 +350,122 @@ const SuspensionPanel = () => {
       </div>
 
       {/* Issue Suspension Dialog */}
-      <Dialog open={issueDialogOpen} onOpenChange={setIssueDialogOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto" style={{ maxWidth: '600px', width: '90vw', borderRadius: '16px' }}>
+      <Dialog open={issueDialogOpen} onOpenChange={(open) => {
+        setIssueDialogOpen(open);
+        if (!open) setShowConfirmation(false);
+      }}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto" style={{ maxWidth: '768px', width: '90vw', borderRadius: '16px' }}>
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold">Issue Class Suspension</DialogTitle>
+            <DialogTitle className="text-xl font-bold">
+              {showConfirmation ? 'Confirm Suspension' : 'Issue Class Suspension'}
+            </DialogTitle>
             <DialogDescription className="text-sm">
-              Issue official suspension for {selectedCandidate?.city}
+              {showConfirmation ? 'Review and confirm suspension details' : `Issue official suspension for ${selectedCandidate?.city}`}
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 py-2">
-            {/* Weather Summary */}
-            <div className="bg-gray-50 p-3 rounded-lg space-y-1.5">
-              <h3 className="font-semibold text-sm text-gray-700 mb-2">Weather Conditions</h3>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <span className="text-gray-600">PAGASA Warning:</span>
-                  <span className="ml-2 font-medium">
-                    {selectedCandidate?.pagasaWarning?.label || 'None'}
-                  </span>
+          {showConfirmation ? (
+            /* Confirmation View */
+            <div className="space-y-6 py-4">
+              {/* Suspension Summary */}
+              <div className="bg-gray-50 rounded-xl p-6 space-y-5">
+                <h3 className="font-bold text-gray-900 text-lg">Suspension Details</h3>
+
+                {/* City */}
+                <div className="leading-relaxed">
+                  <div className="text-sm text-gray-600 mb-2 leading-normal">City:</div>
+                  <div className="font-semibold text-gray-900 text-base leading-relaxed">{selectedCandidate?.city}</div>
                 </div>
-                <div>
-                  <span className="text-gray-600">Rainfall:</span>
-                  <span className="ml-2 font-medium">
-                    {selectedCandidate?.criteria.rainfall} mm/h
-                  </span>
+
+                {/* Levels */}
+                <div className="leading-relaxed">
+                  <div className="text-sm text-gray-600 mb-2 leading-normal">Suspension Levels:</div>
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {selectedLevels.map(level => {
+                      const levelData = SUSPENSION_LEVELS.find(l => l.id === level);
+                      return (
+                        <Badge key={level} className="bg-red-100 text-red-700 border-red-300">
+                          {levelData?.shortLabel}
+                        </Badge>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div>
-                  <span className="text-gray-600">Wind Speed:</span>
-                  <span className="ml-2 font-medium">
-                    {selectedCandidate?.criteria.windSpeed} km/h
-                  </span>
+
+                {/* Duration */}
+                <div className="leading-relaxed">
+                  <div className="text-sm text-gray-600 mb-2 leading-normal">Duration:</div>
+                  <div className="flex items-center gap-2 leading-relaxed">
+                    <Clock className="w-4 h-4 text-blue-600" />
+                    <span className="font-semibold text-gray-900">{durationHours} hours</span>
+                    <span className="text-gray-500">•</span>
+                    <span className="text-sm text-gray-600">
+                      Until {new Date(Date.now() + durationHours * 60 * 60 * 1000).toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit',
+                        hour12: true
+                      })}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="text-gray-600">Reports:</span>
-                  <span className="ml-2 font-medium">
-                    {selectedCandidate?.reportCount} ({selectedCandidate?.criticalReports} critical)
-                  </span>
+
+                {/* Custom Message */}
+                <div className="leading-relaxed">
+                  <div className="text-sm text-gray-600 mb-2 leading-normal">Message:</div>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4 text-sm text-gray-700 leading-relaxed mt-1">
+                    {customMessage || (selectedCandidate ? generateDefaultMessage(selectedCandidate, selectedLevels) : '')}
+                  </div>
                 </div>
               </div>
+
+              {/* Action Buttons */}
+              <DialogFooter className="gap-2 flex justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowConfirmation(false)}
+                  disabled={issuing}
+                  size="sm"
+                  className="text-sm"
+                  style={{ backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}
+                >
+                  Go Back
+                </Button>
+                <Button
+                  onClick={handleConfirmIssue}
+                  disabled={issuing}
+                  className="text-sm flex items-center gap-2"
+                  size="sm"
+                  style={{ backgroundColor: '#dc2626', color: 'white' }}
+                >
+                  {issuing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      Issuing...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4" />
+                      Confirm & Issue Suspension
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
             </div>
-
-            {/* AI Recommendation */}
-            {selectedCandidate?.aiRecommendation && (
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <h3 className="font-semibold text-xs text-gray-700 mb-1.5">
-                  AI Recommendation ({selectedCandidate.aiRecommendation.confidence}% confidence)
-                </h3>
-                <p className="text-xs text-gray-700 leading-relaxed">
-                  {selectedCandidate.aiRecommendation.justification}
-                </p>
-              </div>
-            )}
-
+          ) : (
+            /* Setup View */
+            <div className="space-y-3 py-2">
             {/* Suspension Levels */}
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-2">
                 Select Suspension Levels *
               </label>
               <div className="space-y-2">
-                {SUSPENSION_LEVELS.slice(0, 3).map((level) => (
+                {SUSPENSION_LEVELS.slice(0, 4).map((level) => (
                   <label
                     key={level.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+                    className="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-300 hover:bg-gray-50 cursor-pointer transition-colors"
                   >
                     <input
                       type="checkbox"
@@ -410,7 +473,8 @@ const SuspensionPanel = () => {
                       onChange={() => handleLevelToggle(level.id)}
                       className="w-4 h-4 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
                     />
-                    <span className="flex-1 text-sm font-medium text-gray-700">
+                    <School className="w-5 h-5 text-gray-600" />
+                    <span className="flex-1 text-sm font-medium text-gray-900">
                       {level.shortLabel}
                     </span>
                   </label>
@@ -426,10 +490,8 @@ const SuspensionPanel = () => {
               <select
                 value={durationHours}
                 onChange={(e) => setDurationHours(parseInt(e.target.value))}
-                className="w-full border border-gray-300 rounded-md p-2 text-sm"
+                className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-sm font-medium focus:border-blue-500 focus:outline-none"
               >
-                <option value={2}>2 hours</option>
-                <option value={6}>6 hours</option>
                 <option value={12}>12 hours (Half day)</option>
                 <option value={24}>24 hours (Full day)</option>
                 <option value={48}>48 hours (2 days)</option>
@@ -448,44 +510,43 @@ const SuspensionPanel = () => {
                 value={customMessage}
                 onChange={(e) => setCustomMessage(e.target.value)}
                 placeholder={selectedCandidate ? generateDefaultMessage(selectedCandidate, selectedLevels) : ''}
-                className="w-full border border-gray-300 rounded-md p-2 text-xs"
-                rows={3}
+                className="w-full border-2 border-gray-300 rounded-lg px-4 py-3 text-sm focus:border-blue-500 focus:outline-none resize-none"
+                rows={4}
+                maxLength={500}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                This message will be displayed to the public. Leave blank for auto-generated message.
-              </p>
+              <div className="flex items-center justify-between mt-1">
+                <p className="text-xs text-gray-500">
+                  This message will be displayed to the public. Leave blank for auto-generated message.
+                </p>
+                <p className="text-xs text-gray-500">
+                  {customMessage.length}/500
+                </p>
+              </div>
             </div>
 
-            {/* Preview */}
-            <div className="bg-red-50 border border-red-200 p-3 rounded-lg">
-              <h3 className="font-semibold text-xs text-red-900 mb-1.5">Preview:</h3>
-              <p className="text-xs text-red-800 leading-relaxed">
-                {customMessage || (selectedCandidate ? generateDefaultMessage(selectedCandidate, selectedLevels) : '')}
-              </p>
-            </div>
+            <DialogFooter className="gap-2 flex justify-end pt-4 border-t border-gray-200">
+              <Button
+                variant="outline"
+                onClick={() => setIssueDialogOpen(false)}
+                disabled={issuing}
+                size="sm"
+                className="text-sm"
+                style={{ backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleContinueToReview}
+                disabled={selectedLevels.length === 0}
+                className="text-sm"
+                size="sm"
+                style={{ backgroundColor: '#2563eb', color: 'white' }}
+              >
+                Continue to Review
+              </Button>
+            </DialogFooter>
           </div>
-
-          <DialogFooter className="gap-2 flex justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setIssueDialogOpen(false)}
-              disabled={issuing}
-              size="sm"
-              className="text-sm"
-              style={{ backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirmIssue}
-              disabled={issuing || selectedLevels.length === 0}
-              className="text-sm"
-              size="sm"
-              style={{ backgroundColor: '#dc2626', color: 'white' }}
-            >
-              {issuing ? 'Issuing...' : 'Issue Suspension'}
-            </Button>
-          </DialogFooter>
+          )}
         </DialogContent>
       </Dialog>
 

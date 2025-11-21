@@ -173,6 +173,18 @@ export const SuspensionProvider = ({ children }) => {
       setError(null);
       const suspensionId = await createSuspension(suspensionData);
 
+      // Add immediate notification
+      addNotification({
+        id: `suspension_${suspensionId}_${Date.now()}`,
+        type: 'suspension',
+        city: suspensionData.city,
+        title: `Class Suspension Issued - ${suspensionData.city}`,
+        message: suspensionData.message || `Class suspension for ${suspensionData.levels.join(', ')} in ${suspensionData.city}`,
+        severity: 'critical',
+        data: { ...suspensionData, id: suspensionId },
+        timestamp: new Date().toISOString()
+      });
+
       // Refresh history
       const history = await getSuspensionHistory(null, 20);
       setSuspensionHistory(history);
@@ -182,7 +194,7 @@ export const SuspensionProvider = ({ children }) => {
       setError(err.message);
       throw err;
     }
-  }, []);
+  }, [addNotification]);
 
   // Lift a suspension
   const liftSuspensionById = useCallback(async (suspensionId, liftData) => {

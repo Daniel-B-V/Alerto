@@ -136,49 +136,32 @@ const SuspensionCandidateTable = ({ onIssueSuspension, onSuspendAll }) => {
   const getAIActionBadge = (aiRecommendation) => {
     if (!aiRecommendation) {
       return (
-        <div className="flex flex-col gap-1">
-          <Badge variant="outline" className="bg-gray-50 text-gray-600 font-medium">
-            ⚪ No Data
-          </Badge>
-        </div>
+        <Badge variant="outline" className="bg-gray-50 text-gray-600 font-medium">
+          ⚪ No Data
+        </Badge>
       );
     }
 
     if (aiRecommendation.shouldSuspend) {
       return (
-        <div className="flex flex-col gap-1">
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 font-bold">
-            🔴 SUSPEND
-          </Badge>
-          <span className="text-xs text-gray-600">
-            {aiRecommendation.confidence}% {aiRecommendation.riskLevel || 'High'}
-          </span>
-        </div>
+        <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 font-bold">
+          🔴 SUSPEND
+        </Badge>
       );
     }
 
     if (aiRecommendation.confidence > 50) {
       return (
-        <div className="flex flex-col gap-1">
-          <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 font-medium">
-            🟡 MONITOR
-          </Badge>
-          <span className="text-xs text-gray-600">
-            {aiRecommendation.confidence}% Med
-          </span>
-        </div>
+        <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200 font-medium">
+          🟡 MONITOR
+        </Badge>
       );
     }
 
     return (
-      <div className="flex flex-col gap-1">
-        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-medium">
-          🟢 SAFE
-        </Badge>
-        <span className="text-xs text-gray-600">
-          {aiRecommendation.confidence}% Low
-        </span>
-      </div>
+      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 font-medium">
+        🟢 SAFE
+      </Badge>
     );
   };
 
@@ -426,9 +409,9 @@ const SuspensionCandidateTable = ({ onIssueSuspension, onSuspendAll }) => {
                   {/* Action Buttons */}
                   <td className="px-4 py-3 text-center">
                     {candidate.hasActiveSuspension ? (
-                      <Badge variant="outline" className="bg-gray-100 text-gray-600 font-medium">
-                        ✅ Already Active
-                      </Badge>
+                      <div className="inline-flex items-center justify-center px-6 py-2 rounded-md border border-gray-300 bg-gray-100 text-gray-600 font-semibold text-sm whitespace-nowrap">
+                        Already Active
+                      </div>
                     ) : (
                       <div className="flex flex-col items-center space-y-2">
                         <Button

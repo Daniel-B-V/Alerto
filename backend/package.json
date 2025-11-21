@@ -6,8 +6,6 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "pagasa": "node server-pagasa.js",
-    "pagasa:dev": "nodemon server-pagasa.js",
     "test": "jest"
   },
   "dependencies": {

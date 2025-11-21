@@ -67,14 +67,14 @@ export function WeatherMonitoringGrid({ weatherData, className = '' }) {
 
   const getCardBorderColor = (color) => {
     const colors = {
-      red: 'border-red-300 bg-gradient-to-br from-red-50 to-red-100/50',
-      orange: 'border-orange-300 bg-gradient-to-br from-orange-50 to-orange-100/50',
-      yellow: 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-yellow-100/50',
-      green: 'border-green-300 bg-gradient-to-br from-green-50 to-green-100/50',
-      blue: 'border-blue-300 bg-gradient-to-br from-blue-50 to-blue-100/50',
-      cyan: 'border-cyan-300 bg-gradient-to-br from-cyan-50 to-cyan-100/50'
+      red: 'bg-white !border-4 !border-red-500 shadow-lg shadow-red-200 hover:shadow-xl hover:shadow-red-300',
+      orange: 'bg-white !border-4 !border-orange-500 shadow-lg shadow-orange-200 hover:shadow-xl hover:shadow-orange-300',
+      yellow: 'bg-white !border-4 !border-yellow-500 shadow-lg shadow-yellow-200 hover:shadow-xl hover:shadow-yellow-300',
+      green: 'bg-white !border-4 !border-green-500 shadow-lg shadow-green-200 hover:shadow-xl hover:shadow-green-300',
+      blue: 'bg-white !border-4 !border-blue-500 shadow-lg shadow-blue-200 hover:shadow-xl hover:shadow-blue-300',
+      cyan: 'bg-white !border-4 !border-cyan-500 shadow-lg shadow-cyan-200 hover:shadow-xl hover:shadow-cyan-300'
     };
-    return colors[color] || 'border-gray-200 bg-white';
+    return colors[color] || 'bg-white !border-4 !border-gray-200 shadow-lg shadow-gray-200';
   };
 
   const getTextColor = (color) => {
@@ -144,7 +144,7 @@ export function WeatherMonitoringGrid({ weatherData, className = '' }) {
         return (
           <div
             key={index}
-            className={`bg-white rounded-xl border-2 p-6 shadow-sm transition-all duration-200 hover:shadow-lg ${getCardBorderColor(card.risk.color)}`}
+            className={`rounded-xl p-6 transition-all duration-300 hover:scale-105 cursor-pointer ${getCardBorderColor(card.risk.color)}`}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
@@ -164,7 +164,7 @@ export function WeatherMonitoringGrid({ weatherData, className = '' }) {
             </div>
 
             {/* Value */}
-            <div className="mb-3">
+            <div>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-gray-900">
                   {card.value}
@@ -176,20 +176,6 @@ export function WeatherMonitoringGrid({ weatherData, className = '' }) {
               {card.subtitle && (
                 <div className="text-xs text-gray-600 mt-1">{card.subtitle}</div>
               )}
-            </div>
-
-            {/* Risk Label */}
-            <div>
-              <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
-                card.risk.color === 'red' ? 'bg-red-200 text-red-800' :
-                card.risk.color === 'orange' ? 'bg-orange-200 text-orange-800' :
-                card.risk.color === 'yellow' ? 'bg-yellow-200 text-yellow-800' :
-                card.risk.color === 'green' ? 'bg-green-200 text-green-800' :
-                card.risk.color === 'blue' ? 'bg-blue-200 text-blue-800' :
-                'bg-cyan-200 text-cyan-800'
-              }`}>
-                {card.risk.label}
-              </span>
             </div>
           </div>
         );

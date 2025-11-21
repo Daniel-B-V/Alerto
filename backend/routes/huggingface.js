@@ -195,8 +195,13 @@ router.post('/gemini-image-analysis', async (req, res) => {
 
       // Check if label relates to disasters
       for (const [key, keywords] of Object.entries(disasterKeywords)) {
-        const keyMatch = label.includes(key);
-        const keywordMatch = keywords.some(kw => label.includes(kw.toLowerCase()));
+        // Use word boundary matching to avoid false positives like "seashore" matching "ash"
+        const keyMatch = new RegExp(`\\b${key}\\b`, 'i').test(label);
+        const keywordMatch = keywords.some(kw => {
+          // Use word boundary for whole word matching
+          const kwLower = kw.toLowerCase();
+          return new RegExp(`\\b${kwLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i').test(label);
+        });
 
         if (keyMatch || keywordMatch) {
           console.log(`  ✅ MATCH found! Category: ${key}, KeyMatch: ${keyMatch}, KeywordMatch: ${keywordMatch}`);

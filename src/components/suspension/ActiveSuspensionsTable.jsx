@@ -158,20 +158,35 @@ const ActiveSuspensionsTable = () => {
 
   const getLevelsDisplay = (levels) => {
     const levelMap = {
-      preschool: { label: 'Preschool', icon: '👶' },
-      elementary: { label: 'Elementary', icon: '📚' },
-      high_school: { label: 'High School', icon: '🎒' },
-      college: { label: 'College', icon: '🎓' },
-      work: { label: 'Work', icon: '💼' },
-      activities: { label: 'Activities', icon: '🏃' },
-      all: { label: 'All Levels', icon: '🚨' }
+      preschool: { label: 'Preschool', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+      elementary: { label: 'Elementary', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+      high_school: { label: 'High School', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+      college: { label: 'College', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+      work: { label: 'Work', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+      activities: { label: 'Activities', color: 'bg-gray-100 text-gray-700 border-gray-300' },
+      all: { label: 'All Levels', color: 'bg-gray-100 text-gray-700 border-gray-300' }
     };
 
     if (levels.includes('all')) {
-      return <span>🚨 All Levels</span>;
+      return (
+        <Badge className="bg-gray-100 text-gray-700 border-gray-300">
+          All Levels
+        </Badge>
+      );
     }
 
-    return levels.map(level => levelMap[level]?.icon || level).join(' ');
+    return (
+      <div className="flex flex-wrap gap-1.5">
+        {levels.map(level => {
+          const levelData = levelMap[level];
+          return levelData ? (
+            <Badge key={level} className={levelData.color}>
+              {levelData.label}
+            </Badge>
+          ) : null;
+        })}
+      </div>
+    );
   };
 
   if (loading) {
@@ -205,14 +220,13 @@ const ActiveSuspensionsTable = () => {
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead className="font-bold">City</TableHead>
-                <TableHead className="font-bold">Levels Suspended</TableHead>
-                <TableHead className="font-bold">Issued By</TableHead>
-                <TableHead className="font-bold">Issued At</TableHead>
-                <TableHead className="font-bold">Time Remaining</TableHead>
-                <TableHead className="font-bold">Weather Status</TableHead>
-                <TableHead className="font-bold text-center">Actions</TableHead>
+              <TableRow className="border-b-2 border-gray-300 bg-gray-50">
+                <TableHead className="font-bold text-left w-32">City</TableHead>
+                <TableHead className="font-bold text-left w-80">Levels Suspended</TableHead>
+                <TableHead className="font-bold text-left w-40">Issued By</TableHead>
+                <TableHead className="font-bold text-left w-40">Issued At</TableHead>
+                <TableHead className="font-bold text-left w-48">Time Remaining</TableHead>
+                <TableHead className="font-bold text-left w-32">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -222,76 +236,62 @@ const ActiveSuspensionsTable = () => {
                   parseInt(timeRemaining) <= 2;
 
                 return (
-                  <TableRow key={suspension.id}>
+                  <TableRow key={suspension.id} className="h-24 border-b border-gray-200">
                     {/* City */}
-                    <TableCell className="font-medium">
-                      <div className="flex items-center">
-                        <AlertCircle className="w-4 h-4 text-red-600 mr-2" />
-                        {suspension.city}
+                    <TableCell className="p-4">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-red-600" />
+                        <span className="font-medium">{suspension.city}</span>
                       </div>
                     </TableCell>
 
                     {/* Levels */}
-                    <TableCell>
-                      <div className="flex items-center">
-                        {getLevelsDisplay(suspension.levels)}
-                      </div>
+                    <TableCell className="p-4">
+                      {getLevelsDisplay(suspension.levels)}
                     </TableCell>
 
                     {/* Issued By */}
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium text-sm">{suspension.issuedBy.name}</span>
-                        <span className="text-xs text-gray-500">{suspension.issuedBy.title}</span>
+                    <TableCell className="p-4">
+                      <div>
+                        <div className="font-medium text-sm">Governor/Mayor</div>
+                        <div className="text-xs text-gray-500">Provincial Governor</div>
                       </div>
                     </TableCell>
 
                     {/* Issued At */}
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="text-sm">
-                          {new Date(suspension.issuedAt).toLocaleDateString()}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          {new Date(suspension.issuedAt).toLocaleTimeString()}
-                        </span>
+                    <TableCell className="p-4">
+                      <div>
+                        <div className="text-sm">{new Date(suspension.issuedAt).toLocaleDateString()}</div>
+                        <div className="text-xs text-gray-500">{new Date(suspension.issuedAt).toLocaleTimeString()}</div>
                       </div>
                     </TableCell>
 
                     {/* Time Remaining */}
-                    <TableCell>
-                      <div className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border-2 bg-white" style={{ backgroundColor: '#fef2f2', borderColor: '#dc2626' }}>
-                        <Clock className="w-4 h-4 text-red-600" />
-                        <div>
-                          <p className="text-xs text-black">Ends in</p>
-                          <p className="text-sm font-bold text-black">{timeRemaining.replace(' remaining', '')}</p>
+                    <TableCell className="p-4">
+                      <div className="flex flex-col gap-1.5">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border-2 w-fit" style={{ backgroundColor: '#fef2f2', borderColor: '#dc2626' }}>
+                          <Clock className="w-4 h-4 text-red-600" />
+                          <div>
+                            <p className="text-xs text-gray-600">Ends in</p>
+                            <p className="text-sm font-bold text-red-600">{timeRemaining.replace(' remaining', '')}</p>
+                          </div>
                         </div>
+                        {isEndingSoon && (
+                          <Badge variant="outline" className="bg-orange-50 text-orange-700 text-xs w-fit">
+                            Ending Soon
+                          </Badge>
+                        )}
                       </div>
-                      {isEndingSoon && (
-                        <Badge variant="outline" className="mt-1 bg-orange-50 text-orange-700 text-xs">
-                          Ending Soon
-                        </Badge>
-                      )}
-                    </TableCell>
-
-                    {/* Weather Status */}
-                    <TableCell>
-                      {getWeatherStatusBadge(suspension.weatherConditionStatus)}
-                      {suspension.reevaluationCount > 0 && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Checked {suspension.reevaluationCount}x
-                        </div>
-                      )}
                     </TableCell>
 
                     {/* Actions */}
-                    <TableCell className="text-center">
-                      <div className="flex flex-col space-y-1">
+                    <TableCell className="p-4">
+                      <div className="flex flex-col gap-1.5">
                         <Button
                           size="sm"
                           variant="outline"
                           onClick={() => handleExtendClick(suspension)}
-                          className="text-xs"
+                          className="text-xs w-20 h-8"
                         >
                           <Plus className="w-3 h-3 mr-1" />
                           Extend
@@ -300,7 +300,7 @@ const ActiveSuspensionsTable = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => handleLiftClick(suspension)}
-                          className="text-xs text-green-700 border-green-200 hover:bg-green-50"
+                          className="text-xs text-green-700 border-green-200 hover:bg-green-50 w-20 h-8"
                         >
                           <CheckCircle2 className="w-3 h-3 mr-1" />
                           Lift

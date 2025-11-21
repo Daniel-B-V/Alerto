@@ -6,10 +6,12 @@
 import React from 'react';
 import { AlertCircle, Clock, MapPin } from 'lucide-react';
 import { useSuspensions } from '../../hooks/useSuspensions';
+import { useUserLocation } from '../../hooks/useUserLocation';
 import { Badge } from '../ui/badge';
 
 export function DashboardAnnouncementCard({ className = '' }) {
   const { activeSuspensions, loading } = useSuspensions();
+  const { detectedCity } = useUserLocation();
 
   const getTimeRemaining = (effectiveUntil) => {
     const now = new Date();
@@ -40,46 +42,62 @@ export function DashboardAnnouncementCard({ className = '' }) {
     return levels.map(level => levelMap[level] || level).join(', ');
   };
 
-  if (loading || activeSuspensions.length === 0) {
+  // Filter suspensions to only show those for the user's detected city
+  const relevantSuspensions = activeSuspensions.filter(suspension => {
+    // If no city detected yet, don't show any suspensions
+    if (!detectedCity) return false;
+
+    // Show suspension if it matches the user's city
+    return suspension.city === detectedCity;
+  });
+
+  if (loading || relevantSuspensions.length === 0) {
     return null;
   }
 
   return (
     <div className={className}>
-      {activeSuspensions.map((suspension) => (
-        <div 
-          key={suspension.id} 
-          className="rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 border-2 bg-white"
+      {relevantSuspensions.map((suspension) => (
+        <div
+          key={suspension.id}
+          className="p-6 shadow-sm hover:shadow-md transition-all duration-200 mb-6"
           style={{
-            borderColor: '#dc2626'
+            border: '1px solid #dc2626',
+            backgroundColor: 'white',
+            borderRadius: '20px'
           }}
         >
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-start justify-between gap-6">
             {/* Left: Icon & Info */}
-            <div className="flex items-center gap-3 flex-1 min-w-0">
-              <div className="p-2 rounded-lg flex-shrink-0" style={{ backgroundColor: '#fee2e2' }}>
-                <AlertCircle className="w-5 h-5 text-red-600" />
+            <div className="flex items-start gap-4 flex-1">
+              <div className="p-3 rounded-lg flex-shrink-0" style={{ backgroundColor: '#fee2e2' }}>
+                <AlertCircle className="w-6 h-6 text-red-600" />
               </div>
-              
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-sm text-black">🚨 CLASS SUSPENSION</span>
-                  <Badge className="bg-red-600 text-white hover:bg-red-700 text-xs">
+
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="font-bold text-lg text-black">🚨 CLASS SUSPENSION</span>
+                  <span className="text-sm text-gray-600">
                     {suspension.city}
-                  </Badge>
+                  </span>
                 </div>
-                <p className="text-xs text-black truncate">
+                <p className="text-sm text-black mb-2">
                   {getLevelsDisplay(suspension.levels)} • {suspension.reason}
                 </p>
+                {suspension.message && (
+                  <p className="text-sm text-gray-700">
+                    {suspension.message}
+                  </p>
+                )}
               </div>
             </div>
 
             {/* Right: Time */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-lg flex-shrink-0 border-2" style={{ backgroundColor: '#fef2f2', borderColor: '#dc2626' }}>
-              <Clock className="w-4 h-4 text-red-600" />
+            <div className="flex items-center gap-3 px-4 py-3 rounded-lg flex-shrink-0 border-2" style={{ backgroundColor: '#fef2f2', borderColor: '#dc2626' }}>
+              <Clock className="w-5 h-5 text-red-600" />
               <div className="text-right">
-                <p className="text-xs text-black">Ends in</p>
-                <p className="text-sm font-bold text-black">{getTimeRemaining(suspension.effectiveUntil)}</p>
+                <p className="text-xs text-gray-600 mb-1">Ends in</p>
+                <p className="text-xl font-bold text-red-600">{getTimeRemaining(suspension.effectiveUntil)}</p>
               </div>
             </div>
           </div>

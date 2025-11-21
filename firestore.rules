@@ -85,5 +85,14 @@ service cloud.firestore {
       // Authenticated users can create notifications (for testing)
       allow create, update, delete: if isAuthenticated();
     }
+
+    // Announcements collection
+    match /announcements/{announcementId} {
+      // Anyone can read announcements (public)
+      allow read: if true;
+
+      // Authenticated users (mayors/governors) can create announcements
+      allow create, update, delete: if isAuthenticated();
+    }
   }
 }

@@ -18,7 +18,8 @@ import {
   TrendingUp,
   Users,
   Eye,
-  Shield
+  Shield,
+  Megaphone
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Badge } from "../ui/badge";
@@ -26,6 +27,8 @@ import { Button } from "../ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
 import { getReports, toggleLike, subscribeToReports, updateReport, rejectReport } from "../../firebase";
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '../../firebase/config';
 import { useAuth } from "../../contexts/AuthContext";
 import { ReportSubmissionModal } from "./ReportSubmissionModal";
 import { CATEGORY_CONFIG } from "../../constants/categorization";
@@ -72,6 +75,13 @@ export function CommunityFeed() {
   const isMayorUser = isMayor(user);
   const userCity = getUserCity(user);
 
+  // Announcement state
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementMessage, setAnnouncementMessage] = useState('');
+  const [announcementPriority, setAnnouncementPriority] = useState('normal');
+  const [issuingAnnouncement, setIssuingAnnouncement] = useState(false);
+
   // Handle verify report
   const handleVerifyReport = async (reportId) => {
     try {
@@ -101,6 +111,50 @@ export function CommunityFeed() {
     } catch (error) {
       console.error('Error rejecting report:', error);
       alert('Failed to reject report');
+    }
+  };
+
+  // Handle issue announcement
+  const handleIssueAnnouncement = async () => {
+    if (!announcementTitle.trim() || !announcementMessage.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    try {
+      setIssuingAnnouncement(true);
+
+      // Determine announcement type and location based on role
+      const announcementType = isAdmin ? 'governor_announcement' : 'mayor_announcement';
+      const announcementCity = isAdmin ? 'Batangas Province' : userCity;
+      const announcerRole = isAdmin ? 'Governor' : 'Mayor';
+
+      // Create announcement in Firestore
+      const announcementsRef = collection(db, 'announcements');
+      await addDoc(announcementsRef, {
+        city: announcementCity,
+        title: announcementTitle.trim(),
+        message: announcementMessage.trim(),
+        priority: announcementPriority,
+        issuedBy: user?.displayName || user?.email || announcerRole,
+        issuedAt: serverTimestamp(),
+        createdAt: serverTimestamp(),
+        active: true,
+        type: announcementType
+      });
+
+      // Reset form and close modal
+      setAnnouncementTitle('');
+      setAnnouncementMessage('');
+      setAnnouncementPriority('normal');
+      setShowAnnouncementModal(false);
+
+      alert('Announcement posted successfully!');
+    } catch (error) {
+      console.error('Error posting announcement:', error);
+      alert('Failed to post announcement. Please try again.');
+    } finally {
+      setIssuingAnnouncement(false);
     }
   };
 
@@ -312,15 +366,26 @@ export function CommunityFeed() {
               </h1>
               <p className="text-gray-600">Real-time weather reports from the community</p>
             </div>
-            {isAuthenticated && user?.role !== 'admin' && user?.role !== 'super_admin' && user?.role !== 'mayor' && user?.role !== 'governor' && (
-              <Button
-                onClick={() => setShowSubmitModal(true)}
-                className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white"
-              >
-                <Plus className="w-5 h-5" />
-                Submit Report
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {(isMayorUser || isAdmin) && (
+                <Button
+                  onClick={() => setShowAnnouncementModal(true)}
+                  className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white"
+                >
+                  <Megaphone className="w-5 h-5" />
+                  Make Announcement
+                </Button>
+              )}
+              {isAuthenticated && user?.role !== 'admin' && user?.role !== 'super_admin' && user?.role !== 'mayor' && user?.role !== 'governor' && (
+                <Button
+                  onClick={() => setShowSubmitModal(true)}
+                  className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white"
+                >
+                  <Plus className="w-5 h-5" />
+                  Submit Report
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Role Scope Indicator */}
@@ -667,7 +732,8 @@ export function CommunityFeed() {
                             <Button
                               onClick={() => handleVerifyReport(report.id)}
                               size="sm"
-                              className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs px-3 py-1.5 h-auto font-medium"
+                              variant="outline"
+                              className="text-xs px-3 py-1.5 h-auto font-medium"
                             >
                               <CheckCircle className="w-3.5 h-3.5 mr-1" />
                               Verify
@@ -675,7 +741,8 @@ export function CommunityFeed() {
                             <Button
                               onClick={() => handleRejectReport(report.id)}
                               size="sm"
-                              className="bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs px-3 py-1.5 h-auto font-medium"
+                              variant="outline"
+                              className="text-xs px-3 py-1.5 h-auto font-medium"
                             >
                               <XCircle className="w-3.5 h-3.5 mr-1" />
                               Reject
@@ -774,6 +841,136 @@ export function CommunityFeed() {
           console.log('Report submitted successfully');
         }}
       />
+
+      {/* Announcement Modal */}
+      {showAnnouncementModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowAnnouncementModal(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl flex flex-col"
+            style={{ width: '600px', maxWidth: '90vw', maxHeight: '85vh' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex-shrink-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Make Announcement</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  {isAdmin
+                    ? 'Send an announcement to all residents in Batangas Province'
+                    : `Send an announcement to all residents in ${userCity}`
+                  }
+                </p>
+              </div>
+              <button
+                onClick={() => setShowAnnouncementModal(false)}
+                disabled={issuingAnnouncement}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+              >
+                <X className="w-5 h-5 text-gray-500" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-5 overflow-y-auto flex-1">
+              {/* Priority */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Priority Level
+                </label>
+                <select
+                  value={announcementPriority}
+                  onChange={(e) => setAnnouncementPriority(e.target.value)}
+                  style={{ border: '2px solid #d1d5db' }}
+                  className="w-full px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none font-medium text-gray-700 bg-white"
+                >
+                  <option value="normal">Normal - General information</option>
+                  <option value="important">Important - Requires attention</option>
+                  <option value="urgent">Urgent - Critical announcement</option>
+                </select>
+              </div>
+
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Announcement Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={announcementTitle}
+                  onChange={(e) => setAnnouncementTitle(e.target.value)}
+                  placeholder="e.g., Road Closure Notice, Community Meeting"
+                  maxLength={100}
+                  style={{ border: '2px solid #d1d5db' }}
+                  className="w-full px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none"
+                />
+                <div className="mt-1 text-xs text-gray-500 text-right">
+                  {announcementTitle.length}/100 characters
+                </div>
+              </div>
+
+              {/* Message */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2">
+                  Message <span className="text-red-500">*</span>
+                </label>
+                <textarea
+                  value={announcementMessage}
+                  onChange={(e) => setAnnouncementMessage(e.target.value)}
+                  placeholder="Enter your announcement message here..."
+                  rows={6}
+                  maxLength={500}
+                  style={{ border: '2px solid #d1d5db' }}
+                  className="w-full px-4 py-3 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
+                />
+                <div className="mt-1 text-xs text-gray-500 text-right">
+                  {announcementMessage.length}/500 characters
+                </div>
+              </div>
+
+              {/* Info Box */}
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> This announcement will be visible to all residents in {isAdmin ? 'Batangas Province' : userCity} on their dashboard and notifications.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="flex-shrink-0 border-t border-gray-200 p-4 flex gap-3">
+              <Button
+                onClick={() => setShowAnnouncementModal(false)}
+                variant="outline"
+                disabled={issuingAnnouncement}
+                className="flex-1"
+                style={{ backgroundColor: '#f3f4f6', borderColor: '#d1d5db', color: '#374151' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleIssueAnnouncement}
+                disabled={issuingAnnouncement || !announcementTitle.trim() || !announcementMessage.trim()}
+                className="flex-1"
+                style={{ backgroundColor: '#10b981', color: 'white' }}
+              >
+                {issuingAnnouncement ? (
+                  <span className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    Posting...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Megaphone className="w-4 h-4" />
+                    Post Announcement
+                  </span>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

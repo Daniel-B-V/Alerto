@@ -133,7 +133,15 @@ ui-debug.log
 # AI/ML TOOLS
 # ========================================
 # Claude Code
+.claude/
 .claude/settings.local.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
 
 # ========================================
 # SECURITY & SENSITIVE DATA

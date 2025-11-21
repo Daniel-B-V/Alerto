@@ -51,7 +51,7 @@ export function CommunityViewUser() {
       const announcementsRef = collection(db, 'announcements');
       const q = query(
         announcementsRef,
-        where('type', '==', 'mayor'),
+        where('type', '==', 'mayor_announcement'),
         orderBy('createdAt', 'desc'),
         limitQuery(20)
       );
@@ -73,7 +73,7 @@ export function CommunityViewUser() {
       const announcementsRef = collection(db, 'announcements');
       const q = query(
         announcementsRef,
-        where('type', '==', 'governor'),
+        where('type', '==', 'governor_announcement'),
         orderBy('createdAt', 'desc'),
         limitQuery(20)
       );
@@ -400,37 +400,56 @@ export function CommunityViewUser() {
               </CardContent>
             ) : (
               <CardContent className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-4">
                 {mayorAnnouncements.map((announcement) => (
                   <Card key={announcement.id} className="hover:shadow-lg transition-shadow duration-200">
-                    <CardContent className="p-5">
-                      {/* Title */}
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">
-                        {announcement.title}
-                      </h3>
-
-                      {/* Date */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                        <Calendar className="w-4 h-4" />
-                        {formatTimestamp(announcement.createdAt)}
+                    <CardContent className="p-6">
+                      {/* Header Row: Title and Mayor Badge */}
+                      <div className="flex items-start justify-between gap-4 mb-4">
+                        <h3 className="text-2xl font-bold text-gray-900 flex-1">
+                          {announcement.title}
+                        </h3>
+                        <Badge className="bg-purple-100 text-purple-700 text-sm px-3 py-1.5 font-medium flex-shrink-0 flex items-center gap-1.5">
+                          <Megaphone className="w-4 h-4" />
+                          Mayor
+                        </Badge>
                       </div>
 
-                      {/* Location/City */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                        <MapPin className="w-4 h-4" />
-                        {announcement.city || 'City'}
+                      {/* Meta Info Row */}
+                      <div className="flex items-center gap-6 mb-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatTimestamp(announcement.createdAt)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <MapPin className="w-4 h-4" />
+                          <span>{announcement.city || 'City'}</span>
+                        </div>
                       </div>
 
-                      {/* Description */}
-                      <p className="text-sm text-gray-700 leading-relaxed mb-3 line-clamp-3">
-                        {announcement.message || announcement.description}
-                      </p>
+                      {/* Message */}
+                      <div className="mb-4">
+                        <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
+                          {announcement.message || announcement.description}
+                        </p>
+                      </div>
 
-                      {/* Status Badge */}
-                      <Badge className="bg-purple-100 text-purple-700 text-xs px-2.5 py-1 font-medium">
-                        <Megaphone className="w-3 h-3 mr-1" />
-                        Mayor
-                      </Badge>
+                      {/* Priority Badge (if urgent or important) */}
+                      {announcement.priority && announcement.priority !== 'normal' && (
+                        <div className="pt-3 border-t border-gray-200">
+                          <Badge
+                            style={{
+                              backgroundColor: announcement.priority === 'urgent' ? '#fef2f2' : '#fefce8',
+                              color: announcement.priority === 'urgent' ? '#dc2626' : '#ca8a04',
+                              border: `1px solid ${announcement.priority === 'urgent' ? '#fecaca' : '#fef08a'}`
+                            }}
+                            className="text-sm px-3 py-1.5 font-semibold flex items-center gap-1.5 w-fit"
+                          >
+                            <AlertCircle className="w-4 h-4" />
+                            {announcement.priority === 'urgent' ? 'URGENT' : 'IMPORTANT'}
+                          </Badge>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
@@ -455,37 +474,56 @@ export function CommunityViewUser() {
               </CardContent>
             ) : (
               <CardContent className="p-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="space-y-4">
                 {governorAnnouncements.map((announcement) => (
                   <Card key={announcement.id} className="hover:shadow-lg transition-shadow duration-200">
-                    <CardContent className="p-5">
-                      {/* Title */}
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">
-                        {announcement.title}
-                      </h3>
-
-                      {/* Date */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-1">
-                        <Calendar className="w-4 h-4" />
-                        {formatTimestamp(announcement.createdAt)}
+                    <CardContent className="p-6">
+                      {/* Header Row: Title and Governor Badge */}
+                      <div className="flex items-start justify-between gap-4 mb-4">
+                        <h3 className="text-2xl font-bold text-gray-900 flex-1">
+                          {announcement.title}
+                        </h3>
+                        <Badge className="bg-emerald-100 text-emerald-700 text-sm px-3 py-1.5 font-medium flex-shrink-0 flex items-center gap-1.5">
+                          <Shield className="w-4 h-4" />
+                          Governor
+                        </Badge>
                       </div>
 
-                      {/* Location */}
-                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                        <MapPin className="w-4 h-4" />
-                        Batangas Province
+                      {/* Meta Info Row */}
+                      <div className="flex items-center gap-6 mb-4">
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <Calendar className="w-4 h-4" />
+                          <span>{formatTimestamp(announcement.createdAt)}</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <MapPin className="w-4 h-4" />
+                          <span>Batangas Province</span>
+                        </div>
                       </div>
 
-                      {/* Description */}
-                      <p className="text-sm text-gray-700 leading-relaxed mb-3 line-clamp-3">
-                        {announcement.message || announcement.description}
-                      </p>
+                      {/* Message */}
+                      <div className="mb-4">
+                        <p className="text-base text-gray-800 leading-relaxed whitespace-pre-wrap">
+                          {announcement.message || announcement.description}
+                        </p>
+                      </div>
 
-                      {/* Status Badge */}
-                      <Badge className="bg-emerald-100 text-emerald-700 text-xs px-2.5 py-1 font-medium">
-                        <Shield className="w-3 h-3 mr-1" />
-                        Governor
-                      </Badge>
+                      {/* Priority Badge (if urgent or important) */}
+                      {announcement.priority && announcement.priority !== 'normal' && (
+                        <div className="pt-3 border-t border-gray-200">
+                          <Badge
+                            style={{
+                              backgroundColor: announcement.priority === 'urgent' ? '#fef2f2' : '#fefce8',
+                              color: announcement.priority === 'urgent' ? '#dc2626' : '#ca8a04',
+                              border: `1px solid ${announcement.priority === 'urgent' ? '#fecaca' : '#fef08a'}`
+                            }}
+                            className="text-sm px-3 py-1.5 font-semibold flex items-center gap-1.5 w-fit"
+                          >
+                            <AlertCircle className="w-4 h-4" />
+                            {announcement.priority === 'urgent' ? 'URGENT' : 'IMPORTANT'}
+                          </Badge>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}

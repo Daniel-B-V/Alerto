@@ -10,8 +10,6 @@ import { Badge } from '../../ui/badge';
 import { Checkbox } from '../../ui/checkbox';
 
 const DURATION_OPTIONS = [
-  { value: 2, label: '2 hours' },
-  { value: 6, label: '6 hours' },
   { value: 12, label: '12 hours' },
   { value: 24, label: '24 hours' },
   { value: 48, label: '48 hours' },
@@ -93,9 +91,9 @@ export function QuickSuspendModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto" style={{ width: '600px', maxWidth: '90vw' }}>
+      <div className="bg-white rounded-2xl shadow-2xl flex flex-col" style={{ width: '768px', maxWidth: '90vw', maxHeight: '85vh' }}>
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
+        <div className="flex-shrink-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">Issue City-Wide Suspension</h2>
             <p className="text-sm text-gray-600 mt-1">
@@ -111,7 +109,7 @@ export function QuickSuspendModal({
           </button>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 overflow-y-auto flex-1">
           {/* Confirmation View */}
           {showConfirmation ? (
             <div className="space-y-6">
@@ -225,23 +223,50 @@ export function QuickSuspendModal({
           ) : (
             /* Setup View */
             <div className="space-y-6">
-              {/* AI Recommendation Banner */}
-              {aiRecommendation && aiRecommendation.shouldSuspend && (
-                <div className="bg-red-50 border-2 border-red-300 rounded-xl p-4">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <h3 className="font-bold text-red-900 mb-1">AI Recommendation: Suspend Now</h3>
-                      <p className="text-sm text-red-800">
-                        {aiRecommendation.summary || 'Current weather conditions meet suspension criteria.'}
-                      </p>
-                      {aiRecommendation.confidence && (
-                        <div className="mt-2 text-xs text-red-700">
-                          Confidence: {aiRecommendation.confidence}%
-                        </div>
-                      )}
+              {/* Weather Conditions */}
+              {weatherData && (
+                <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+                  <h3 className="font-bold text-gray-900 mb-3">Weather Conditions</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">PAGASA Warning:</span>
+                      <span className="font-semibold text-gray-900">
+                        {weatherData.pagasaWarning || 'None'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Rainfall:</span>
+                      <span className="font-semibold text-gray-900">
+                        {weatherData.rainfall || 0} mm/h
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Wind Speed:</span>
+                      <span className="font-semibold text-gray-900">
+                        {weatherData.windSpeed || 0} km/h
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-600">Reports:</span>
+                      <span className="font-semibold text-gray-900">
+                        {weatherData.criticalReports || 0} (0 critical)
+                      </span>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* AI Recommendation */}
+              {aiRecommendation && (
+                <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                  <h3 className="font-bold text-gray-900 mb-1">
+                    AI Recommendation {aiRecommendation.confidence && `(${aiRecommendation.confidence}% confidence)`}
+                  </h3>
+                  <p className="text-sm text-gray-700">
+                    {aiRecommendation.summary || (aiRecommendation.shouldSuspend
+                      ? 'Current weather conditions meet suspension criteria.'
+                      : 'Weather conditions do not currently warrant suspension.')}
+                  </p>
                 </div>
               )}
 
@@ -259,7 +284,7 @@ export function QuickSuspendModal({
                   ].map(({ value, label, icon: Icon }) => (
                     <label
                       key={value}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors"
+                      className="flex items-center gap-3 p-3 rounded-lg border-2 border-gray-300 hover:bg-gray-50 cursor-pointer transition-colors"
                     >
                       <input
                         type="checkbox"
@@ -279,21 +304,17 @@ export function QuickSuspendModal({
                 <label className="block text-sm font-semibold text-gray-900 mb-3">
                   Duration <span className="text-red-500">*</span>
                 </label>
-                <div className="grid grid-cols-3 gap-2 mb-3">
+                <select
+                  value={durationHours}
+                  onChange={(e) => handleDurationChange(Number(e.target.value))}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none font-medium text-gray-700 bg-white"
+                >
                   {DURATION_OPTIONS.map(({ value, label }) => (
-                    <button
-                      key={value}
-                      onClick={() => handleDurationChange(value)}
-                      className={`p-3 border-2 rounded-lg font-medium transition-all ${
-                        durationHours === value
-                          ? 'border-blue-500 bg-blue-50 text-blue-700'
-                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                      }`}
-                    >
+                    <option key={value} value={value}>
                       {label}
-                    </button>
+                    </option>
                   ))}
-                </div>
+                </select>
 
                 {durationHours === -1 && (
                   <input
@@ -303,12 +324,12 @@ export function QuickSuspendModal({
                     placeholder="Enter hours (e.g., 8)"
                     min="1"
                     max="120"
-                    className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none mt-3"
                   />
                 )}
 
                 {hours > 0 && (
-                  <div className="mt-2 text-sm text-gray-600">
+                  <div className="mt-3 text-sm text-gray-600">
                     Suspension will end on <span className="font-semibold text-gray-900">{endTime}</span>
                   </div>
                 )}
@@ -325,7 +346,7 @@ export function QuickSuspendModal({
                   placeholder="Add a message to be included in the suspension announcement..."
                   rows={4}
                   maxLength={500}
-                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none resize-none"
                 />
                 <div className="mt-1 text-xs text-gray-500 text-right">
                   {customMessage.length}/500 characters
