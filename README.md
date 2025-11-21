@@ -870,7 +870,7 @@ To all the mayors, governors, barangay officials, and citizens who face these ch
 ![Build Status](https://img.shields.io/badge/build-passing-brightgreen)
 ![Coverage](https://img.shields.io/badge/coverage-85%25-green)
 ![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Last Commit](https://img.shields.io/github/last-commit/yourusername/alerto)
+![Last Commit](https://img.shields.io/github/last-commit/Kuzensky/alerto)
 
 ---
 
