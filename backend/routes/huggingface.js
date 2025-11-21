@@ -115,7 +115,7 @@ router.post('/image-classification', async (req, res) => {
 });
 
 // Hugging Face Inference API image classification endpoint (for hazard verification)
-router.post('/gemini-image-analysis', async (req, res) => {
+router.post('/image-analysis', async (req, res) => {
   try {
     const { image, candidateLabels, hazardType } = req.body;
 

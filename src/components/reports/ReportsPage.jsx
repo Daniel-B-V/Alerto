@@ -127,6 +127,7 @@ export function ReportsPage() {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'Unknown';
     const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
+    if (isNaN(date.getTime())) return 'Date unavailable';
     return date.toLocaleString();
   };
 

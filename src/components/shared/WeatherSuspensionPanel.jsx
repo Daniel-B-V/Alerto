@@ -368,6 +368,7 @@ export function SuspensionPanel() {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'Unknown';
     const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
+    if (isNaN(date.getTime())) return 'Date unavailable';
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);

@@ -204,8 +204,8 @@ export function ReportSubmissionModal({ isOpen, onClose, onSubmitSuccess }) {
         userId: user?.uid || 'anonymous',
         userName: user?.displayName || 'Anonymous',
         userEmail: user?.email || 'anonymous@alerto.com',
-        userPhotoURL: user?.photoURL || null,
-        createdAt: new Date()
+        userPhotoURL: user?.photoURL || null
+        // createdAt is automatically added by createReport() using serverTimestamp()
       });
 
       await createReport(reportData, user?.uid);

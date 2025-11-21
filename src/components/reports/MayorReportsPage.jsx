@@ -313,6 +313,7 @@ export function MayorReportsPage() {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'Unknown';
     const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return 'Date unavailable';
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -427,6 +428,22 @@ export function MayorReportsPage() {
         try {
           const credibility = await analyzeIndividualReportCredibility(report, allReports);
           credibilityResults[report.id] = credibility;
+
+          // Auto-reject if spam or credibility score <= 30%
+          if (report.status !== 'verified' && report.status !== 'rejected') {
+            if (credibility.category === 'SPAM' || credibility.credibilityScore <= 30) {
+              try {
+                await rejectReport(
+                  report.id,
+                  `AI Auto-Rejection (Mayor Dashboard)`,
+                  `Auto-rejected: ${credibility.category === 'SPAM' ? 'Detected as spam' : `Low credibility score (${credibility.credibilityScore}%)`} - ${credibility.spamReason || ''}`
+                );
+                console.log(`Auto-rejected report ${report.id} - ${credibility.category}, score: ${credibility.credibilityScore}%`);
+              } catch (rejectError) {
+                console.error(`Failed to auto-reject report ${report.id}:`, rejectError);
+              }
+            }
+          }
         } catch (error) {
           console.error(`Error analyzing report ${report.id}:`, error);
           // Use fallback for failed analyses
@@ -530,13 +547,6 @@ export function MayorReportsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button
-            onClick={() => setShowAnnouncementModal(true)}
-            className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white"
-          >
-            <Megaphone className="w-4 h-4" />
-            Make Announcement
-          </Button>
           <Button
             variant="outline"
             onClick={exportToCSV}
@@ -974,11 +984,11 @@ export function MayorReportsPage() {
                             <Badge
                               className="text-xs"
                               style={{
-                                backgroundColor: report.status === 'verified' ? '#16a34a' : '#eab308',
+                                backgroundColor: report.status === 'verified' ? '#16a34a' : report.status === 'rejected' ? '#dc2626' : '#eab308',
                                 color: 'white'
                               }}
                             >
-                              {report.status === 'verified' ? '✓ Verified' : report.status === 'investigating' ? '🔍 Investigating' : report.status}
+                              {report.status === 'verified' ? '✓ Verified' : report.status === 'rejected' ? '× Rejected' : report.status === 'investigating' ? '🔍 Investigating' : report.status}
                             </Badge>
                           </div>
                           <p className="text-sm text-gray-800 mb-2">

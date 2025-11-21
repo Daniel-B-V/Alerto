@@ -39,6 +39,7 @@ function Button({
   variant,
   size,
   asChild = false,
+  jsx,
   ...props
 }) {
   const Comp = asChild ? Slot : "button";

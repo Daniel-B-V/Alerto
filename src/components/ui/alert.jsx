@@ -18,7 +18,7 @@ const alertVariants = cva(
   }
 )
 
-const Alert = React.forwardRef(({ className, variant, ...props }, ref) => (
+const Alert = React.forwardRef(({ className, variant, jsx, ...props }, ref) => (
   <div
     ref={ref}
     role="alert"
@@ -28,7 +28,7 @@ const Alert = React.forwardRef(({ className, variant, ...props }, ref) => (
 ))
 Alert.displayName = "Alert"
 
-const AlertDescription = React.forwardRef(({ className, ...props }, ref) => (
+const AlertDescription = React.forwardRef(({ className, jsx, ...props }, ref) => (
   <div
     ref={ref}
     className={cn("text-sm [&_p]:leading-relaxed", className)}

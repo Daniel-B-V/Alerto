@@ -29,6 +29,7 @@ function Badge({
   className,
   variant,
   asChild = false,
+  jsx,
   ...props
 }) {
   const Comp = asChild ? Slot : "span";

@@ -196,23 +196,27 @@ export const createReport = async (reportData, userId) => {
     let status = 'pending';
     let verifiedBy = null;
     let verifiedAt = null;
-    let monitoringExpiresAt = null;
+    let rejectedBy = null;
+    let rejectedAt = null;
+    let rejectionReason = null;
 
+    // Auto-verify or auto-reject based on credibility score
     if (reportData.aiCredibility !== null && reportData.aiCredibility !== undefined) {
       const confidence = reportData.aiCredibility;
 
-      // NEW: High-credibility reports enter monitoring status (not immediately verified)
-      // TESTING: Temporarily using 50% threshold (production: 70%)
-      if (confidence >= 50) {
-        status = 'monitoring';
-        // Set 2-hour monitoring window
-        const now = new Date();
-        const expiresAt = new Date(now.getTime() + (2 * 60 * 60 * 1000)); // +2 hours
-        monitoringExpiresAt = expiresAt;
-      } else if (confidence >= 40) {
-        status = 'under_review';
-      } else {
-        status = 'flagged';
+      if (confidence >= 80) {
+        // Auto-verify high credibility reports
+        status = 'verified';
+        verifiedBy = 'AI Auto-Verification';
+        verifiedAt = serverTimestamp();
+        console.log(`✅ Report auto-verified. Credibility: ${confidence}%`);
+      } else if (confidence < 30) {
+        // Auto-reject spam
+        status = 'spam';
+        rejectedBy = 'AI Auto-Moderation';
+        rejectedAt = serverTimestamp();
+        rejectionReason = `Automatically rejected due to low credibility score (${confidence}%). Possible spam or misleading content.`;
+        console.log(`🚫 Report auto-rejected as spam. Credibility: ${confidence}%`);
       }
     }
 
@@ -224,14 +228,13 @@ export const createReport = async (reportData, userId) => {
       status: status,
       verifiedBy: verifiedBy,
       verifiedAt: verifiedAt,
+      rejectedBy: rejectedBy,
+      rejectedAt: rejectedAt,
+      rejectionReason: rejectionReason,
       likes: [],
       commentsCount: 0,
       viewsCount: 0,
-
-      // Monitoring-specific fields
-      monitoringExpiresAt: monitoringExpiresAt,
       weatherSnapshot: reportData.weatherSnapshot || null, // Store weather at submission time
-      clusterVerified: false, // Tracks if verified through clustering
     };
 
     // Remove any undefined values to prevent Firestore errors (recursively)
@@ -279,146 +282,10 @@ export const createReport = async (reportData, userId) => {
 
     const docRef = await addDoc(collection(db, COLLECTIONS.REPORTS), cleanedReport);
 
-    // After creating report, check if it can form/complete a cluster
-    const reportWithId = { id: docRef.id, ...report };
-
-    // Only check for cluster if report is in monitoring status
-    if (status === 'monitoring') {
-      try {
-        await checkAndVerifyCluster(reportWithId);
-      } catch (clusterError) {
-        console.error('Cluster check failed:', clusterError);
-        // Don't fail report creation if cluster check fails
-      }
-    }
-
-    return reportWithId;
+    return { id: docRef.id, ...report };
   } catch (error) {
     console.error('Error creating report:', error);
     throw error;
-  }
-};
-
-/**
- * Check if a monitoring report can form a cluster and auto-verify
- * Requirements:
- * - 3+ reports from same barangay
- * - All reports have 70%+ credibility
- * - All reports align with current weather
- * - Within 2-hour monitoring window
- */
-export const checkAndVerifyCluster = async (newReport) => {
-  try {
-    console.log(`🔍 Checking cluster for report ${newReport.id} in ${newReport.location?.barangay}, ${newReport.location?.city}`);
-
-    // Only process if report has location data
-    if (!newReport.location?.city || !newReport.location?.barangay) {
-      console.log('⚠️ Report missing location data, skipping cluster check');
-      return;
-    }
-
-    // Query for other monitoring reports in the same barangay
-    const reportsRef = collection(db, COLLECTIONS.REPORTS);
-    const clusterQuery = query(
-      reportsRef,
-      where('status', '==', 'monitoring'),
-      where('location.city', '==', newReport.location.city),
-      where('location.barangay', '==', newReport.location.barangay)
-    );
-
-    const snapshot = await getDocs(clusterQuery);
-    const clusterReports = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    console.log(`📊 Found ${clusterReports.length} monitoring reports in ${newReport.location.barangay}`);
-
-    // Need at least 3 reports to form cluster
-    if (clusterReports.length < 3) {
-      console.log(`⏳ Not enough reports yet (${clusterReports.length}/3). Staying in monitoring.`);
-      return;
-    }
-
-    // Check if all reports have 50%+ credibility (TESTING - production: 70%)
-    const allHighCredibility = clusterReports.every(r => r.aiCredibility >= 50);
-    if (!allHighCredibility) {
-      console.log('⚠️ Not all reports have high credibility (50%+). Cluster not valid.');
-      return;
-    }
-
-    // Check if reports are within monitoring window (2 hours)
-    const now = new Date();
-    const allWithinWindow = clusterReports.every(r => {
-      const expiresAt = r.monitoringExpiresAt?.toDate ? r.monitoringExpiresAt.toDate() : new Date(r.monitoringExpiresAt);
-      return expiresAt > now;
-    });
-
-    if (!allWithinWindow) {
-      console.log('⏰ Some reports have expired monitoring window. Cluster not valid.');
-      return;
-    }
-
-    // Weather verification - check if ALL reports align with current weather
-    console.log('🌦️ Verifying cluster against current weather...');
-    const weatherVerifications = await Promise.all(
-      clusterReports.map(async (report) => {
-        try {
-          const verification = await verifyReportCredibility({
-            category: report.category || report.hazardType,
-            city: report.location.city,
-            description: report.description
-          });
-          return {
-            reportId: report.id,
-            confidence: verification.confidence,
-            passed: verification.confidence >= 50 // TESTING - production: 70
-          };
-        } catch (error) {
-          console.error(`Weather verification failed for report ${report.id}:`, error);
-          return { reportId: report.id, confidence: 0, passed: false };
-        }
-      })
-    );
-
-    const allPassWeather = weatherVerifications.every(v => v.passed);
-    const avgWeatherConfidence = weatherVerifications.reduce((sum, v) => sum + v.confidence, 0) / weatherVerifications.length;
-
-    console.log(`Weather verification results:`, weatherVerifications);
-    console.log(`Average weather confidence: ${avgWeatherConfidence}%`);
-
-    if (!allPassWeather) {
-      console.log('❌ Weather verification failed. Reports do not align with current conditions. Keeping in monitoring.');
-      return;
-    }
-
-    // All conditions met! Auto-verify the entire cluster
-    console.log(`✅ Cluster verification successful! Auto-verifying ${clusterReports.length} reports.`);
-
-    // Batch update all reports in cluster to 'verified'
-    const batch = writeBatch(db);
-    const verificationTime = serverTimestamp();
-
-    clusterReports.forEach(report => {
-      const reportRef = doc(db, COLLECTIONS.REPORTS, report.id);
-      batch.update(reportRef, {
-        status: 'verified',
-        verifiedBy: `Cluster Auto-Verification (${clusterReports.length} reports)`,
-        verifiedAt: verificationTime,
-        clusterVerified: true,
-        clusterSize: clusterReports.length,
-        weatherConfidence: Math.round(avgWeatherConfidence),
-        updatedAt: serverTimestamp()
-      });
-    });
-
-    await batch.commit();
-
-    console.log(`🎉 Successfully auto-verified cluster of ${clusterReports.length} reports in ${newReport.location.barangay}, ${newReport.location.city}`);
-
-  } catch (error) {
-    console.error('Error in checkAndVerifyCluster:', error);
-    // Don't throw - cluster check failure shouldn't prevent report creation
   }
 };
 

@@ -51,10 +51,10 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
     // Prepare CLIP parameters
     const candidateLabels = `${expectedLabel}, ${spamLabels}`;
 
-    // Call backend proxy for Gemini AI image analysis
-    console.log('🔍 Calling Gemini AI via backend:', `${BACKEND_URL}/api/huggingface/gemini-image-analysis`);
+    // Call backend proxy for Hugging Face image analysis
+    console.log('🔍 Calling Hugging Face Vision Transformer via backend:', `${BACKEND_URL}/api/huggingface/image-analysis`);
 
-    const hfResponse = await fetch(`${BACKEND_URL}/api/huggingface/gemini-image-analysis`, {
+    const hfResponse = await fetch(`${BACKEND_URL}/api/huggingface/image-analysis`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -71,7 +71,7 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
 
       // Handle model loading (503)
       if (hfResponse.status === 503 && errorData.isLoading) {
-        console.warn('⚠️ Gemini AI is loading, returning neutral confidence');
+        console.warn('⚠️ Hugging Face model is loading, returning neutral confidence');
         return {
           credible: true,
           confidence: 50,
@@ -81,12 +81,12 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
         };
       }
 
-      console.error('❌ Gemini API error:', hfResponse.status, errorData);
-      throw new Error(`Gemini API error: ${hfResponse.status}`);
+      console.error('❌ Hugging Face API error:', hfResponse.status, errorData);
+      throw new Error(`Hugging Face API error: ${hfResponse.status}`);
     }
 
     const hfData = await hfResponse.json();
-    console.log('✅ Gemini AI response received:', hfData);
+    console.log('✅ Hugging Face response received:', hfData);
 
     // Use backend's pre-calculated analysis
     const backendAnalysis = hfData[0];
@@ -154,7 +154,7 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
 
     const credible = confidence >= 40;
 
-    console.log('🔍 Gemini AI Analysis Result:', {
+    console.log('🔍 Hugging Face ViT Analysis Result:', {
       confidence,
       matchesReport,
       reportedHazard,
@@ -176,7 +176,7 @@ export const analyzeReportImages = async (imageUrls, reportData, weatherData = n
     };
 
   } catch (error) {
-    console.error('Error analyzing images with Gemini AI:', error);
+    console.error('Error analyzing images with Hugging Face:', error);
     return {
       credible: true,
       confidence: 50,

@@ -10,7 +10,7 @@ const DialogPortal = DialogPrimitive.Portal
 
 const DialogClose = DialogPrimitive.Close
 
-const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
+const DialogOverlay = React.forwardRef(({ className, jsx, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
     className={`fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 ${className || ''}`}
@@ -19,7 +19,7 @@ const DialogOverlay = React.forwardRef(({ className, ...props }, ref) => (
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
-const DialogContent = React.forwardRef(({ className, children, ...props }, ref) => (
+const DialogContent = React.forwardRef(({ className, children, jsx, ...props }, ref) => (
   <DialogPortal>
     <DialogOverlay />
     <DialogPrimitive.Content
@@ -39,6 +39,7 @@ DialogContent.displayName = DialogPrimitive.Content.displayName
 
 const DialogHeader = ({
   className,
+  jsx,
   ...props
 }) => (
   <div
@@ -50,6 +51,7 @@ DialogHeader.displayName = "DialogHeader"
 
 const DialogFooter = ({
   className,
+  jsx,
   ...props
 }) => (
   <div
@@ -59,7 +61,7 @@ const DialogFooter = ({
 )
 DialogFooter.displayName = "DialogFooter"
 
-const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
+const DialogTitle = React.forwardRef(({ className, jsx, ...props }, ref) => (
   <DialogPrimitive.Title
     ref={ref}
     className={`text-lg font-semibold leading-none tracking-tight ${className || ''}`}
@@ -68,7 +70,7 @@ const DialogTitle = React.forwardRef(({ className, ...props }, ref) => (
 ))
 DialogTitle.displayName = DialogPrimitive.Title.displayName
 
-const DialogDescription = React.forwardRef(({ className, ...props }, ref) => (
+const DialogDescription = React.forwardRef(({ className, jsx, ...props }, ref) => (
   <DialogPrimitive.Description
     ref={ref}
     className={`text-sm text-gray-500 ${className || ''}`}

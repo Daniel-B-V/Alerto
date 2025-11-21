@@ -9,6 +9,7 @@ function Separator({
   className,
   orientation = "horizontal",
   decorative = true,
+  jsx,
   ...props
 }) {
   return (

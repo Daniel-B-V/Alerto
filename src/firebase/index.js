@@ -25,7 +25,6 @@ export {
   updateReport,
   rejectReport,
   deleteReport,
-  checkAndVerifyCluster,
   toggleLike,
   getComments,
   addComment,

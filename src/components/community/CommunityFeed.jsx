@@ -294,6 +294,10 @@ export function CommunityFeed() {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'Just now';
     const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) return 'Date unavailable';
+
     const now = new Date();
     const diffInMinutes = Math.floor((now - date) / (1000 * 60));
 
@@ -590,35 +594,24 @@ export function CommunityFeed() {
                         </div>
                       </div>
 
-                      {/* Right: Monitoring + Status Badges */}
+                      {/* Right: Status Badge */}
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        {/* Monitoring Badge */}
-                        {report.status === 'monitoring' && (
-                          <Badge className="bg-blue-50 text-blue-700 border border-blue-200 text-xs px-2.5 py-1 font-medium flex items-center gap-1">
-                            <Eye className="w-3 h-3" />
-                            Monitoring
-                            {report.monitoringExpiresAt && (() => {
-                              const expiresAt = report.monitoringExpiresAt?.toDate ? report.monitoringExpiresAt.toDate() : new Date(report.monitoringExpiresAt);
-                              const now = new Date();
-                              const hoursLeft = Math.max(0, Math.ceil((expiresAt - now) / (1000 * 60 * 60)));
-                              return hoursLeft > 0 ? ` (${hoursLeft}h)` : '';
-                            })()}
-                          </Badge>
-                        )}
-
-                        {/* Status Badge - Verified, Pending, or Spam */}
+                        {/* Status Badge - Verified, Pending, Spam, or Rejected */}
                         <Badge
                           className={`text-xs px-2.5 py-1 font-medium ${
                             report.status === 'verified'
                               ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                              : report.status === 'flagged'
+                              : report.status === 'spam' || report.status === 'flagged'
                               ? 'bg-red-50 text-red-700 border border-red-200'
+                              : report.status === 'rejected'
+                              ? 'bg-orange-50 text-orange-700 border border-orange-200'
                               : 'bg-slate-50 text-slate-700 border border-slate-200'
                           }`}
                         >
-                          {report.status === 'verified' && '✓ Verified'}
-                          {report.status === 'flagged' && 'Spam'}
-                          {(report.status === 'pending' || report.status === 'under_review' || !report.status) && 'Pending'}
+                          {report.status === 'verified' ? '✓ Verified'
+                            : report.status === 'spam' || report.status === 'flagged' ? '🚫 Spam'
+                            : report.status === 'rejected' ? '✕ Rejected'
+                            : 'Pending'}
                         </Badge>
                       </div>
                     </div>

@@ -295,6 +295,7 @@ export function EnhancedReportsPage() {
   const formatTimestamp = (timestamp) => {
     if (!timestamp) return 'Unknown';
     const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return 'Date unavailable';
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);
@@ -1007,11 +1008,11 @@ export function EnhancedReportsPage() {
                             <Badge
                               className="text-xs"
                               style={{
-                                backgroundColor: report.status === 'verified' ? '#16a34a' : '#eab308',
+                                backgroundColor: report.status === 'verified' ? '#16a34a' : report.status === 'rejected' ? '#dc2626' : '#eab308',
                                 color: 'white'
                               }}
                             >
-                              {report.status === 'verified' ? '✓ Verified' : report.status === 'investigating' ? '🔍 Investigating' : report.status}
+                              {report.status === 'verified' ? '✓ Verified' : report.status === 'rejected' ? '× Rejected' : report.status === 'investigating' ? '🔍 Investigating' : report.status}
                             </Badge>
                           </div>
                           <p className="text-sm text-gray-800 mb-2">

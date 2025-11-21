@@ -55,9 +55,7 @@ export async function getPhilippinesTyphoons() {
 
     throw new Error('Failed to fetch Philippines typhoons');
   } catch (error) {
-    console.warn('Backend unavailable for Philippines typhoons:', error);
-
-    // Return empty array instead of test data fallback
+    // Silently handle backend unavailable - return empty array
     // This allows the UI to show "No Active Typhoons" state
     return [];
   }
