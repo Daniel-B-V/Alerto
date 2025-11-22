@@ -294,7 +294,7 @@ router.post('/image-analysis', async (req, res) => {
   }
 });
 
-// AI text generation endpoint (using Gemini)
+// AI text generation endpoint (using Gemini REST API directly)
 router.post('/llama-generate', async (req, res) => {
   try {
     const { prompt, maxTokens = 512 } = req.body;
@@ -308,33 +308,65 @@ router.post('/llama-generate', async (req, res) => {
       return res.status(500).json({ error: 'API key not configured' });
     }
 
-    console.log('🤖 Calling Gemini AI...');
+    console.log('🤖 Calling Gemini AI (REST API)...');
 
-    // Use Gemini API with @google/generative-ai package
-    // Try different model names that are supported
-    const modelNames = [
-      "gemini-1.5-pro",
-      "gemini-pro",
-      "models/gemini-1.5-pro",
-      "models/gemini-pro"
+    // Try different Gemini models via REST API (no SDK)
+    const models = [
+      'gemini-1.5-flash-latest',
+      'gemini-1.5-flash',
+      'gemini-1.5-pro-latest',
+      'gemini-pro'
     ];
 
     let generatedText = null;
     let lastError = null;
 
-    for (const modelName of modelNames) {
+    for (const modelName of models) {
       try {
         console.log(`Trying Gemini model: ${modelName}`);
-        const model = genAI.getGenerativeModel({ model: modelName });
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        generatedText = response.text();
+        // Use Gemini REST API directly (no SDK) - Try v1 instead of v1beta
+        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${GEMINI_API_KEY}`;
 
-        console.log(`✅ Gemini model ${modelName} worked!`);
-        break;
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: prompt
+              }]
+            }],
+            generationConfig: {
+              maxOutputTokens: maxTokens,
+              temperature: 0.2,
+              topP: 0.95,
+            }
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.warn(`Model ${modelName} failed: ${response.status} - ${errorText}`);
+          lastError = new Error(`${response.status}: ${errorText}`);
+          continue;
+        }
+
+        const data = await response.json();
+
+        // Extract text from Gemini response
+        if (data.candidates && data.candidates[0]?.content?.parts?.[0]?.text) {
+          generatedText = data.candidates[0].content.parts[0].text;
+          console.log(`✅ Gemini model ${modelName} worked!`);
+          break;
+        } else {
+          console.warn(`Model ${modelName} returned unexpected format:`, JSON.stringify(data).substring(0, 200));
+          lastError = new Error('Unexpected response format');
+        }
       } catch (err) {
-        console.warn(`Model ${modelName} failed:`, err.message);
+        console.warn(`Model ${modelName} error:`, err.message);
         lastError = err;
       }
     }
@@ -344,12 +376,14 @@ router.post('/llama-generate', async (req, res) => {
     }
 
     console.log('✅ Gemini response received');
-
     res.json({ generated_text: generatedText });
 
   } catch (error) {
     console.error('Error in Gemini generation:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      error: error.message,
+      hint: 'Make sure your GEMINI_API_KEY is from Google AI Studio (https://makersuite.google.com/app/apikey)'
+    });
   }
 });
 

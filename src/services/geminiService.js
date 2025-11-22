@@ -738,11 +738,6 @@ const fallbackSuspensionAdvisory = (weatherData, reports) => {
  * @returns {Promise<Object>} Comprehensive AI analysis with credibility, severity, patterns, and recommendations
  */
 export const analyzeCompiledLocationReports = async (locationData) => {
-  // Always use fallback - AI API not working
-  console.log('Using fallback location analysis (AI API disabled)');
-  return fallbackLocationAnalysis(locationData);
-
-  /* DISABLED - API issues
   if (!GEMINI_API_KEY || apiDisabled) {
     if (!GEMINI_API_KEY) {
       logError('Gemini API key not configured. Using fallback analysis.');
@@ -908,7 +903,6 @@ Respond in JSON format ONLY (no markdown, no extra text):
 
     return fallbackLocationAnalysis(locationData);
   }
-  */
 };
 
 /**
