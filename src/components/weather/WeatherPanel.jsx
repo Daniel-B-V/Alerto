@@ -32,7 +32,7 @@ export function WeatherPanel({ showAnnouncement = false }) {
   const notifiedConditions = useRef(new Set());
 
   // Auto-detect user location for weather display
-  const { detectedCity, isLoading: locationLoading, isAutoDetected, requestLocation } = useUserLocation();
+  const { detectedCity, isLoading: locationLoading, isAutoDetected, distanceFromCity, requestLocation } = useUserLocation();
 
   // Fetch all weather data
   const fetchWeatherData = async () => {
@@ -245,10 +245,16 @@ export function WeatherPanel({ showAnnouncement = false }) {
                 <div>
                   <p className="text-sm text-gray-600">Currently viewing weather for</p>
                   <p className="text-lg font-bold text-gray-900">{detectedCity}</p>
-                  {isAutoDetected && (
-                    <div className="flex items-center gap-1 text-xs text-green-600 mt-0.5">
+                  {isAutoDetected && distanceFromCity !== null && (
+                    <div className="flex items-center gap-1 text-xs mt-0.5">
                       <Navigation className="w-3 h-3" />
-                      <span>Auto-detected from your location</span>
+                      {distanceFromCity < 15 ? (
+                        <span className="text-green-600">Auto-detected from your location</span>
+                      ) : (
+                        <span className="text-orange-600">
+                          Nearest Batangas city ({distanceFromCity.toFixed(0)} km away)
+                        </span>
+                      )}
                     </div>
                   )}
                   {!isAutoDetected && !locationLoading && (

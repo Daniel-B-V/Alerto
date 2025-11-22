@@ -19,7 +19,18 @@ export const clearAllReports = async () => {
     // Also clear suspensions when clearing reports
     await clearAllSuspensions();
 
-    console.log('✅ All reports and suspensions cleared successfully!');
+    // Also clear announcements (mayor/governor posts in community)
+    const announcementsRef = collection(db, 'announcements');
+    const announcementsSnapshot = await getDocs(announcementsRef);
+
+    if (announcementsSnapshot.size > 0) {
+      console.log(`Found ${announcementsSnapshot.size} announcements to delete...`);
+      const announcementDeletePromises = announcementsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(announcementDeletePromises);
+      console.log('✅ All announcements cleared!');
+    }
+
+    console.log('✅ All reports, suspensions, and announcements cleared successfully!');
     return { success: true, deleted: snapshot.size };
   } catch (error) {
     console.error('❌ Error clearing reports:', error);
@@ -117,14 +128,32 @@ const generateWeatherData = (scenario = 'critical') => {
     'Tuy': { lat: 14.0167, lon: 120.7333 }
   };
 
-  // Specific weather for key cities based on scenario
+  // Specific weather for key cities based on scenario (18 cities with severe weather)
   const scenarioConfigs = {
     critical: {
+      // CRITICAL LEVEL (3 cities) - Typhoon conditions
       'Lipa City': { temp: 24, humidity: 95, windSpeed: 65, rainfall: 45, condition: 'Thunderstorm', desc: 'heavy thunderstorm with heavy rain', alert: 'critical', alertType: 'typhoon', alertMsg: 'Signal No. 2 - Severe weather conditions' },
+      'Nasugbu': { temp: 23, humidity: 94, windSpeed: 62, rainfall: 42, condition: 'Thunderstorm', desc: 'severe thunderstorm with very heavy rain', alert: 'critical', alertType: 'typhoon', alertMsg: 'Signal No. 2 - Typhoon warning in effect' },
+      'Calatagan': { temp: 24, humidity: 93, windSpeed: 60, rainfall: 40, condition: 'Thunderstorm', desc: 'typhoon-level conditions with storm surge risk', alert: 'critical', alertType: 'typhoon', alertMsg: 'Signal No. 2 - Coastal flooding warning' },
+
+      // HIGH LEVEL (7 cities) - Heavy rain and strong winds
       'Batangas City': { temp: 25, humidity: 92, windSpeed: 58, rainfall: 38, condition: 'Rain', desc: 'heavy intensity rain', alert: 'high', alertType: 'heavy_rain', alertMsg: 'Heavy rainfall advisory in effect' },
       'Tanauan City': { temp: 23, humidity: 90, windSpeed: 52, rainfall: 32, condition: 'Rain', desc: 'heavy rain with strong winds', alert: 'high', alertType: 'storm', alertMsg: 'Severe thunderstorm warning' },
+      'Lemery': { temp: 24, humidity: 91, windSpeed: 55, rainfall: 35, condition: 'Rain', desc: 'continuous heavy rainfall', alert: 'high', alertType: 'heavy_rain', alertMsg: 'Flash flood warning in effect' },
+      'Taal': { temp: 25, humidity: 89, windSpeed: 53, rainfall: 33, condition: 'Rain', desc: 'heavy rain and gusty winds', alert: 'high', alertType: 'storm', alertMsg: 'Severe weather warning' },
+      'Bauan': { temp: 24, humidity: 90, windSpeed: 54, rainfall: 34, condition: 'Rain', desc: 'heavy rainfall with flooding risk', alert: 'high', alertType: 'heavy_rain', alertMsg: 'Heavy rain warning' },
+      'San Juan': { temp: 23, humidity: 91, windSpeed: 51, rainfall: 31, condition: 'Rain', desc: 'intense rainfall', alert: 'high', alertType: 'heavy_rain', alertMsg: 'Flooding advisory in effect' },
+      'Lobo': { temp: 24, humidity: 89, windSpeed: 52, rainfall: 32, condition: 'Rain', desc: 'heavy rain showers', alert: 'high', alertType: 'storm', alertMsg: 'Heavy rainfall warning' },
+
+      // MEDIUM LEVEL (8 cities) - Moderate to heavy rain
       'Santo Tomas': { temp: 24, humidity: 88, windSpeed: 45, rainfall: 25, condition: 'Rain', desc: 'moderate to heavy rain', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall advisory' },
-      'Rosario': { temp: 24, humidity: 87, windSpeed: 42, rainfall: 22, condition: 'Rain', desc: 'moderate rain', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall warning' }
+      'Rosario': { temp: 24, humidity: 87, windSpeed: 42, rainfall: 22, condition: 'Rain', desc: 'moderate rain', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall warning' },
+      'Ibaan': { temp: 25, humidity: 86, windSpeed: 44, rainfall: 24, condition: 'Rain', desc: 'moderate rainfall with occasional heavy showers', alert: 'medium', alertType: 'rain', alertMsg: 'Rainfall advisory' },
+      'Cuenca': { temp: 24, humidity: 87, windSpeed: 43, rainfall: 23, condition: 'Rain', desc: 'moderate rain showers', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rain warning' },
+      'Malvar': { temp: 25, humidity: 85, windSpeed: 41, rainfall: 21, condition: 'Rain', desc: 'moderate rainfall', alert: 'medium', alertType: 'rain', alertMsg: 'Rain advisory in effect' },
+      'San Pascual': { temp: 24, humidity: 86, windSpeed: 42, rainfall: 22, condition: 'Rain', desc: 'moderate to heavy rain periods', alert: 'medium', alertType: 'rain', alertMsg: 'Rainfall warning' },
+      'Alitagtag': { temp: 25, humidity: 84, windSpeed: 40, rainfall: 20, condition: 'Rain', desc: 'moderate rain conditions', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall advisory' },
+      'Laurel': { temp: 24, humidity: 85, windSpeed: 41, rainfall: 21, condition: 'Rain', desc: 'moderate rain with gusty winds', alert: 'medium', alertType: 'rain', alertMsg: 'Rainfall and wind advisory' }
     },
     moderate: {
       'Tanauan City': { temp: 25, humidity: 85, windSpeed: 38, rainfall: 20, condition: 'Rain', desc: 'moderate rain', alert: 'medium', alertType: 'rain', alertMsg: 'Moderate rainfall advisory' }

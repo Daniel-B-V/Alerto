@@ -183,19 +183,15 @@ export const DatabaseSeeder = () => {
           <div className="bg-white rounded-lg p-4 border border-blue-200">
             <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
               <Info className="w-4 h-4 text-blue-600" />
-              What's Included (15 Cities):
+              What's Included (All 34 Cities - 18 with severe weather):
             </h4>
             <ul className="space-y-1 text-sm text-gray-700">
-              <li>• <strong>Lipa City:</strong> Typhoon conditions (65 km/h winds, 45mm rainfall) - CRITICAL</li>
-              <li>• <strong>Batangas City:</strong> Heavy rain (58 km/h winds, 38mm rainfall) - HIGH</li>
-              <li>• <strong>Tanauan City:</strong> Severe thunderstorm (52 km/h winds, 32mm rainfall) - HIGH</li>
-              <li>• <strong>Santo Tomas:</strong> Moderate to heavy rain (45 km/h winds, 25mm rainfall)</li>
-              <li>• <strong>Rosario:</strong> Moderate rain (42 km/h winds, 22mm rainfall)</li>
-              <li>• <strong>Taal, Ibaan, Lemery:</strong> Light to moderate rain conditions</li>
-              <li>• <strong>Balayan, Nasugbu:</strong> Cloudy with light showers</li>
-              <li>• <strong>Mabini, Bauan, Calaca:</strong> Partly cloudy to fair weather</li>
-              <li>• <strong>San Juan, San Pascual:</strong> Light rain showers</li>
+              <li>• <strong>CRITICAL (3 cities):</strong> Lipa City (65 km/h, 45mm), Nasugbu (62 km/h, 42mm), Calatagan (60 km/h, 40mm)</li>
+              <li>• <strong>HIGH (7 cities):</strong> Batangas City, Tanauan City, Lemery, Taal, Bauan, San Juan, Lobo (51-58 km/h winds, 31-38mm rainfall)</li>
+              <li>• <strong>MEDIUM (8 cities):</strong> Santo Tomas, Rosario, Ibaan, Cuenca, Malvar, San Pascual, Alitagtag, Laurel (40-45 km/h winds, 20-25mm rainfall)</li>
+              <li>• <strong>LOW (16 cities):</strong> All remaining municipalities with normal to light rain conditions</li>
             </ul>
+            <p className="text-xs text-gray-600 mt-2">Perfect for testing the suspension system with province-wide weather emergency simulation</p>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <Button
@@ -230,7 +226,7 @@ export const DatabaseSeeder = () => {
             Danger Zone
           </CardTitle>
           <CardDescription className="text-red-700">
-            Permanently delete all reports from the database
+            Permanently delete all reports, suspensions, and announcements from the database
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -252,16 +248,16 @@ export const DatabaseSeeder = () => {
           <CardTitle className="text-base">How to Use</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-gray-700">
-          <p><strong>1. Full Dataset:</strong> Best for comprehensive testing. Includes Lipa City with 45 reports (high confidence - should recommend suspension), Batangas City with 18 reports, and scattered reports across other cities. Also seeds critical weather data for 15 cities.</p>
+          <p><strong>1. Full Dataset:</strong> Best for comprehensive testing. Includes Lipa City with 45 reports (high confidence - should recommend suspension), Batangas City with 18 reports, and scattered reports across other cities. Also seeds severe weather data for 18 cities (3 critical, 7 high, 8 medium severity).</p>
 
-          <p><strong>2. High Confidence Scenario:</strong> Multi-city crisis simulation with ~110 reports across 7+ cities. Lipa City (45), Batangas City (28), Tanauan City (22), plus Santo Tomas, Rosario, Ibaan, and Taal. Includes typhoon-level weather conditions for realistic suspension testing.</p>
+          <p><strong>2. High Confidence Scenario:</strong> Multi-city crisis simulation with ~110 reports across 7+ cities. Lipa City (45), Batangas City (28), Tanauan City (22), plus Santo Tomas, Rosario, Ibaan, and Taal. Includes province-wide severe weather conditions (18 cities affected) for realistic suspension testing.</p>
 
           <p><strong>3. Medium Confidence Scenario:</strong> Test borderline cases. Tanauan City will have 15 reports with ~65-75% confidence. Includes moderate weather alerts.</p>
 
           <p><strong>4. Low Confidence Scenario:</strong> Test how the system handles scattered reports. 12 reports spread across 8 different cities (Mabini, San Juan, Balayan, Lemery, Nasugbu, Bauan, San Pascual, Calaca) with varying weather conditions from fair to light rain.</p>
 
           <p className="mt-4 pt-4 border-t text-xs text-gray-600">
-            <strong>Weather Data:</strong> Each scenario automatically seeds critical weather data for 15 cities including typhoon conditions in Lipa City (65 km/h winds, 45mm rainfall), heavy rain in Batangas City (58 km/h winds, 38mm rainfall), and various conditions in other cities. This ensures the City-by-City Weather Conditions panel and suspension advisory system work correctly.
+            <strong>Weather Data:</strong> Each scenario automatically seeds weather data for all 34 cities, with 18 cities experiencing severe conditions: 3 CRITICAL (Lipa City, Nasugbu, Calatagan with typhoon conditions 60-65 km/h winds, 40-45mm rainfall), 7 HIGH (Batangas City, Tanauan City, Lemery, Taal, Bauan, San Juan, Lobo with 51-58 km/h winds, 31-38mm rainfall), and 8 MEDIUM (Santo Tomas, Rosario, Ibaan, Cuenca, Malvar, San Pascual, Alitagtag, Laurel with 40-45 km/h winds, 20-25mm rainfall). This ensures realistic province-wide emergency simulation for the suspension advisory system.
           </p>
 
           <p className="mt-2 text-xs text-gray-600">
@@ -409,7 +405,7 @@ export const DatabaseSeeder = () => {
               <h3 className="text-xl font-bold text-gray-900">Clear All Reports</h3>
             </div>
             <p className="text-gray-600 mb-6">
-              This will DELETE ALL REPORTS from the database. This action cannot be undone. Continue?
+              This will DELETE ALL REPORTS, SUSPENSIONS, and ANNOUNCEMENTS (mayor/governor posts) from the database. This action cannot be undone. Continue?
             </p>
             <div className="flex gap-3">
               <Button

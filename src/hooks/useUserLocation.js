@@ -73,6 +73,7 @@ const findNearestCity = (lat, lon) => {
  * - isLoading: Whether location detection is in progress
  * - error: Any error that occurred during detection
  * - isAutoDetected: Whether the city was auto-detected (vs fallback)
+ * - distanceFromCity: Distance in km from user's location to the detected city (null if not available)
  * - requestLocation: Function to manually request location again
  */
 export const useUserLocation = () => {
@@ -81,6 +82,7 @@ export const useUserLocation = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isAutoDetected, setIsAutoDetected] = useState(false);
+  const [distanceFromCity, setDistanceFromCity] = useState(null);
 
   const detectLocation = (clearCache = false) => {
     // Clear cache if requested (manual detection)
@@ -119,11 +121,13 @@ export const useUserLocation = () => {
 
         setDetectedCity(nearestCity);
         setIsAutoDetected(true);
+        setDistanceFromCity(distance);
         setIsLoading(false);
 
         // Cache the result
         localStorage.setItem('alerto_last_detected_city', nearestCity);
         localStorage.setItem('alerto_detection_timestamp', Date.now().toString());
+        localStorage.setItem('alerto_distance_from_city', distance.toString());
       },
       (err) => {
         console.error('❌ Geolocation error:', err.message);
@@ -151,6 +155,7 @@ export const useUserLocation = () => {
 
     const cachedCity = localStorage.getItem('alerto_last_detected_city');
     const cacheTimestamp = localStorage.getItem('alerto_detection_timestamp');
+    const cachedDistance = localStorage.getItem('alerto_distance_from_city');
     const ONE_DAY = 24 * 60 * 60 * 1000;
 
     // Use cached city if it's less than 1 day old
@@ -158,6 +163,7 @@ export const useUserLocation = () => {
       console.log('🗄️ Using cached city:', cachedCity);
       setDetectedCity(cachedCity);
       setIsAutoDetected(false);
+      setDistanceFromCity(cachedDistance ? parseFloat(cachedDistance) : null);
       setIsLoading(false);
       return;
     }
@@ -195,6 +201,7 @@ export const useUserLocation = () => {
     isLoading,
     error,
     isAutoDetected,
+    distanceFromCity,
     requestLocation
   };
 };

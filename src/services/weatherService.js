@@ -218,7 +218,26 @@ export const getWeatherForecast = async (city = DEFAULT_LOCATION.city) => {
 // Get weather for multiple cities in Batangas Province
 export const getBatangasWeather = async (useRealTimeApi = true) => {
   try {
-    // Option to use real-time API data
+    // PRIORITY 1: Check Firestore for seeded data first (for testing)
+    const weatherRef = collection(db, 'weather');
+    const snapshot = await getDocs(weatherRef);
+
+    if (!snapshot.empty) {
+      console.log('📊 Using seeded weather data from Firestore (test data takes priority)');
+      const weatherData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        current: {
+          ...doc.data().current,
+          timestamp: doc.data().current.timestamp?.toDate ? doc.data().current.timestamp.toDate() : new Date()
+        },
+        lastUpdated: doc.data().lastUpdated?.toDate ? doc.data().lastUpdated.toDate() : new Date()
+      }));
+
+      return weatherData;
+    }
+
+    // PRIORITY 2: If no seeded data and useRealTimeApi is true, fetch from API
     if (useRealTimeApi) {
       console.log('🌐 Fetching real-time weather data from OpenWeather API for all 34 municipalities...');
 
@@ -239,26 +258,7 @@ export const getBatangasWeather = async (useRealTimeApi = true) => {
         return validResults;
       }
 
-      console.warn('⚠️ Real-time API failed, falling back to Firestore...');
-    }
-
-    // Fall back to Firestore (seeded data)
-    const weatherRef = collection(db, 'weather');
-    const snapshot = await getDocs(weatherRef);
-
-    if (!snapshot.empty) {
-      console.log('📊 Using seeded weather data from Firestore');
-      const weatherData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        current: {
-          ...doc.data().current,
-          timestamp: doc.data().current.timestamp?.toDate ? doc.data().current.timestamp.toDate() : new Date()
-        },
-        lastUpdated: doc.data().lastUpdated?.toDate ? doc.data().lastUpdated.toDate() : new Date()
-      }));
-
-      return weatherData;
+      console.warn('⚠️ Real-time API failed');
     }
 
     console.warn('⚠️ No weather data available');
